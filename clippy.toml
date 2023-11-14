@@ -1,0 +1,4 @@
+# This allows some lints in unit tests
+# Unfortunately this doesnt work for integration tests, so we use explicit allow tags there.
+allow-unwrap-in-tests = true
+allow-expect-in-tests = true

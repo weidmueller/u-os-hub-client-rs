@@ -1,0 +1,82 @@
+= u-OS Data Hub - Rust Client 🦀
+:toc:
+
+== Introduction
+
+Welcome to the u-OS Data Hub client library.
+
+This library allows to interact with the u-OS Variable Data Hub as a provider or consumer.
+Please refer to the rustdocs for more information on how to use the library.
+
+== How to add this crate to your cargo project
+
+You just need to add the following to your Cargo.toml and update the hash of the latest commit.
+```toml
+[dependencies]
+u-os-hub-client = { git = "https://github.com/weidmueller/u-os-hub-client-rs.git", rev = "LATEST_HASH" }
+```
+
+== Getting started
+
+First clone the submodules:
+
+----
+git submodule update --init
+----
+
+=== Development
+
+We use a link:https://containers.dev/implementors/spec/[development container] for development within this repository.
+
+In VS code, press `F1` and select `Dev Containers: Reopen in container` to start the development container.
+
+==== Regenerate flatbuffers
+
+```sh
+./tools/regenerate_fbs.sh
+```
+
+==== Generate documentation
+
+You can generate the crate documentation via
+
+```sh
+cargo doc
+```
+
+Then you will find the documentation under `target/doc/u_os_hub_client/index.html`.
+
+==== Run tests
+
+You can run all tests via
+
+```sh
+cargo test
+```
+
+==== Check merge request before creating it
+
+Before issuing a merge request, you can locally simulate all pipeline checks by running
+
+```sh
+./tools/check_merge_request.sh
+```
+
+This will build, lint, create docs and run audit and unit tests.
+
+==== Running examples
+
+The examples folder contains some examples of how to use the library.
+Running the examples requires a running u-OS Data Hub instance as well as a nats server and various authentication services.
+
+The easiest way to do this is to cross compile the examples and run them directly on the target device.
+
+There are convenience scripts to deploy and remove the examples from a device:
+
+```bash
+#Cross compiles and installs examples as systemd services on the target device
+./tools/build_and_deploy_hub_examples.sh <IP> <arch>
+
+#Removes the examples from the target device
+./tools/remove_hub_examples.sh <IP>
+```

@@ -1,0 +1,3 @@
+[submodule "external/u-os-hub-api"]
+	path = external/u-os-hub-api
+	url = ../u-os-hub-api.git
