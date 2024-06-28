@@ -1,0 +1,3 @@
+[submodule "external/uc-hub-api"]
+	path = external/uc-hub-api
+	url = https://srvde554.weidmueller.com/gitlab/u-control/uc-hub-api.git
