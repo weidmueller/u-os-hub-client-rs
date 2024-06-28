@@ -1,0 +1,31 @@
+{
+    "name": "uc-hub-client-rs devcontainer",
+    "dockerComposeFile": ["./docker-compose.devcontainer.yaml"],
+    "service": "devcontainer",
+    "shutdownAction": "stopCompose",
+    "workspaceFolder": "/home/vscode/workspace",
+    "customizations": {
+      "vscode": {
+        "extensions": [
+          "gruntfuggly.todo-tree",
+          "asciidoctor.asciidoctor-vscode",
+          "rust-lang.rust-analyzer",
+          "serayuzgur.crates",
+          "tamasfe.even-better-toml",
+          "vadimcn.vscode-lldb",
+          "gaborv.flatbuffers"
+        ]
+      }
+    },
+    "remoteEnv": {
+      "USER_UID": "$(id -u)",
+      "USER_GID": "$(id -g)"
+    },
+    "buildArgs": [
+      "--build-arg",
+      "USER_UID=$(id -u)",
+      "--build-arg",
+      "USER_GID=$(uid -g)"
+    ]
+}
+  

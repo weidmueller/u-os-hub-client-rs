@@ -1,0 +1,14 @@
+services:
+  devcontainer:
+    build: 
+      context: ..
+      dockerfile: ./.devcontainer/Dockerfile
+      args:
+        - USER_UID=${USER_UID:-1000}
+        - USER_GID=${USER_GID:-1000}
+    command: /bin/sh -c "while sleep 1000; do :; done"
+    user: "${USER_UID:-1000}:${USER_GID:-1000}"
+    volumes:
+      - ..:/home/vscode/workspace
+    working_dir: /home/vscode/workspace
+
