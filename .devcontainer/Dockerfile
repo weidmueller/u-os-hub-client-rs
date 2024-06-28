@@ -19,6 +19,7 @@ RUN chown ${USER_UID}:${USER_GID} ${HOME} -R
 
 RUN apt-get update \
     && apt-get install -y \
+    cmake \
     binutils-arm-linux-gnueabihf \
     binutils-aarch64-linux-gnu \
     ca-certificates \
@@ -29,6 +30,12 @@ RUN apt-get update \
     libc-dev \
     libssl-dev \
     && rm -rf /var/lib/apt/lists/*
+
+# Install flatc
+RUN git clone https://github.com/google/flatbuffers.git && cd flatbuffers \
+    && git checkout v23.5.26 \
+    && cmake -G "Unix Makefiles" && make \
+    && sudo cp /flatbuffers/flatc /usr/bin/flatc && chmod +x /usr/bin/flatc
 
 # Install Rust version
 RUN rustup install 1.70 && rustup default 1.70
