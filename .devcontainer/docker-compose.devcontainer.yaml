@@ -1,5 +1,6 @@
 services:
   devcontainer:
+    container_name: uc-hub-client-rs-dev
     build: 
       context: ..
       dockerfile: ./.devcontainer/Dockerfile
@@ -11,4 +12,9 @@ services:
     volumes:
       - ..:/home/vscode/workspace
     working_dir: /home/vscode/workspace
-
+  nats:
+    build: ./nats
+    container_name: uc-hub-client-rs-nats
+    expose:
+      - 4222
+    command: "-c /etc/nats/nats-server.conf -DV"
