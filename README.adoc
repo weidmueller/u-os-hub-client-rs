@@ -1,0 +1,78 @@
+= u-OS Data Hub - Rust Client 🦀 (internal)
+:toc:
+
+== Introduction
+
+This is the internal u-OS Data Hub client library.
+The focus of this library is high performance.
+
+This library primary contains:
+
+- Provider Handling
+- Consumer Handling (currently not implemented)
+- The generated flatbuffers of the Variable-NATS-API
+
+=== What means internal?
+
+This library is not suited for usage outside of our company.
+
+Some things are not yet documented in detail here. 
+It is assumed that the link:https://intranet.weidmueller.com/uc-architecture/uc-hub/index.html[u-OS Data Hub documentation] has been read.
+
+== Maintainers
+
+This project is currently maintained by:
+
+- Etienne Schmidt (w011279)
+- Christian Peters (w011238)
+
+Please contact the persons above for merge requests or any questions regarding this repository.
+
+== How to add this crate to your cargo project
+
+You just need to add the following to your Cargo.toml and update the hash of the latest commit.
+
+```toml
+[dependencies]
+uc-hub-client = { git = "https://srvde554.weidmueller.com/gitlab/u-control/uc-hub-client-rs.git", rev = "LATEST_HASH" }
+```
+
+== Getting started
+
+First clone the submodules:
+
+----
+git submodule update --init
+----
+
+=== Development
+
+We use a link:https://containers.dev/implementors/spec/[development container] for development within this repository.
+Other containers are also started.
+See the file link:.devcontainer/docker-compose.devcontainer.yaml[docker-compose.devcontainer.yaml] for details.
+
+In VS code, press `F1` and select `Dev Containers: Reopen in container` to start the development container.
+
+==== Regenerate flatbuffers
+
+```sh
+./tools/regenerate_fbs.sh
+```
+
+==== Generate documentation
+
+You can generate the crate documentation via
+
+```sh
+cargo doc
+```
+
+Then you will find the documentation under `target/doc/uc_hub_client/index.html`.
+
+==== Run tests
+
+You can run all tests via
+
+```sh
+cargo test
+```
