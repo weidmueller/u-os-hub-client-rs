@@ -1,0 +1,148 @@
+use crate::{
+    provider::{provider_options::AddVariablesError, VariableBuilder},
+    variable::value::Value,
+};
+
+use super::ProviderOptions;
+
+#[test]
+fn test_add_variables() {
+    // Prepare
+    let provider = ProviderOptions::new("my-provider");
+
+    let var1 = VariableBuilder::new(0, "test-var-1")
+        .value(Value::Boolean(true))
+        .build()
+        .expect("the variable should build");
+
+    let var2 = VariableBuilder::new(1, "test-var-2")
+        .value(Value::Boolean(true))
+        .build()
+        .expect("the variable should build");
+
+    // Act
+    let result = provider.add_variables(vec![var1, var2]);
+
+    // Assert
+    result.expect("This should work!");
+}
+
+#[test]
+fn test_duplicated_variable_ids_1() {
+    // Prepare
+    let var_id = 0;
+    let provider = ProviderOptions::new("my-provider");
+
+    let var1 = VariableBuilder::new(var_id, "test-var-1")
+        .value(Value::Boolean(true))
+        .build()
+        .expect("the variable should build");
+
+    let var2 = VariableBuilder::new(var_id, "test-var-2")
+        .value(Value::Boolean(true))
+        .build()
+        .expect("the variable should build");
+
+    // Act
+    let result = provider.add_variables(vec![var1, var2]);
+
+    // Assert
+    if let Err(error) = result {
+        assert_eq!(error, AddVariablesError::DuplicatedId(var_id));
+    } else {
+        panic!("This should fail");
+    }
+}
+
+#[test]
+fn test_duplicated_variable_ids_2() {
+    // Prepare
+    let var_id = 0;
+    let provider = ProviderOptions::new("my-provider");
+
+    let var1 = VariableBuilder::new(var_id, "test-var-1")
+        .value(Value::Boolean(true))
+        .build()
+        .expect("the variable should build");
+
+    let var2 = VariableBuilder::new(var_id, "test-var-2")
+        .value(Value::Boolean(true))
+        .build()
+        .expect("the variable should build");
+
+    // Act
+    let result = provider
+        .add_variables(vec![var1])
+        .expect("this should work")
+        .add_variables(vec![var2]);
+
+    // Assert
+    if let Err(error) = result {
+        assert_eq!(error, AddVariablesError::DuplicatedId(var_id));
+    } else {
+        panic!("This should fail");
+    }
+}
+
+#[test]
+fn test_duplicated_variable_names_1() {
+    // Prepare
+    let var_name = "test-var-1";
+    let provider = ProviderOptions::new("my-provider");
+
+    let var1 = VariableBuilder::new(0, var_name)
+        .value(Value::Boolean(true))
+        .build()
+        .expect("the variable should build");
+
+    let var2 = VariableBuilder::new(1, var_name)
+        .value(Value::Boolean(true))
+        .build()
+        .expect("the variable should build");
+
+    // Act
+    let result = provider.add_variables(vec![var1, var2]);
+
+    // Assert
+    if let Err(error) = result {
+        assert_eq!(
+            error,
+            AddVariablesError::DuplicatedKey(var_name.to_string())
+        );
+    } else {
+        panic!("This should fail");
+    }
+}
+
+#[test]
+fn test_duplicated_variable_names_2() {
+    // Prepare
+    let var_name = "test-var-1";
+    let provider = ProviderOptions::new("my-provider");
+
+    let var1 = VariableBuilder::new(0, var_name)
+        .value(Value::Boolean(true))
+        .build()
+        .expect("the variable should build");
+
+    let var2 = VariableBuilder::new(1, var_name)
+        .value(Value::Boolean(true))
+        .build()
+        .expect("the variable should build");
+
+    // Act
+    let result = provider
+        .add_variables(vec![var1])
+        .expect("this should work")
+        .add_variables(vec![var2]);
+
+    // Assert
+    if let Err(error) = result {
+        assert_eq!(
+            error,
+            AddVariablesError::DuplicatedKey(var_name.to_string())
+        );
+    } else {
+        panic!("This should fail");
+    }
+}

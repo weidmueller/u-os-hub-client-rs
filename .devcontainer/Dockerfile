@@ -37,15 +37,6 @@ RUN git clone https://github.com/google/flatbuffers.git && cd flatbuffers \
     && cmake -G "Unix Makefiles" && make \
     && sudo cp /flatbuffers/flatc /usr/bin/flatc && chmod +x /usr/bin/flatc
 
-# Install Rust version
-RUN rustup install 1.70 && rustup default 1.70
-
-# Install Rust dependecies
-RUN rustup component add \
-    clippy \
-    rustfmt \
-    rust-src
-
 # Install targets for cross compiling
 RUN rustup target add arm-unknown-linux-gnueabihf \
     && rustup target add aarch64-unknown-linux-gnu \

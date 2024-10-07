@@ -28,4 +28,5 @@ flatc -o ../src/generated -r --gen-object-api --bfbs-comments --rust-serialize -
 # https://github.com/google/flatbuffers/issues/8096
 # We maintain our own complete mod.rs which is copied to the generated folder.
 # !!! If you add more files to the flatc call above, you have to adjust ./mod.rs manually. !!!
+# TODO: Check the state of the issue
 cp files/mod.rs ../src/generated/mod.rs
