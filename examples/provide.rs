@@ -10,8 +10,6 @@ use uc_hub_client::{
 #[tokio::main]
 async fn main() {
     let builder = ProviderOptions::new("example-provider");
-    //.add_variables(vars)
-    //.with_credentials(..);
 
     let hub_provider = builder.register_and_connect("nats:4222").await.unwrap();
 
@@ -56,7 +54,7 @@ async fn example_service_2(hub_provider: Provider) {
     let mut data1 = dat1_builder.build().unwrap();
 
     let folder_version = VariableBuilder::new(4, "folder2/version")
-        .value(Value::String("1.0.0".to_string()))
+        .value("1.0.0".into())
         .build()
         .unwrap();
 

@@ -18,6 +18,42 @@ pub enum Value {
     Timestamp(SystemTime),
 }
 
+impl From<i64> for Value {
+    fn from(value: i64) -> Self {
+        Value::Int(value)
+    }
+}
+
+impl From<bool> for Value {
+    fn from(value: bool) -> Self {
+        Value::Boolean(value)
+    }
+}
+
+impl From<&str> for Value {
+    fn from(value: &str) -> Self {
+        Value::String(value.to_string())
+    }
+}
+
+impl From<f64> for Value {
+    fn from(value: f64) -> Self {
+        Value::Float64(value)
+    }
+}
+
+impl From<Duration> for Value {
+    fn from(value: Duration) -> Self {
+        Value::Duration(value)
+    }
+}
+
+impl From<SystemTime> for Value {
+    fn from(value: SystemTime) -> Self {
+        Value::Timestamp(value)
+    }
+}
+
 impl From<VariableValueT> for Option<Value> {
     fn from(value: VariableValueT) -> Self {
         Some(match value {
