@@ -39,7 +39,7 @@ impl<'a> Provider<'a> {
     _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
     args: &'args ProviderArgs<'args>
   ) -> flatbuffers::WIPOffset<Provider<'bldr>> {
-    let mut builder = ProviderOptions::new(_fbb);
+    let mut builder = ProviderBuilder::new(_fbb);
     if let Some(x) = args.id { builder.add_id(x); }
     builder.finish()
   }
@@ -99,19 +99,19 @@ impl Serialize for Provider<'_> {
   }
 }
 
-pub struct ProviderOptions<'a: 'b, 'b> {
+pub struct ProviderBuilder<'a: 'b, 'b> {
   fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
   start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
 }
-impl<'a: 'b, 'b> ProviderOptions<'a, 'b> {
+impl<'a: 'b, 'b> ProviderBuilder<'a, 'b> {
   #[inline]
   pub fn add_id(&mut self, id: flatbuffers::WIPOffset<&'b  str>) {
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(Provider::VT_ID, id);
   }
   #[inline]
-  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> ProviderOptions<'a, 'b> {
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> ProviderBuilder<'a, 'b> {
     let start = _fbb.start_table();
-    ProviderOptions {
+    ProviderBuilder {
       fbb_: _fbb,
       start_: start,
     }

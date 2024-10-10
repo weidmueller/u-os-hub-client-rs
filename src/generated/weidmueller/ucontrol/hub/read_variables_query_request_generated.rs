@@ -14,7 +14,7 @@ use super::*;
 pub enum ReadVariablesQueryRequestOffset {}
 #[derive(Copy, Clone, PartialEq)]
 
-/// A query request that requests a list of provider variables.
+/// A query that requests a list of variables from a single provider.
 ///
 /// The returned variables could be filtered using an array of IDs.
 pub struct ReadVariablesQueryRequest<'a> {
@@ -55,7 +55,8 @@ impl<'a> ReadVariablesQueryRequest<'a> {
     }
   }
 
-  /// An array of IDs of the provider variables to request.
+  /// An array of IDs which serves as a filter: Only those variables with the given IDs shall be returned by the provider.
+  /// When no IDs are given, we expect the provider to return all of its variables in the response.
   #[inline]
   pub fn ids(&self) -> Option<flatbuffers::Vector<'a, u32>> {
     // Safety:
