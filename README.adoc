@@ -25,6 +25,7 @@ This project is currently maintained by:
 
 - Etienne Schmidt (w011279)
 - Christian Peters (w011238)
+- Michael Bella (wm00586)
 
 Please contact the persons above for merge requests or any questions regarding this repository.
 
