@@ -7,6 +7,7 @@ use thiserror::Error;
 use crate::oauth2::{OAuth2Credentials, TokenResponse};
 
 /// Credentials for the oauth2 client credentials flow.
+#[derive(Clone)]
 pub struct OAuth2ProviderCredentials {
     pub client_id: String,
     pub client_secret: String,

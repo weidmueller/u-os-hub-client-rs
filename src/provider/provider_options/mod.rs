@@ -1,13 +1,11 @@
 //! Contains the provider builder which is need to create a provider.
-use std::{
-    collections::{BTreeMap, HashSet},
-    time::Duration,
-};
+use std::collections::{BTreeMap, HashSet};
 
-use async_nats::{Client, ConnectOptions};
+use async_nats::{AuthError, Client, ConnectOptions, Event};
+
 use thiserror::Error;
-use tokio::time::interval;
-use tracing::{debug, warn};
+use tokio::sync::broadcast::Receiver;
+use tracing::{debug, error, info};
 
 use crate::{provider::worker::ProviderWorker, variable::Variable};
 
@@ -62,79 +60,88 @@ impl ProviderOptions {
     ///
     /// If [`ProviderCredentials::Oauth2`] is used a access token will be fetched first.
     pub async fn register_and_connect(self, nats_hostname: &str) -> Result<Provider, ConnectError> {
-        let client = self.fetch_token_connect_to_nats(nats_hostname).await?;
+        let (client, nats_events) = self.connect_to_nats(nats_hostname).await?;
 
         debug!(
             "Register `{}` variables at creation time",
             self.variables.len()
         );
         let control_tx =
-            ProviderWorker::new(client, self.provider_id, self.variables, true).await?;
+            ProviderWorker::new(client, nats_events, self.provider_id, self.variables, true)
+                .await?;
 
         Ok(Provider::new(control_tx))
     }
 
-    /// Fetch an access token and connect to nats
+    /// Connect to nats
     ///
-    /// This will be repeated because the provider could starts before the oauth2 provider and the nats server.
-    ///
-    /// If it fails, it is repeated once every 5 seconds, 20 times in total.
-    async fn fetch_token_connect_to_nats(
+    /// The access token will be fetched be the nats client (inside auth_callback).
+    async fn connect_to_nats(
         &self,
         nats_hostname: &str,
-    ) -> Result<Client, ConnectError> {
-        let mut retry_interval = interval(Duration::from_secs(5));
-        let mut attempts = 0;
-        loop {
-            // Wait for next try (The first tick completes immediately)
-            retry_interval.tick().await;
-            match Self::fetch_token_and_connect_to_nats_once(self, nats_hostname).await {
-                Ok(result) => return Ok(result),
-                Err(e) => {
-                    warn!(
-                        "Connection to u-OS Data Hub failed: {}. Attempt: {}",
-                        e,
-                        attempts + 1
-                    );
-                    if attempts >= 19 {
-                        return Err(e);
+    ) -> Result<(Client, Receiver<Event>), ConnectError> {
+        let token_endpoint = self
+            .oauth2_endpoint
+            .clone()
+            .unwrap_or("https://127.0.0.1/oauth2/token".to_string());
+        let client = match self.credentials.clone() {
+            Some(ProviderCredentials::Oauth2(creds)) => ConnectOptions::with_auth_callback({
+                move |_| {
+                    info!("Requesting token for client id: {}", creds.client_id);
+                    let creds = creds.clone();
+                    let token_endpoint = token_endpoint.clone();
+                    async move {
+                        let result = creds.request_token(token_endpoint.clone()).await;
+
+                        match result {
+                            Ok(token_response) => {
+                                let mut auth = async_nats::Auth::new();
+                                auth.token = Some(token_response.access_token);
+                                Ok(auth)
+                            }
+                            Err(e) => {
+                                error!("Error requesting token: {:?}", e);
+                                Err(AuthError::new("Error requesting token".to_string()))
+                            }
+                        }
                     }
-                    attempts += 1;
                 }
-            }
-        }
-    }
-
-    /// Fetch an access token and connect to nats
-    async fn fetch_token_and_connect_to_nats_once(
-        &self,
-        nats_hostname: &str,
-    ) -> Result<Client, ConnectError> {
-        let client = ConnectOptions::new().name(&self.provider_id);
-
-        let client = match &self.credentials {
-            Some(ProviderCredentials::Oauth2(creds)) => client.token(
-                creds
-                    .request_token(
-                        &self
-                            .oauth2_endpoint
-                            .clone()
-                            .unwrap_or("https://127.0.0.1/oauth2/token".to_string()),
-                    )
-                    .await
-                    .map_err(ConnectError::OAuth)?
-                    .access_token,
-            ),
-            Some(ProviderCredentials::Token(token)) => client.token(token.to_string()),
-            None => client,
+            })
+            .retry_on_initial_connect(),
+            None => ConnectOptions::new(),
         };
 
+        let (event_sender, event_receiver) = tokio::sync::broadcast::channel(100);
+
         let client = client
+            .name(&self.provider_id)
             .custom_inbox_prefix(format!("_INBOX.{}", self.provider_id))
+            .event_callback(move |event| {
+                let event_sender = event_sender.clone();
+                async move {
+                    event_sender.send(event).ok();
+                }
+            })
+            .reconnect_delay_callback(|attempts| {
+                // The first attempt should be immediate, then we increase the delay.
+                // The delay is increased so that not so many tokens are fetched.
+                let duration_sec = match attempts {
+                    1 => 0,
+                    2..=10 => 5,
+                    11..=20 => 30,
+                    _ => 300,
+                };
+
+                info!(
+                    "Reconnect in {}s, current attempt: {attempts}",
+                    duration_sec,
+                );
+                std::time::Duration::from_secs(duration_sec)
+            })
             .connect(nats_hostname)
             .await
             .map_err(|x| ConnectError::Nats(Box::new(x)))?;
-        Ok(client)
+        Ok((client, event_receiver))
     }
 }
 
@@ -172,11 +179,10 @@ pub fn check_for_duplicates(
 /// The ProviderCredentials enum is used to store the credentials of the provider.
 /// Oauth2 is used to store the client credentials direct.
 /// Token is used to store a token.
+#[derive(Clone)]
 pub enum ProviderCredentials {
     /// Stores oauth2 client credentials
     Oauth2(OAuth2ProviderCredentials),
-    /// Stores an access token
-    Token(String),
 }
 
 /// Error that can occur when adding a variable.
@@ -202,6 +208,9 @@ pub enum ConnectError {
     /// Indicates an error with the registration at the registry
     #[error("Error while sending the provider definition: `{0}`")]
     UpdateProviderDefinition(UpdateProviderDefinitionError),
+    /// Indicates that a connection to the data hub timed out after 5 minutes
+    #[error("Connection to the data hub timed out after 5 minutes")]
+    Timeout,
 }
 
 /// Error that can occur when updating a provider definition to the registry.

@@ -8,14 +8,18 @@
 //! It automatically responds to read requests.
 use std::collections::{BTreeMap, HashSet};
 
-use async_nats::{Client, Message, Subscriber};
+use async_nats::{Client, Event, Message, Subscriber};
 use futures::StreamExt;
 
 use tokio::{
     select,
-    sync::mpsc::{self, Receiver, Sender},
+    sync::{
+        broadcast::{self, error::RecvError},
+        mpsc,
+    },
+    time::timeout,
 };
-use tracing::{debug, info, trace};
+use tracing::{debug, error, info, trace};
 
 use crate::{
     generated::weidmueller::ucontrol::hub::{
@@ -38,19 +42,29 @@ use super::{
     UpdateVariableValuesError,
 };
 
+/// The state of the provider worker.
+#[derive(Debug, Copy, Clone)]
+pub enum State {
+    Connecting,
+    Registering,
+    Running,
+}
+
 #[derive(Debug)]
 pub(super) struct ProviderWorker {
     client: Client,
     provider_id: String,
+    state: State,
+    state_changed_sender: tokio::sync::broadcast::Sender<State>,
     /// The receiver of the commands from the [`crate::provider::Provider`] instances.
-    command_channel: Receiver<ProviderCommand>,
+    command_channel: mpsc::Receiver<ProviderCommand>,
     /// Stores the variables with fast access.
     /// A BTreeMap is used instead of a HashMap because it is always deterministic.
     variables: BTreeMap<u32, Variable>,
     /// Stores the senders for the write commands.
     /// Each sender will be notified about write commands for it's subscribed variable ids.
     /// A variable can't be mapped to multiple senders to avoid conflicts.
-    write_event_notiers: Vec<(HashSet<u32>, Sender<Vec<Variable>>)>,
+    write_event_notiers: Vec<(HashSet<u32>, mpsc::Sender<Vec<Variable>>)>,
     query_subscription: Subscriber,
     write_subscription: Subscriber,
     registry_up: Subscriber,
@@ -61,10 +75,11 @@ impl ProviderWorker {
     #[allow(clippy::new_ret_no_self)] // we return the control, because this runs in a separate thread
     pub(super) async fn new(
         client: Client,
+        nats_events: broadcast::Receiver<Event>,
         provider_id: String,
         variables: BTreeMap<u32, Variable>,
         wait_for_success: bool,
-    ) -> Result<Sender<ProviderCommand>, ConnectError> {
+    ) -> Result<mpsc::Sender<ProviderCommand>, ConnectError> {
         let (tx, rx) = mpsc::channel(100);
         let query_subscription = client
             .subscribe(format!("v1.loc.{}.vars.qry.read", provider_id))
@@ -79,8 +94,12 @@ impl ProviderWorker {
             .await
             .map_err(|x| ConnectError::Nats(Box::new(x)))?;
 
+        let (state_sender, mut state_receiver) = tokio::sync::broadcast::channel(1);
+
         let mut created = ProviderWorker {
             client: client.clone(),
+            state: State::Connecting,
+            state_changed_sender: state_sender,
             provider_id: provider_id.clone(),
             command_channel: rx,
             variables,
@@ -90,15 +109,31 @@ impl ProviderWorker {
             registry_up,
         };
 
-        created
-            .update_definition(wait_for_success)
+        created.enter_state(State::Connecting).await;
+
+        tokio::spawn(async move { created.run(nats_events).await });
+
+        if wait_for_success {
+            // Wait until the provider is registered or timeout after 5 minutes
+            timeout(tokio::time::Duration::from_secs(300), async {
+                loop {
+                    if let Ok(State::Running) = state_receiver.recv().await {
+                        break;
+                    }
+                }
+            })
             .await
-            .map_err(ConnectError::UpdateProviderDefinition)?;
+            .map_err(|_| ConnectError::Timeout)?;
+        }
 
-        info!("u-OS Data Hub provider `{provider_id}` successfully registered");
-
-        tokio::spawn(async move { created.run().await });
         Ok(tx)
+    }
+
+    /// Changes the state of the provider.
+    pub async fn enter_state(&mut self, new_state: State) {
+        debug!("Provider is {new_state:?}");
+        self.state_changed_sender.send(new_state).ok();
+        self.state = new_state;
     }
 
     /// Registers or updates a new provider definition to the registry.
@@ -164,59 +199,147 @@ impl ProviderWorker {
     }
 
     /// The loop of the worker task.
-    /// It waits for internal commands and nats messages and reacts on them.
-    async fn run(mut self) {
+    ///
+    /// It handles the different state events and can be interrupted by nats events.
+    async fn run(mut self, mut nats_events: broadcast::Receiver<Event>) {
         loop {
-            // Wait for a internal command or nats message
-            let msg = select! {
-                msg = self.command_channel.recv() => {
-                    match msg {
-                        Some(msg) => msg,
-                        None => break, // channel has been dropped
-                    }
+            match &self.state {
+                State::Connecting => {
+                    let msg = nats_events.recv().await;
+                    self.handle_nats_event(msg).await;
                 }
-                Some(msg) = self.query_subscription.next() => {
-                    ProviderCommand::Query(msg)
+                State::Registering => {
+                    select! {
+                        // run_state_registering() must be safe to abort on every "await" (by select)
+                        _ = self.run_state_registering() => {},
+                        msg = nats_events.recv() => self.handle_nats_event(msg).await,
+                    };
                 }
-                Some(msg) = self.write_subscription.next() => {
-                    ProviderCommand::HandleWrite(msg)
+                State::Running => {
+                    select! {
+                        command = self.run_state_running_receive_command() => self.run_state_running_handle_command(command).await,
+                        msg = nats_events.recv() => self.handle_nats_event(msg).await,
+                    };
                 }
-                _ = self.registry_up.next() => {
-                    ProviderCommand::Register
-                }
-            };
+            }
+        }
+    }
 
-            // React in the command
-            match msg {
-                ProviderCommand::AddVariables(vars, result_tx) => {
-                    result_tx.send(self.add_variables(vars, true).await).ok();
+    /// Handles the nats events.
+    async fn handle_nats_event(&mut self, msg: Result<Event, RecvError>) {
+        match msg {
+            Ok(Event::Connected) => {
+                debug!("Connected to NATS");
+                self.enter_state(State::Registering).await;
+            }
+            Ok(Event::Disconnected) => {
+                debug!("Disconnected from NATS");
+                self.enter_state(State::Connecting).await;
+            }
+            Ok(Event::LameDuckMode) => {
+                debug!("NATS server entered lame duck mode");
+            }
+            Ok(Event::SlowConsumer(_)) => {
+                debug!("Slow consumer detected");
+            }
+            Ok(Event::ServerError(error)) => {
+                debug!("Server Error: {:?}", error);
+            }
+            Ok(Event::ClientError(error)) => {
+                debug!("Client Error: {:?}", error);
+            }
+            Err(error) => {
+                debug!("NATS event channel closed, error: {:?}", error);
+            }
+        }
+    }
+
+    /// Handler for the registering state
+    ///
+    /// Waits for the provider to be registered.
+    ///
+    /// run_state_registering() must be safe to abort on every "await" (by select)
+    async fn run_state_registering(&mut self) {
+        let result = self
+            .update_definition(true)
+            .await
+            .map_err(ConnectError::UpdateProviderDefinition);
+
+        if let Err(e) = result {
+            // TODO: refactor the error handling, should this be returned on connect? Is this even possible because of the further checks?
+            error!(
+                "u-OS Data Hub provider `{}` failed to register: {:?}",
+                self.provider_id, e
+            );
+            panic!(
+                "u-OS Data Hub provider `{}` failed to register: {:?}",
+                self.provider_id, e
+            );
+        }
+
+        info!(
+            "u-OS Data Hub provider `{}` successfully registered",
+            self.provider_id
+        );
+        self.enter_state(State::Running).await;
+    }
+
+    /// Receive commands for the worker task.
+    async fn run_state_running_receive_command(&mut self) -> ProviderCommand {
+        let msg = select! {
+            msg = self.command_channel.recv() => {
+                match msg {
+                    Some(msg) => msg,
+                    None => panic!("channel has been dropped"), // TODO: Implement shutdown of the provider
                 }
-                ProviderCommand::RemoveVariables(vars, result_tx) => {
-                    result_tx.send(self.remove_variables(vars, true).await).ok();
-                }
-                ProviderCommand::UpdateValues(vars, result_tx) => {
-                    result_tx.send(self.update_variable_values(vars).await).ok();
-                }
-                ProviderCommand::Query(msg) => {
-                    self.handle_variable_read_query(msg).await;
-                }
-                ProviderCommand::Register => {
-                    // This will be called on registry UP event.
-                    // This thread crashes when the register fails.
-                    // This can only fail on a nats error (e.g Permissions violation)
-                    // because there were no changes to the register beforce (e.g. first register or definition change).
-                    self.update_definition(true)
-                        .await
-                        .expect("should register provider");
-                }
-                ProviderCommand::Subscribe(vars, result_tx) => {
-                    result_tx
-                        .send(self.create_write_event_notifier(vars).await)
-                        .ok();
-                }
-                ProviderCommand::HandleWrite(msg) => {
-                    self.handle_write(msg).await;
-                }
+            }
+            Some(msg) = self.query_subscription.next() => {
+                ProviderCommand::Query(msg)
+            }
+            Some(msg) = self.write_subscription.next() => {
+                ProviderCommand::HandleWrite(msg)
+            }
+            _ = self.registry_up.next() => {
+                ProviderCommand::Register
+            }
+        };
+        msg
+    }
+
+    /// Handler for the running state
+    ///
+    /// Executes commands for the worker task.
+    async fn run_state_running_handle_command(&mut self, command: ProviderCommand) {
+        // React in the command
+        match command {
+            ProviderCommand::AddVariables(vars, result_tx) => {
+                result_tx.send(self.add_variables(vars, true).await).ok();
+            }
+            ProviderCommand::RemoveVariables(vars, result_tx) => {
+                result_tx.send(self.remove_variables(vars, true).await).ok();
+            }
+            ProviderCommand::UpdateValues(vars, result_tx) => {
+                result_tx.send(self.update_variable_values(vars).await).ok();
+            }
+            ProviderCommand::Query(msg) => {
+                self.handle_variable_read_query(msg).await;
+            }
+            ProviderCommand::Register => {
+                // This will be called on registry UP event.
+                // This thread crashes when the register fails.
+                // This can only fail on a nats error (e.g Permissions violation)
+                // because there were no changes to the register beforce (e.g. first register or definition change).
+                self.update_definition(true)
+                    .await
+                    .expect("should register provider");
+            }
+            ProviderCommand::Subscribe(vars, result_tx) => {
+                result_tx
+                    .send(self.create_write_event_notifier(vars).await)
+                    .ok();
+            }
+            ProviderCommand::HandleWrite(msg) => {
+                self.handle_write(msg).await;
             }
         }
     }
