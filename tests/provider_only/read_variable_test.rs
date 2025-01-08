@@ -21,12 +21,12 @@ async fn test_read_all_variables() {
     let _fake_registry = create_fake_registry(test_nats_client.clone(), PROVIDER_ID.to_string());
 
     let provider_builder = ProviderOptions::new(PROVIDER_ID);
-    let var1 = VariableBuilder::new(0, "my-folder/my-variable-1")
+    let var1 = VariableBuilder::new(0, "my-folder.my-variable-1")
         .value(Value::Boolean(true))
         .build()
         .expect("variable should build");
 
-    let var2 = VariableBuilder::new(1, "my-folder/my-variable-2")
+    let var2 = VariableBuilder::new(1, "my-folder.my-variable-2")
         .value(Value::String("Test-String123".to_string()))
         .build()
         .expect("variable should build");
@@ -107,12 +107,12 @@ async fn test_read_one_variable() {
     let _fake_registry = create_fake_registry(test_nats_client.clone(), PROVIDER_ID.to_string());
 
     let provider_builder = ProviderOptions::new(PROVIDER_ID);
-    let var1 = VariableBuilder::new(0, "my-folder/my-variable-1")
+    let var1 = VariableBuilder::new(0, "my-folder.my-variable-1")
         .value(Value::Boolean(true))
         .build()
         .expect("variable should build");
 
-    let var2 = VariableBuilder::new(1, "my-folder/my-variable-2")
+    let var2 = VariableBuilder::new(1, "my-folder.my-variable-2")
         .value(Value::String("Test-String123".to_string()))
         .build()
         .expect("variable should build");

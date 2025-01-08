@@ -19,9 +19,9 @@ fn test_missing_value_error() {
 #[rstest]
 #[case("Test", false)]
 #[case("test", true)]
-#[case("my-folder/my-var-1", true)]
-#[case("my-folder/my_var_1", false)]
-#[case("MY-folder/my-var-1", false)]
+#[case("my-folder.my-var-1", true)]
+#[case("my-folder.my_var_1", false)]
+#[case("MY-folder.my-var-1", false)]
 #[case(
     "this-is-a-very-long-variable-key-this-is-not-allowed-but-why-this-looks-beautiful-or-not",
     false

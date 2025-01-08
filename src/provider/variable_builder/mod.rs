@@ -56,10 +56,10 @@ impl VariableBuilder {
     /// Tries to build the variable.
     ///
     /// It will return an error if any of the required fields are missing or if the key is invalid:
-    /// Valid keys fit this regex: "^[a-z]([a-z0-9-]{0,61}[a-z0-9])?(\/[a-z]([a-z0-9-]{0,61}[a-z0-9])?)*$"
+    /// Valid keys fit this regex: "^[a-z]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z]([a-z0-9-]{0,61}[a-z0-9])?)*$"
     pub fn build(self) -> Result<Variable, VariableBuildError> {
         let key_pattern =
-            Regex::new(r"^[a-z]([a-z0-9-]{0,61}[a-z0-9])?(\/[a-z]([a-z0-9-]{0,61}[a-z0-9])?)*$")
+            Regex::new(r"^[a-z]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z]([a-z0-9-]{0,61}[a-z0-9])?)*$")
                 .expect("this regex should be valid");
 
         if !key_pattern.is_match(self.key.as_str()) {
