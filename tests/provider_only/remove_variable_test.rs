@@ -29,12 +29,12 @@ async fn test_remove_variables() {
         .unwrap();
 
     let provider_builder = ProviderOptions::new(PROVIDER_ID);
-    let var1 = VariableBuilder::new(0, "my-folder.my-variable-1")
+    let var1 = VariableBuilder::new(0, "my_folder.my_variable_1")
         .value(Value::Boolean(true))
         .build()
         .expect("variable should build");
 
-    let var2 = VariableBuilder::new(1, "my-folder.my-variable-2")
+    let var2 = VariableBuilder::new(1, "my_folder.my_variable_2")
         .value(Value::Boolean(true))
         .build()
         .expect("variable should build");
@@ -69,7 +69,7 @@ async fn test_remove_variables() {
             get_provider_name_from_subject(&msg.subject).expect("should be there set"),
             PROVIDER_ID
         );
-        assert_eq!(provider_definition.fingerprint, 5553548704167900626);
+        assert_eq!(provider_definition.fingerprint, 7344710243453588040);
 
         let recv_var_defs = provider_definition
             .variable_definitions

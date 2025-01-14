@@ -29,7 +29,7 @@ async fn test_write_variable_command() {
         .unwrap();
 
     let provider_builder = ProviderOptions::new(PROVIDER_ID);
-    let var1 = VariableBuilder::new(0, "my-folder.my-variable-1-rw")
+    let var1 = VariableBuilder::new(0, "my_folder.my_variable_1_rw")
         .read_write()
         .value(Value::Boolean(true))
         .build()

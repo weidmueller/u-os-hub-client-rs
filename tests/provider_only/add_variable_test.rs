@@ -29,12 +29,12 @@ async fn test_add_variables() {
         .unwrap();
 
     let provider_builder = ProviderOptions::new(PROVIDER_ID);
-    let var1 = VariableBuilder::new(0, "my-folder.my-variable-1")
+    let var1 = VariableBuilder::new(0, "my_folder.my_variable_1")
         .value(Value::Boolean(true))
         .build()
         .expect("variable should build");
 
-    let var2 = VariableBuilder::new(1, "my-folder.my-variable-2")
+    let var2 = VariableBuilder::new(1, "my_folder.my_variable_2")
         .value(Value::Boolean(true))
         .build()
         .expect("variable should build");
@@ -52,7 +52,7 @@ async fn test_add_variables() {
         .expect("Provider definition should be published");
 
     // act
-    let var3 = VariableBuilder::new(2, "my-folder.my-variable-3")
+    let var3 = VariableBuilder::new(2, "my_folder.my_variable_3")
         .value(Value::Boolean(true))
         .build()
         .expect("variable should build");
@@ -74,7 +74,7 @@ async fn test_add_variables() {
             get_provider_name_from_subject(&msg.subject).expect("should be there set"),
             PROVIDER_ID
         );
-        assert_eq!(provider_definition.fingerprint, 3082205643370818261);
+        assert_eq!(provider_definition.fingerprint, 11655556113256031081);
 
         let recv_var_defs = provider_definition
             .variable_definitions
@@ -107,12 +107,12 @@ async fn test_add_variables_fail_on_duplicates() {
         .unwrap();
 
     let provider_builder = ProviderOptions::new(PROVIDER_ID);
-    let var1 = VariableBuilder::new(0, "my-folder.my-variable-1")
+    let var1 = VariableBuilder::new(0, "my_folder.my_variable_1")
         .value(Value::Boolean(true))
         .build()
         .expect("variable should build");
 
-    let var2 = VariableBuilder::new(1, "my-folder.my-variable-2")
+    let var2 = VariableBuilder::new(1, "my_folder.my_variable_2")
         .value(Value::Boolean(true))
         .build()
         .expect("variable should build");
@@ -131,14 +131,14 @@ async fn test_add_variables_fail_on_duplicates() {
 
     // act
     // Variable with duplicated id
-    let var_duplicated_id = VariableBuilder::new(1, "my-folder.my-variable-3")
+    let var_duplicated_id = VariableBuilder::new(1, "my_folder.my_variable_3")
         .value(Value::Boolean(true))
         .build()
         .expect("variable should build");
     let result_duplicated_id = provider.add_variables(&[var_duplicated_id.clone()]).await;
 
     // Variable with duplicated key
-    let var_duplicated_key = VariableBuilder::new(2, "my-folder.my-variable-2")
+    let var_duplicated_key = VariableBuilder::new(2, "my_folder.my_variable_2")
         .value(Value::Boolean(true))
         .build()
         .expect("variable should build");
@@ -152,7 +152,7 @@ async fn test_add_variables_fail_on_duplicates() {
     }
 
     if let Err(AddVariablesError::DuplicatedKey(key)) = result_duplicated_key {
-        assert_eq!(key, "my-folder.my-variable-2");
+        assert_eq!(key, "my_folder.my_variable_2");
     } else {
         panic!("Adding variables with duplicated keys should fail")
     }

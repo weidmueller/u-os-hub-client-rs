@@ -39,12 +39,12 @@ async fn test_register_provider_with_variables() {
 
     // act
     let provider_builder = ProviderOptions::new(PROVIDER_ID);
-    let var1 = VariableBuilder::new(0, "my-folder.my-variable-1")
+    let var1 = VariableBuilder::new(0, "my_folder.my_variable_1")
         .value(Value::Boolean(true))
         .build()
         .expect("variable should build");
 
-    let var2 = VariableBuilder::new(1, "my-folder.my-variable-2")
+    let var2 = VariableBuilder::new(1, "my_folder.my_variable_2")
         .value(Value::Boolean(true))
         .build()
         .expect("variable should build");
@@ -75,7 +75,7 @@ async fn test_register_provider_with_variables() {
             get_provider_name_from_subject(&msg.subject).expect("should be there set"),
             PROVIDER_ID
         );
-        assert_eq!(provider_definition.fingerprint, 5943008732754661544);
+        assert_eq!(provider_definition.fingerprint, 17906070203590430274);
 
         let recv_var_defs = provider_definition
             .variable_definitions
@@ -105,12 +105,12 @@ async fn test_resend_provider_definition_on_registry_up_event() {
 
     // act
     let provider_builder = ProviderOptions::new(PROVIDER_ID);
-    let var1 = VariableBuilder::new(0, "my-folder.my-variable-1")
+    let var1 = VariableBuilder::new(0, "my_folder.my_variable_1")
         .value(Value::Boolean(true))
         .build()
         .expect("variable should build");
 
-    let var2 = VariableBuilder::new(1, "my-folder.my-variable-2")
+    let var2 = VariableBuilder::new(1, "my_folder.my_variable_2")
         .value(Value::Boolean(true))
         .build()
         .expect("variable should build");
@@ -147,7 +147,7 @@ async fn test_resend_provider_definition_on_registry_up_event() {
             get_provider_name_from_subject(&msg.subject).expect("should be there set"),
             PROVIDER_ID
         );
-        assert_eq!(provider_definition.fingerprint, 5943008732754661544);
+        assert_eq!(provider_definition.fingerprint, 17906070203590430274);
 
         let recv_var_defs = provider_definition
             .variable_definitions

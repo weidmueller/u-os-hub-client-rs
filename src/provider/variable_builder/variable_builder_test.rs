@@ -7,7 +7,7 @@ use super::VariableBuilder;
 #[test]
 fn test_missing_value_error() {
     // Prepare
-    let my_var = VariableBuilder::new(0, "my-var");
+    let my_var = VariableBuilder::new(0, "my_var");
 
     // Act
     let result = my_var.build();
@@ -17,13 +17,24 @@ fn test_missing_value_error() {
 }
 
 #[rstest]
-#[case("Test", false)]
+#[case("Test", true)]
+#[case("teSt", true)]
+#[case("tesT", true)]
 #[case("test", true)]
-#[case("my-folder.my-var-1", true)]
+#[case("_test", true)]
+#[case("_tEst", true)]
+#[case("_test_", true)]
+#[case("my-folder.my-var-1", false)]
 #[case("my-folder.my_var_1", false)]
-#[case("MY-folder.my-var-1", false)]
+#[case("my_folder.my_var_1", true)]
+#[case("my_folder.my_var_1_", true)]
+#[case("_my_Folder.my_var_1", true)]
+#[case("_my_Folder.my_var_1_", true)]
+#[case("MY_folder.my_var_1", true)]
+#[case("MY_folder.my_var_1__", true)]
+#[case("MY_folder.my_var!1", false)]
 #[case(
-    "this-is-a-very-long-variable-key-this-is-not-allowed-but-why-this-looks-beautiful-or-not",
+    "this_is_a_very_long_variable_key_this_is_not_allowed_but_why_this_looks_beautiful_or_not",
     false
 )]
 fn test_key_validation(#[case] key: String, #[case] valid: bool) {

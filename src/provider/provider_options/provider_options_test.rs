@@ -10,12 +10,12 @@ fn test_add_variables() {
     // Prepare
     let provider = ProviderOptions::new("my-provider");
 
-    let var1 = VariableBuilder::new(0, "test-var-1")
+    let var1 = VariableBuilder::new(0, "test_var_1")
         .value(Value::Boolean(true))
         .build()
         .expect("the variable should build");
 
-    let var2 = VariableBuilder::new(1, "test-var-2")
+    let var2 = VariableBuilder::new(1, "test_var_2")
         .value(Value::Boolean(true))
         .build()
         .expect("the variable should build");
@@ -33,12 +33,12 @@ fn test_duplicated_variable_ids_1() {
     let var_id = 0;
     let provider = ProviderOptions::new("my-provider");
 
-    let var1 = VariableBuilder::new(var_id, "test-var-1")
+    let var1 = VariableBuilder::new(var_id, "test_var_1")
         .value(Value::Boolean(true))
         .build()
         .expect("the variable should build");
 
-    let var2 = VariableBuilder::new(var_id, "test-var-2")
+    let var2 = VariableBuilder::new(var_id, "test_var_2")
         .value(Value::Boolean(true))
         .build()
         .expect("the variable should build");
@@ -60,12 +60,12 @@ fn test_duplicated_variable_ids_2() {
     let var_id = 0;
     let provider = ProviderOptions::new("my-provider");
 
-    let var1 = VariableBuilder::new(var_id, "test-var-1")
+    let var1 = VariableBuilder::new(var_id, "test_var_1")
         .value(Value::Boolean(true))
         .build()
         .expect("the variable should build");
 
-    let var2 = VariableBuilder::new(var_id, "test-var-2")
+    let var2 = VariableBuilder::new(var_id, "test_var_2")
         .value(Value::Boolean(true))
         .build()
         .expect("the variable should build");
@@ -87,7 +87,7 @@ fn test_duplicated_variable_ids_2() {
 #[test]
 fn test_duplicated_variable_names_1() {
     // Prepare
-    let var_name = "test-var-1";
+    let var_name = "test_var_1";
     let provider = ProviderOptions::new("my-provider");
 
     let var1 = VariableBuilder::new(0, var_name)
@@ -117,7 +117,7 @@ fn test_duplicated_variable_names_1() {
 #[test]
 fn test_duplicated_variable_names_2() {
     // Prepare
-    let var_name = "test-var-1";
+    let var_name = "test_var_1";
     let provider = ProviderOptions::new("my-provider");
 
     let var1 = VariableBuilder::new(0, var_name)
