@@ -23,11 +23,11 @@ async fn main() {
 }
 
 async fn example_service_1(hub_provider: Provider) {
-    let dat1_builder = VariableBuilder::new(0, "folder1/data1").value(Value::Boolean(false));
+    let dat1_builder = VariableBuilder::new(0, "folder1.data1").value(Value::Boolean(false));
 
     let mut data1 = dat1_builder.build().unwrap();
 
-    let folder_version = VariableBuilder::new(1, "folder1/version")
+    let folder_version = VariableBuilder::new(1, "folder1.version")
         .value(Value::String("1.0.0".to_string()))
         .build()
         .unwrap();
@@ -49,11 +49,11 @@ async fn example_service_1(hub_provider: Provider) {
 }
 
 async fn example_service_2(hub_provider: Provider) {
-    let dat1_builder = VariableBuilder::new(3, "folder2/data1").value(Value::Boolean(true));
+    let dat1_builder = VariableBuilder::new(3, "folder2.data1").value(Value::Boolean(true));
 
     let mut data1 = dat1_builder.build().unwrap();
 
-    let folder_version = VariableBuilder::new(4, "folder2/version")
+    let folder_version = VariableBuilder::new(4, "folder2.version")
         .value("1.0.0".into())
         .build()
         .unwrap();
