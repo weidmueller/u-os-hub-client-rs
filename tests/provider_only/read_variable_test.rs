@@ -10,7 +10,7 @@ use uc_hub_client::{
 use crate::utils::create_fake_registry;
 
 const NATS_HOSTNAME: &str = "nats:4222";
-const PROVIDER_ID: &str = "read-variable-test";
+const PROVIDER_ID: &str = "read_variable_test";
 
 #[tokio::test]
 #[serial]

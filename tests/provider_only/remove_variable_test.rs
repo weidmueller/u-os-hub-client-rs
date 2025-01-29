@@ -13,7 +13,7 @@ use uc_hub_client::{
 use crate::utils::create_fake_registry;
 
 const NATS_HOSTNAME: &str = "nats:4222";
-const PROVIDER_ID: &str = "delete-variable-test";
+const PROVIDER_ID: &str = "delete_variable_test";
 
 #[tokio::test]
 #[serial]

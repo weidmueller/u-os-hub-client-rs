@@ -9,7 +9,7 @@ use uc_hub_client::{
 
 #[tokio::main]
 async fn main() {
-    let builder = ProviderOptions::new("example-provider");
+    let builder = ProviderOptions::new("example_provider");
 
     let hub_provider = builder.register_and_connect("nats:4222").await.unwrap();
 

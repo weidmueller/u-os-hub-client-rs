@@ -24,7 +24,7 @@ pub struct ProviderOptions {
 
 impl ProviderOptions {
     /// Create a new provider builder
-    /// The provider_id must be equal with the application name and the oauth2 client name.
+    /// The provider_id must be equal with the oauth2 client name.
     pub fn new(provider_id: &str) -> Self {
         Self {
             provider_id: provider_id.to_string(),
