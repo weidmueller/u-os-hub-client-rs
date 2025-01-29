@@ -14,7 +14,7 @@ use super::*;
 pub enum ReadProvidersQueryResponseOffset {}
 #[derive(Copy, Clone, PartialEq)]
 
-/// A query response that response a requested list of providers.
+/// A query response that returns a requested list of providers.
 pub struct ReadProvidersQueryResponse<'a> {
   pub _tab: flatbuffers::Table<'a>,
 }

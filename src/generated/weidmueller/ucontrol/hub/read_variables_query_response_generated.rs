@@ -14,7 +14,7 @@ use super::*;
 pub enum ReadVariablesQueryResponseOffset {}
 #[derive(Copy, Clone, PartialEq)]
 
-/// A query response that response a requested list of provider variables.
+/// A query response that responds to a requested list of provider variables.
 pub struct ReadVariablesQueryResponse<'a> {
   pub _tab: flatbuffers::Table<'a>,
 }

@@ -133,7 +133,7 @@ impl<'a> Variable<'a> {
     // which contains a valid value in this slot
     unsafe { self._tab.get::<Timestamp>(Variable::VT_TIMESTAMP, None)}
   }
-  /// The qualitiy of the variable.
+  /// The quality of the variable.
   #[inline]
   pub fn quality(&self) -> VariableQuality {
     // Safety:

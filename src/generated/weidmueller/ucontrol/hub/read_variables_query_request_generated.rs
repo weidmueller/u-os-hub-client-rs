@@ -16,7 +16,7 @@ pub enum ReadVariablesQueryRequestOffset {}
 
 /// A query that requests a list of variables from a single provider.
 ///
-/// The returned variables could be filtered using an array of IDs.
+/// The returned variables can be filtered using an array of IDs.
 pub struct ReadVariablesQueryRequest<'a> {
   pub _tab: flatbuffers::Table<'a>,
 }

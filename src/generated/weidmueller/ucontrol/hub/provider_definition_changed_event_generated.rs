@@ -14,7 +14,7 @@ use super::*;
 pub enum ProviderDefinitionChangedEventOffset {}
 #[derive(Copy, Clone, PartialEq)]
 
-/// An event that describes a provider's definition that have just changed.
+/// An event that describes a provider's definition that has just changed.
 pub struct ProviderDefinitionChangedEvent<'a> {
   pub _tab: flatbuffers::Table<'a>,
 }
@@ -53,7 +53,7 @@ impl<'a> ProviderDefinitionChangedEvent<'a> {
     }
   }
 
-  /// A definition that have just been changed.
+  /// A definition that has just been changed.
   /// If the provider_definition is null, the provider is removed.
   #[inline]
   pub fn provider_definition(&self) -> Option<ProviderDefinition<'a>> {

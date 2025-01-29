@@ -14,7 +14,7 @@ use super::*;
 pub enum VariableValueInt64Offset {}
 #[derive(Copy, Clone, PartialEq)]
 
-/// A 64-bit, signed intege value of a variable.
+/// A 64-bit, signed integer value of a variable.
 pub struct VariableValueInt64<'a> {
   pub _tab: flatbuffers::Table<'a>,
 }

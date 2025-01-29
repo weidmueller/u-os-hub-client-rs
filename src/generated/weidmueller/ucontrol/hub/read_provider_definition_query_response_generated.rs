@@ -14,7 +14,7 @@ use super::*;
 pub enum ReadProviderDefinitionQueryResponseOffset {}
 #[derive(Copy, Clone, PartialEq)]
 
-/// A query Response that response a requested provider's definition.
+/// A query Response that returns a requested provider's definition.
 pub struct ReadProviderDefinitionQueryResponse<'a> {
   pub _tab: flatbuffers::Table<'a>,
 }
@@ -53,7 +53,7 @@ impl<'a> ReadProviderDefinitionQueryResponse<'a> {
     }
   }
 
-  /// A provider's definition that have been requested.
+  /// A provider's definition that has been requested.
   #[inline]
   pub fn provider_definition(&self) -> Option<ProviderDefinition<'a>> {
     // Safety:

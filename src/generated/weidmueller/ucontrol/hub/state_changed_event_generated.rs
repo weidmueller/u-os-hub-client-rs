@@ -14,7 +14,7 @@ use super::*;
 pub enum StateChangedEventOffset {}
 #[derive(Copy, Clone, PartialEq)]
 
-/// An event that describes a state that have just changed.
+/// An event that describes a state that has just changed.
 pub struct StateChangedEvent<'a> {
   pub _tab: flatbuffers::Table<'a>,
 }
@@ -51,7 +51,7 @@ impl<'a> StateChangedEvent<'a> {
     }
   }
 
-  /// A state that have just been changed.
+  /// A state that has just been changed.
   #[inline]
   pub fn state(&self) -> State {
     // Safety:
