@@ -1,7 +1,7 @@
 use async_nats::Client;
 use futures::StreamExt;
 use tokio::task::JoinHandle;
-use uc_hub_client::{
+use u_os_hub_client::{
     generated::weidmueller::ucontrol::hub::{
         ProviderDefinitionChangedEvent, ProviderDefinitionState,
     },

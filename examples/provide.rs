@@ -2,7 +2,7 @@ use tokio::{
     select, task,
     time::{sleep, Duration},
 };
-use uc_hub_client::{
+use u_os_hub_client::{
     provider::{Provider, ProviderOptions, VariableBuilder},
     variable::value::Value,
 };

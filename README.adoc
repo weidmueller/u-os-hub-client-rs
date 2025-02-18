@@ -1,9 +1,9 @@
-= u-OS Data Hub - Rust Client 🦀 (internal)
+= u-OS Data Hub - Rust Client 🦀
 :toc:
 
 == Introduction
 
-This is the internal u-OS Data Hub client library.
+This is the u-OS Data Hub client library.
 The focus of this library is high performance.
 
 This library primary contains:
@@ -12,30 +12,23 @@ This library primary contains:
 - Consumer Handling (currently not implemented)
 - The generated flatbuffers of the Variable-NATS-API
 
-=== What means internal?
-
-This library is not suited for usage outside of our company.
-
-Some things are not yet documented in detail here. 
-It is assumed that the link:https://intranet.weidmueller.com/uc-architecture/uc-hub/index.html[u-OS Data Hub documentation] has been read.
-
 == Maintainers
 
 This project is currently maintained by:
 
 - Etienne Schmidt (w011279)
 - Christian Peters (w011238)
-- Michael Bella (wm00586)
+- Kristina Henning (w011985)
 
 Please contact the persons above for merge requests or any questions regarding this repository.
 
 == How to add this crate to your cargo project
 
 You just need to add the following to your Cargo.toml and update the hash of the latest commit.
-
+// TODO: Add github url until it exists
 ```toml
 [dependencies]
-uc-hub-client = { git = "https://srvde554.weidmueller.com/gitlab/u-control/uc-hub-client-rs.git", rev = "LATEST_HASH" }
+u-os-hub-client = { git = "https://srvde554.weidmueller.com/gitlab/u-control/uc-hub-client-rs.git", rev = "LATEST_HASH" }
 ```
 
 == Getting started
@@ -68,7 +61,7 @@ You can generate the crate documentation via
 cargo doc
 ```
 
-Then you will find the documentation under `target/doc/uc_hub_client/index.html`.
+Then you will find the documentation under `target/doc/u_os_hub_client/index.html`.
 
 ==== Run tests
 

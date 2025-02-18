@@ -1,5 +1,5 @@
 {
-  "name": "uc-hub-client-rs devcontainer",
+  "name": "u-os-hub-client-rs devcontainer",
   "dockerComposeFile": [
     "./docker-compose.devcontainer.yaml"
   ],

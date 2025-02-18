@@ -3,7 +3,7 @@ use std::time::Duration;
 use futures::StreamExt;
 use serial_test::serial;
 use tokio::time::timeout;
-use uc_hub_client::{
+use u_os_hub_client::{
     generated::weidmueller::ucontrol::hub::root_as_read_provider_definition_query_response,
     provider::{ProviderOptions, VariableBuilder},
     subjects::get_provider_name_from_subject,

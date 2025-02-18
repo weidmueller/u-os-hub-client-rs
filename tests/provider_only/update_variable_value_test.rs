@@ -1,5 +1,5 @@
 use serial_test::serial;
-use uc_hub_client::{
+use u_os_hub_client::{
     provider::{ProviderOptions, UpdateVariableValuesError, VariableBuilder},
     variable::value::Value,
 };

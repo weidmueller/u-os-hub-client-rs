@@ -1,5 +1,6 @@
 [package]
-name = "uc-hub-client"
+name = "u-os-hub-client"
+description = "u-OS Data Hub Client"
 version = "0.1.0"
 edition = "2021"
 

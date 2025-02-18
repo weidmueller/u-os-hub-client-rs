@@ -1,5 +1,5 @@
 use serial_test::serial;
-use uc_hub_client::{
+use u_os_hub_client::{
     generated::weidmueller::ucontrol::hub::root_as_read_variables_query_response,
     payload_builders::build_read_variables_query_request,
     provider::{ProviderOptions, VariableBuilder},
