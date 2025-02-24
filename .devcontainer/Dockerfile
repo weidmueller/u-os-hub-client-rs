@@ -34,14 +34,22 @@ RUN apt-get update \
 # Install flatc
 RUN git clone https://github.com/google/flatbuffers.git && cd flatbuffers \
     && git checkout v23.5.26 \
-    && cmake -G "Unix Makefiles" && make \
+    && cmake -G "Unix Makefiles" && make -j$(nproc) \
     && sudo cp /flatbuffers/flatc /usr/bin/flatc && chmod +x /usr/bin/flatc
 
 # Install targets for cross compiling
-RUN rustup target add arm-unknown-linux-gnueabihf \
+RUN rustup target add armv7-unknown-linux-gnueabihf \
     && rustup target add aarch64-unknown-linux-gnu \
     && rustup target add x86_64-unknown-linux-gnu
 
 RUN su -c "cargo install cargo-audit@^0.18 --locked" vscode
 
 WORKDIR ${HOME}
+
+# Install and run nats server (needed for unit tests and jenkins pipeline)
+# We are currently running nats directly in the dev container 
+# because that makes the Jenkins buildpipeline much easier
+# as Jenkins currently does not support docker compose.
+RUN curl -sf https://binaries.nats.dev/nats-io/nats-server/v2@v2.10.20 | sh
+ENTRYPOINT ["/usr/bin/bash", "-c", "$HOME/nats-server -a 127.0.0.1 -p 4222 > $HOME/nats-log.txt 2>&1"]
+

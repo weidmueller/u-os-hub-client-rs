@@ -6,7 +6,7 @@ use u_os_hub_client::{
 
 use crate::utils::create_fake_registry;
 
-const NATS_HOSTNAME: &str = "nats:4222";
+const NATS_HOSTNAME: &str = "nats://localhost:4222";
 const PROVIDER_ID: &str = "update_variable_value_test";
 
 #[tokio::test]

@@ -12,9 +12,3 @@ services:
     volumes:
       - ..:/home/vscode/workspace
     working_dir: /home/vscode/workspace
-  nats:
-    build: ./nats
-    container_name: u-os-hub-client-rs-nats
-    expose:
-      - 4222
-    command: "-c /etc/nats/nats-server.conf -DV"
