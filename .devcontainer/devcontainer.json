@@ -11,7 +11,7 @@
       "extensions": [
         "gruntfuggly.todo-tree",
         "asciidoctor.asciidoctor-vscode",
-        "rust-lang.rust-analyzer",
+        "rust-lang.rust-analyzer@0.3.2319",
         "fill-labs.dependi",
         "tamasfe.even-better-toml",
         "vadimcn.vscode-lldb",

@@ -10,4 +10,4 @@ set -eux
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 source $script_dir/configure-cross-env.sh $TARGET
 
-cargo build --profile=$BUILD_MODE --target=$TARGET
+cargo build --all-targets --profile=$BUILD_MODE --target=$TARGET

@@ -51,5 +51,15 @@ WORKDIR ${HOME}
 # because that makes the Jenkins buildpipeline much easier
 # as Jenkins currently does not support docker compose.
 RUN curl -sf https://binaries.nats.dev/nats-io/nats-server/v2@v2.10.20 | sh
-ENTRYPOINT ["/usr/bin/bash", "-c", "$HOME/nats-server -a 127.0.0.1 -p 4222 > $HOME/nats-log.txt 2>&1"]
+
+# Install nats CLI client for easy testing
+RUN curl -sf https://binaries.nats.dev/nats-io/natscli/nats@latest | sh
+
+# Adjust path so installed executables are available
+ENV PATH=$PATH:/home/vscode
+
+# Add localhost nats server to contexts
+RUN nats context add localhost --description "Localhost"
+
+ENTRYPOINT ["/usr/bin/bash", "-c", "nats-server -a 127.0.0.1 -p 4222 > $HOME/nats-log.txt 2>&1"]
 

@@ -34,7 +34,7 @@ pipeline {
         stage('u-os-hub-client-rs: Build for x86') { 
             steps {
                 gitlabCommitStatus(name:"$STAGE_NAME") {
-                    sh 'cargo build'
+                    sh 'cargo build --all-targets'
                 }
             }
         }     

@@ -22,7 +22,10 @@ tokio = { version = "1", features = ["rt-multi-thread"] }
 tracing = "0"
 thiserror = "1"
 urlencoding = "2"
+rustc-hash = "2.1"
 
 [dev-dependencies]
 serial_test = "3"
 rstest = "0"
+tracing-subscriber = { version = "0.3", features = ["fmt"] }
+clap = { version = "4.5", features = ["derive"] }
