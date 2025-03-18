@@ -1,52 +1,42 @@
 //! Contains the provider builder which is need to create a provider.
-use std::collections::{BTreeMap, HashSet};
-
-use async_nats::{AuthError, Client, ConnectOptions, Event};
+use std::{
+    collections::{BTreeMap, HashSet},
+    sync::Arc,
+};
 
 use thiserror::Error;
-use tokio::sync::broadcast::Receiver;
-use tracing::{debug, error, info};
+use tracing::{debug, error};
 
-use crate::{provider::worker::ProviderWorker, variable::Variable};
+use crate::{
+    authenticated_nats_con::AuthenticatedNatsConnection, provider::worker::ProviderWorker,
+    variable::Variable,
+};
 
-use super::{oauth2::OAuth2ProviderCredentials, Provider};
+use super::Provider;
 
 #[cfg(test)]
 mod provider_options_test;
 
 /// The ProviderOptions is used to create a Provider
 pub struct ProviderOptions {
-    provider_id: String,
-    credentials: Option<ProviderCredentials>,
-    oauth2_endpoint: Option<String>,
     variables: BTreeMap<u32, Variable>,
+}
+
+impl Default for ProviderOptions {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl ProviderOptions {
     /// Create a new provider builder
-    /// The provider_id must be equal with the oauth2 client name.
-    pub fn new(provider_id: &str) -> Self {
+    pub fn new() -> Self {
         Self {
-            provider_id: provider_id.to_string(),
-            credentials: None,
             variables: BTreeMap::new(),
-            oauth2_endpoint: None,
         }
     }
 
-    /// Adds credentials. This is not required for anonymous access.
-    pub fn with_credentials(mut self, creds: ProviderCredentials) -> Self {
-        self.credentials = Some(creds);
-        self
-    }
-
-    /// Overwrites the default oauth2 endpoint
-    pub fn with_oauth2_endpoint(mut self, endpoint: String) -> Self {
-        self.oauth2_endpoint = Some(endpoint);
-        self
-    }
-
-    /// Add multiple variable. They will be registerd on [`Self::register_and_connect()`].
+    /// Add multiple variable. They will be registerd on [`Self::register()`].
     pub fn add_variables(mut self, vars: Vec<Variable>) -> Result<Self, AddVariablesError> {
         check_for_duplicates(&self.variables, &vars)?;
 
@@ -56,92 +46,18 @@ impl ProviderOptions {
         Ok(self)
     }
 
-    /// Connect to nats and register the provider to the registry.
-    ///
-    /// If [`ProviderCredentials::Oauth2`] is used a access token will be fetched first.
-    pub async fn register_and_connect(self, nats_hostname: &str) -> Result<Provider, ConnectError> {
-        let (client, nats_events) = self.connect_to_nats(nats_hostname).await?;
-
+    /// Registers the provider on the registry.
+    pub async fn register(
+        self,
+        nats_con: Arc<AuthenticatedNatsConnection>,
+    ) -> Result<Provider, ConnectError> {
         debug!(
             "Register `{}` variables at creation time",
             self.variables.len()
         );
-        let control_tx =
-            ProviderWorker::new(client, nats_events, self.provider_id, self.variables, true)
-                .await?;
+        let control_tx = ProviderWorker::new(nats_con, self.variables, true).await?;
 
         Ok(Provider::new(control_tx))
-    }
-
-    /// Connect to nats
-    ///
-    /// The access token will be fetched be the nats client (inside auth_callback).
-    async fn connect_to_nats(
-        &self,
-        nats_hostname: &str,
-    ) -> Result<(Client, Receiver<Event>), ConnectError> {
-        let token_endpoint = self
-            .oauth2_endpoint
-            .clone()
-            .unwrap_or("https://127.0.0.1/oauth2/token".to_string());
-        let client = match self.credentials.clone() {
-            Some(ProviderCredentials::Oauth2(creds)) => ConnectOptions::with_auth_callback({
-                move |_| {
-                    info!("Requesting token for client id: {}", creds.client_id);
-                    let creds = creds.clone();
-                    let token_endpoint = token_endpoint.clone();
-                    async move {
-                        let result = creds.request_token(token_endpoint.clone()).await;
-
-                        match result {
-                            Ok(token_response) => {
-                                let mut auth = async_nats::Auth::new();
-                                auth.token = Some(token_response.access_token);
-                                Ok(auth)
-                            }
-                            Err(e) => {
-                                error!("Error requesting token: {:?}", e);
-                                Err(AuthError::new("Error requesting token".to_string()))
-                            }
-                        }
-                    }
-                }
-            })
-            .retry_on_initial_connect(),
-            None => ConnectOptions::new(),
-        };
-
-        let (event_sender, event_receiver) = tokio::sync::broadcast::channel(100);
-
-        let client = client
-            .name(&self.provider_id)
-            .custom_inbox_prefix(format!("_INBOX.{}", self.provider_id))
-            .event_callback(move |event| {
-                let event_sender = event_sender.clone();
-                async move {
-                    event_sender.send(event).ok();
-                }
-            })
-            .reconnect_delay_callback(|attempts| {
-                // The first attempt should be immediate, then we increase the delay.
-                // The delay is increased so that not so many tokens are fetched.
-                let duration_sec = match attempts {
-                    1 => 0,
-                    2..=10 => 5,
-                    11..=20 => 30,
-                    _ => 300,
-                };
-
-                info!(
-                    "Reconnect in {}s, current attempt: {attempts}",
-                    duration_sec,
-                );
-                std::time::Duration::from_secs(duration_sec)
-            })
-            .connect(nats_hostname)
-            .await
-            .map_err(|x| ConnectError::Nats(Box::new(x)))?;
-        Ok((client, event_receiver))
     }
 }
 
@@ -174,15 +90,6 @@ pub fn check_for_duplicates(
         }
     }
     Ok(())
-}
-
-/// The ProviderCredentials enum is used to store the credentials of the provider.
-/// Oauth2 is used to store the client credentials direct.
-/// Token is used to store a token.
-#[derive(Clone)]
-pub enum ProviderCredentials {
-    /// Stores oauth2 client credentials
-    Oauth2(OAuth2ProviderCredentials),
 }
 
 /// Error that can occur when adding a variable.

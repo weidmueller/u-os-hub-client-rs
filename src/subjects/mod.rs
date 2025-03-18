@@ -48,3 +48,33 @@ pub fn get_provider_name_from_subject(subject: &str) -> Option<String> {
         None
     }
 }
+
+/// Extract the provider id from the subject string.
+pub fn get_provider_id_from_subject(subject: &str) -> anyhow::Result<String> {
+    let parts: Vec<&str> = subject.split('.').collect();
+
+    let provider_id_index = get_index_of_provider_id(&parts);
+
+    parts
+        .get(provider_id_index)
+        .map_or(Err(anyhow::anyhow!("NoProviderInSubject")), |id| {
+            if !id.is_empty() {
+                Ok(id.to_string())
+            } else {
+                Err(anyhow::anyhow!("NoProviderInSubject"))
+            }
+        })
+}
+
+/// Returns index of the provider id in the subject.
+/// if the subject is a registry subject the provider id
+/// is in the 4th position; else in 2nd position.
+fn get_index_of_provider_id(parts: &[&str]) -> usize {
+    if parts.len() >= 4 && parts[2] == "registry" && parts[3] == "providers" {
+        // registry subject
+        4
+    } else {
+        // provider subject
+        2
+    }
+}

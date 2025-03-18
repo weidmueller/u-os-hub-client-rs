@@ -7,7 +7,8 @@ use flatbuffers::FlatBufferBuilder;
 
 use crate::{
     generated::weidmueller::ucontrol::hub::{
-        ProviderDefinitionChangedEvent, ProviderDefinitionChangedEventArgs, ProviderDefinitionT,
+        ProviderDefinitionChangedEventT, ProviderDefinitionT, ProviderListT, ProviderT,
+        ProvidersChangedEventT, ReadProviderDefinitionQueryResponseT, ReadProvidersQueryResponseT,
         ReadVariablesQueryRequestT, ReadVariablesQueryResponseT, State, StateChangedEvent,
         StateChangedEventArgs, VariableListT, VariablesChangedEventT, WriteVariablesCommandT,
     },
@@ -19,8 +20,8 @@ pub fn build_read_variables_query_request(ids: Option<Vec<u32>>) -> Bytes {
     let mut builder = FlatBufferBuilder::new();
     let request_content = ReadVariablesQueryRequestT { ids }.pack(&mut builder);
     builder.finish(request_content, None);
-    // TODO: Use builder.collapse() to increase performance
-    Bytes::from(builder.finished_data().to_vec())
+    let (all_bytes, data_start_offset) = builder.collapse();
+    Bytes::from(all_bytes).slice(data_start_offset..)
 }
 
 /// Builds the payload of the write variables command
@@ -39,39 +40,101 @@ pub fn build_write_variables_command(variables: Vec<Variable>, based_on_fingerpr
     .pack(&mut builder);
 
     builder.finish(content, None);
-    // TODO: Use builder.collapse() to increase performance
-    Bytes::from(builder.finished_data().to_vec())
+    let (all_bytes, data_start_offset) = builder.collapse();
+    Bytes::from(all_bytes).slice(data_start_offset..)
 }
 
 /// Build the payload for a state changed event message.
 pub fn build_state_changed_event_payload(state: State) -> Bytes {
-    let builder = &mut FlatBufferBuilder::new();
+    let mut builder = FlatBufferBuilder::new();
     let state_changed_event_args = StateChangedEventArgs { state };
-    let state_changed_event = StateChangedEvent::create(builder, &state_changed_event_args);
+    let state_changed_event = StateChangedEvent::create(&mut builder, &state_changed_event_args);
 
     builder.finish(state_changed_event, None);
-
-    Bytes::copy_from_slice(builder.finished_data())
+    let (all_bytes, data_start_offset) = builder.collapse();
+    Bytes::from(all_bytes).slice(data_start_offset..)
 }
 
 /// Builds the payload of the provider definition changed event
 pub fn build_provider_definition_changed_event(
     provider_definition: Option<ProviderDefinitionT>,
 ) -> Bytes {
+    let event = ProviderDefinitionChangedEventT {
+        provider_definition: provider_definition.map(Box::new),
+    };
+
     let mut builder = FlatBufferBuilder::new();
-    let provider_definition = provider_definition.unwrap_or_default();
+    let packed_response = event.pack(&mut builder);
+    builder.finish(packed_response, None);
 
-    let packed_provider_definition = provider_definition.pack(&mut builder);
-    let changed_provider_definition_event = ProviderDefinitionChangedEvent::create(
-        &mut builder,
-        &ProviderDefinitionChangedEventArgs {
-            provider_definition: Some(packed_provider_definition),
-        },
-    );
+    let (all_bytes, data_start_offset) = builder.collapse();
+    Bytes::from(all_bytes).slice(data_start_offset..)
+}
 
-    builder.finish(changed_provider_definition_event, None);
-    // TODO: Use builder.collapse() to increase performance
-    Bytes::from(builder.finished_data().to_vec())
+/// Builds the payload of the read provider ids query response
+pub fn build_provider_ids_response<'a, I>(provider_ids_iter: I) -> Bytes
+where
+    I: Iterator<Item = &'a String>,
+{
+    let provider_list = ProviderListT {
+        items: Some(
+            provider_ids_iter
+                .map(|id| ProviderT { id: id.clone() })
+                .collect(),
+        ),
+    };
+
+    let resp = ReadProvidersQueryResponseT {
+        providers: Box::new(provider_list),
+    };
+
+    let mut builder = FlatBufferBuilder::new();
+    let packed_response = resp.pack(&mut builder);
+    builder.finish(packed_response, None);
+
+    let (all_bytes, data_start_offset) = builder.collapse();
+    Bytes::from(all_bytes).slice(data_start_offset..)
+}
+
+/// Builds the payload of the provider definition changed event
+pub fn build_read_provider_definition_response(
+    provider_definition: Option<ProviderDefinitionT>,
+) -> Bytes {
+    let event = ReadProviderDefinitionQueryResponseT {
+        provider_definition: provider_definition.map(Box::new),
+    };
+
+    let mut builder = FlatBufferBuilder::new();
+    let packed_response = event.pack(&mut builder);
+    builder.finish(packed_response, None);
+
+    let (all_bytes, data_start_offset) = builder.collapse();
+    Bytes::from(all_bytes).slice(data_start_offset..)
+}
+
+/// Builds the payload of the providers changed event
+pub fn build_providers_changed_event<'a, I>(provider_ids_iter: I) -> Bytes
+where
+    I: Iterator<Item = &'a String>,
+{
+    let provider_list = ProviderListT {
+        items: Some(
+            provider_ids_iter
+                .map(|id| ProviderT { id: id.clone() })
+                .collect(),
+        ),
+    };
+
+    let resp = ProvidersChangedEventT {
+        providers: Box::new(provider_list),
+    };
+
+    let mut builder = FlatBufferBuilder::new();
+    let packed_response = resp.pack(&mut builder);
+    builder.finish(packed_response, None);
+
+    let (all_bytes, data_start_offset) = builder.collapse();
+    Bytes::from(all_bytes).slice(data_start_offset..)
 }
 
 /// Builds the payload of the read variables query response
@@ -99,12 +162,12 @@ pub fn build_read_variables_query_response(
 
     response.variables = Box::new(var_list_flat);
 
-    let builder = &mut FlatBufferBuilder::new();
-    let packed_response = response.pack(builder);
+    let mut builder = FlatBufferBuilder::new();
+    let packed_response = response.pack(&mut builder);
 
     builder.finish(packed_response, None);
-    // TODO: Use builder.collapse() to increase performance
-    Bytes::copy_from_slice(builder.finished_data())
+    let (all_bytes, data_start_offset) = builder.collapse();
+    Bytes::from(all_bytes).slice(data_start_offset..)
 }
 
 /// Builds the payload of the variables changed event
@@ -121,10 +184,10 @@ pub fn build_variables_changed_event(variables: &BTreeMap<u32, Variable>) -> Byt
 
     response.changed_variables = Box::new(var_list_flat);
 
-    let builder = &mut FlatBufferBuilder::new();
-    let packed_response = response.pack(builder);
+    let mut builder = FlatBufferBuilder::new();
+    let packed_response = response.pack(&mut builder);
 
     builder.finish(packed_response, None);
-    // TODO: Use builder.collapse() to increase performance
-    Bytes::copy_from_slice(builder.finished_data())
+    let (all_bytes, data_start_offset) = builder.collapse();
+    Bytes::from(all_bytes).slice(data_start_offset..)
 }

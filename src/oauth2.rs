@@ -5,7 +5,9 @@ use serde::Deserialize;
 use std::collections::BTreeMap;
 
 /// Contains OAuth2 client credentials
+#[derive(Clone, Debug)]
 pub struct OAuth2Credentials {
+    pub client_name: String,
     pub client_id: String,
     pub client_secret: String,
 }

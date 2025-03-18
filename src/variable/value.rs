@@ -36,6 +36,12 @@ impl From<&str> for Value {
     }
 }
 
+impl From<String> for Value {
+    fn from(value: String) -> Self {
+        Value::String(value)
+    }
+}
+
 impl From<f64> for Value {
     fn from(value: f64) -> Self {
         Value::Float64(value)

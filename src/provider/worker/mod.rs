@@ -6,9 +6,12 @@
 //! It always saves the current state of the provider.
 //! For example, the current values and the last change to the values.
 //! It automatically responds to read requests.
-use std::collections::{BTreeMap, HashSet};
+use std::{
+    collections::{BTreeMap, HashSet},
+    sync::Arc,
+};
 
-use async_nats::{Client, Event, Message, Subscriber};
+use async_nats::{Event, Message, Subscriber};
 use futures::StreamExt;
 
 use tokio::{
@@ -22,6 +25,7 @@ use tokio::{
 use tracing::{debug, error, info, trace};
 
 use crate::{
+    authenticated_nats_con::AuthenticatedNatsConnection,
     generated::weidmueller::ucontrol::hub::{
         ProviderDefinitionChangedEvent, ProviderDefinitionState, ProviderDefinitionT,
         ReadVariablesQueryRequest, WriteVariablesCommand,
@@ -52,8 +56,7 @@ pub enum State {
 
 #[derive(Debug)]
 pub(super) struct ProviderWorker {
-    client: Client,
-    provider_id: String,
+    nats_con: Arc<AuthenticatedNatsConnection>,
     state: State,
     state_changed_sender: tokio::sync::broadcast::Sender<State>,
     /// The receiver of the commands from the [`crate::provider::Provider`] instances.
@@ -74,12 +77,14 @@ impl ProviderWorker {
     /// Creates a worker task and registers the provider.
     #[allow(clippy::new_ret_no_self)] // we return the control, because this runs in a separate thread
     pub(super) async fn new(
-        client: Client,
-        nats_events: broadcast::Receiver<Event>,
-        provider_id: String,
+        nats_con: Arc<AuthenticatedNatsConnection>,
         variables: BTreeMap<u32, Variable>,
         wait_for_success: bool,
     ) -> Result<mpsc::Sender<ProviderCommand>, ConnectError> {
+        let client = nats_con.get_client();
+        let provider_id = nats_con.get_client_name();
+        let nats_events = nats_con.get_events();
+
         let (tx, rx) = mpsc::channel(100);
         let query_subscription = client
             .subscribe(format!("v1.loc.{}.vars.qry.read", provider_id))
@@ -97,10 +102,9 @@ impl ProviderWorker {
         let (state_sender, mut state_receiver) = tokio::sync::broadcast::channel(1);
 
         let mut created = ProviderWorker {
-            client: client.clone(),
+            nats_con,
             state: State::Connecting,
             state_changed_sender: state_sender,
-            provider_id: provider_id.clone(),
             command_channel: rx,
             variables,
             write_event_notiers: vec![],
@@ -109,7 +113,13 @@ impl ProviderWorker {
             registry_up,
         };
 
-        created.enter_state(State::Connecting).await;
+        if created.nats_con.get_client().connection_state()
+            != async_nats::connection::State::Connected
+        {
+            created.enter_state(State::Connecting).await;
+        } else {
+            created.enter_state(State::Registering).await;
+        }
 
         tokio::spawn(async move { created.run(nats_events).await });
 
@@ -136,15 +146,38 @@ impl ProviderWorker {
         self.state = new_state;
     }
 
+    fn get_nats_client(&self) -> &async_nats::Client {
+        self.nats_con.get_client()
+    }
+
+    fn get_provider_id(&self) -> &str {
+        self.nats_con.get_client_name()
+    }
+
+    /// Sends an empty provider definition to the registry to unregister the provider.
+    pub async fn send_empty_definition(&self) -> Result<(), UpdateProviderDefinitionError> {
+        let provider_def_payload = build_provider_definition_changed_event(None);
+
+        self.get_nats_client()
+            .publish(
+                format!("v1.loc.{}.def.evt.changed", self.get_provider_id()).to_string(),
+                provider_def_payload,
+            )
+            .await
+            .map_err(|x| UpdateProviderDefinitionError::Nats(Box::new(x)))?;
+
+        Ok(())
+    }
+
     /// Registers or updates a new provider definition to the registry.
     pub async fn update_definition(
         &mut self,
         wait_for_success: bool,
     ) -> Result<(), UpdateProviderDefinitionError> {
         let mut registry_provider_definition_updated_subscribtion = self
-            .client
+            .get_nats_client()
             .subscribe(registry_provider_definition_changed_event(
-                self.provider_id.clone(),
+                self.get_provider_id().to_owned(),
             ))
             .await
             .map_err(|x| UpdateProviderDefinitionError::Nats(Box::new(x)))?;
@@ -155,9 +188,9 @@ impl ProviderWorker {
                 variable_definitions: Some(self.variables.values().map(|var| var.into()).collect()),
                 state: ProviderDefinitionState::UNSPECIFIED,
             }));
-        self.client
+        self.get_nats_client()
             .publish(
-                format!("v1.loc.{}.def.evt.changed", &self.provider_id).to_string(),
+                format!("v1.loc.{}.def.evt.changed", self.get_provider_id()).to_string(),
                 provider_def_payload.clone(),
             )
             .await
@@ -185,9 +218,9 @@ impl ProviderWorker {
                     }
                     Some(_) = self.registry_up.next() => {
                         // Republish the definition
-                        self.client
+                        self.get_nats_client()
                         .publish(
-                            format!("v1.loc.{}.def.evt.changed", &self.provider_id).to_string(),
+                            format!("v1.loc.{}.def.evt.changed", self.get_provider_id()).to_string(),
                             provider_def_payload.clone(),
                         )
                         .await.map_err(|x| UpdateProviderDefinitionError::Nats(Box::new(x)))?;
@@ -202,7 +235,7 @@ impl ProviderWorker {
     ///
     /// It handles the different state events and can be interrupted by nats events.
     async fn run(mut self, mut nats_events: broadcast::Receiver<Event>) {
-        loop {
+        while !self.command_channel.is_closed() {
             match &self.state {
                 State::Connecting => {
                     let msg = nats_events.recv().await;
@@ -269,17 +302,19 @@ impl ProviderWorker {
             // TODO: refactor the error handling, should this be returned on connect? Is this even possible because of the further checks?
             error!(
                 "u-OS Data Hub provider `{}` failed to register: {:?}",
-                self.provider_id, e
+                self.get_provider_id(),
+                e
             );
             panic!(
                 "u-OS Data Hub provider `{}` failed to register: {:?}",
-                self.provider_id, e
+                self.get_provider_id(),
+                e
             );
         }
 
         info!(
             "u-OS Data Hub provider `{}` successfully registered",
-            self.provider_id
+            self.get_provider_id()
         );
         self.enter_state(State::Running).await;
     }
@@ -290,7 +325,11 @@ impl ProviderWorker {
             msg = self.command_channel.recv() => {
                 match msg {
                     Some(msg) => msg,
-                    None => panic!("channel has been dropped"), // TODO: Implement shutdown of the provider
+                    None => {
+                        //If the command channel is closed, we need to unregister the provider
+                        //The channel only closes if the connected Provider object is dropped
+                        ProviderCommand::Unregister
+                    }
                 }
             }
             Some(msg) = self.query_subscription.next() => {
@@ -332,6 +371,11 @@ impl ProviderWorker {
                 self.update_definition(true)
                     .await
                     .expect("should register provider");
+            }
+            ProviderCommand::Unregister => {
+                self.send_empty_definition()
+                    .await
+                    .expect("should unregister provider");
             }
             ProviderCommand::Subscribe(vars, result_tx) => {
                 result_tx
@@ -547,7 +591,7 @@ impl ProviderWorker {
         };
 
         let response = build_read_variables_query_response(read_request.unpack(), &self.variables);
-        self.client
+        self.get_nats_client()
             .publish(reply_subject.into_string(), response)
             .await
             .ok();
@@ -573,9 +617,9 @@ impl ProviderWorker {
 
         let payload = build_variables_changed_event(&to_publish);
 
-        self.client
+        self.get_nats_client()
             .publish(
-                format!("v1.loc.{}.vars.evt.changed", self.provider_id),
+                format!("v1.loc.{}.vars.evt.changed", self.get_provider_id()),
                 payload,
             )
             .await

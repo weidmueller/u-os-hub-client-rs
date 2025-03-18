@@ -1,12 +1,11 @@
 //! Contains the provider client.
 
-pub mod oauth2;
 pub mod provider_options;
 pub mod variable_builder;
 mod worker;
 
+pub use provider_options::ProviderOptions;
 use provider_options::UpdateProviderDefinitionError;
-pub use provider_options::{ProviderCredentials, ProviderOptions};
 use thiserror::Error;
 pub use variable_builder::{VariableBuildError, VariableBuilder};
 
@@ -36,6 +35,7 @@ pub(crate) enum ProviderCommand {
     HandleWrite(Message),
     Query(Message),
     Register,
+    Unregister,
     Subscribe(
         Vec<Variable>,
         oneshot::Sender<Result<mpsc::Receiver<Vec<Variable>>, SubscribeToWriteCommandError>>,
