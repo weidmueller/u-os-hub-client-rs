@@ -18,17 +18,17 @@ use u_os_hub_client::{
     },
 };
 
-use crate::utils::create_fake_registry;
+use crate::utils::{self, fake_registry::FakeRegistry};
 
-const NATS_HOSTNAME: &str = "nats://localhost:4222";
 const PROVIDER_ID: &str = "register_provider_test";
 
 #[tokio::test]
 #[serial]
 async fn test_register_provider_with_variables() {
     // Prepare
-    let test_nats_client = async_nats::ConnectOptions::new();
-    let test_nats_client = test_nats_client.connect(NATS_HOSTNAME).await.unwrap();
+    let _fake_registry = FakeRegistry::new().await;
+    let auth_nats_con = utils::create_auth_con(PROVIDER_ID).await;
+    let test_nats_client = auth_nats_con.get_client();
 
     let mut registry_def_changed_subscribtion = test_nats_client
         .subscribe(registry_provider_definition_changed_event(
@@ -38,7 +38,7 @@ async fn test_register_provider_with_variables() {
         .expect("should subscribe to def changed event from registry");
 
     // act
-    let provider_builder = ProviderOptions::new(PROVIDER_ID);
+    let provider_builder = ProviderOptions::new();
     let var1 = VariableBuilder::new(0, "my_folder.my_variable_1")
         .value(Value::Boolean(true))
         .build()
@@ -49,12 +49,12 @@ async fn test_register_provider_with_variables() {
         .build()
         .expect("variable should build");
 
-    let _fake_registry = create_fake_registry(test_nats_client.clone(), PROVIDER_ID.to_string());
+    let _fake_registry = FakeRegistry::new().await;
 
     let _ = provider_builder
         .add_variables(vec![var1.clone(), var2.clone()])
         .expect("Variables should be added")
-        .register_and_connect(NATS_HOSTNAME)
+        .register(auth_nats_con)
         .await
         .expect("provider should register");
 
@@ -95,16 +95,17 @@ async fn test_register_provider_with_variables() {
 #[serial]
 async fn test_resend_provider_definition_on_registry_up_event() {
     // Prepare
-    let test_nats_client = async_nats::ConnectOptions::new();
-    let test_nats_client = test_nats_client.connect(NATS_HOSTNAME).await.unwrap();
+    let _fake_registry = FakeRegistry::new().await;
+    let auth_nats_con = utils::create_auth_con(PROVIDER_ID).await;
+    let test_nats_client = auth_nats_con.get_client().clone();
+
     let mut def_changed_subscribtion = test_nats_client
         .subscribe(format!("v1.loc.{}.def.evt.changed", PROVIDER_ID))
         .await
         .unwrap();
-    let _fake_registry = create_fake_registry(test_nats_client.clone(), PROVIDER_ID.to_string());
 
     // act
-    let provider_builder = ProviderOptions::new(PROVIDER_ID);
+    let provider_builder = ProviderOptions::new();
     let var1 = VariableBuilder::new(0, "my_folder.my_variable_1")
         .value(Value::Boolean(true))
         .build()
@@ -118,7 +119,7 @@ async fn test_resend_provider_definition_on_registry_up_event() {
     let provider = provider_builder
         .add_variables(vec![var1.clone(), var2.clone()])
         .expect("Variables should be added")
-        .register_and_connect(NATS_HOSTNAME)
+        .register(auth_nats_con)
         .await
         .expect("provider should register");
 

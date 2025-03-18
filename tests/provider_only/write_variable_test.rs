@@ -11,24 +11,24 @@ use u_os_hub_client::{
     variable::value::Value,
 };
 
-use crate::utils::create_fake_registry;
+use crate::utils::{self, fake_registry::FakeRegistry};
 
-const NATS_HOSTNAME: &str = "nats://localhost:4222";
 const PROVIDER_ID: &str = "write_variable_test";
 
 #[tokio::test]
 #[serial]
 async fn test_write_variable_command() {
     // Prepare
-    let test_nats_client = async_nats::ConnectOptions::new();
-    let test_nats_client = test_nats_client.connect(NATS_HOSTNAME).await.unwrap();
-    let _fake_registry = create_fake_registry(test_nats_client.clone(), PROVIDER_ID.to_string());
+    let _fake_registry = FakeRegistry::new().await;
+    let auth_nats_con = utils::create_auth_con(PROVIDER_ID).await;
+    let test_nats_client = auth_nats_con.get_client().clone();
+
     let mut def_changed_subscribtion = test_nats_client
         .subscribe(format!("v1.loc.{}.def.evt.changed", PROVIDER_ID))
         .await
         .unwrap();
 
-    let provider_builder = ProviderOptions::new(PROVIDER_ID);
+    let provider_builder = ProviderOptions::new();
     let var1 = VariableBuilder::new(0, "my_folder.my_variable_1_rw")
         .read_write()
         .value(Value::Boolean(true))
@@ -38,7 +38,7 @@ async fn test_write_variable_command() {
     let provider = provider_builder
         .add_variables(vec![var1.clone()])
         .expect("Variables should be added")
-        .register_and_connect(NATS_HOSTNAME)
+        .register(auth_nats_con)
         .await
         .expect("provider should register");
 
@@ -47,9 +47,9 @@ async fn test_write_variable_command() {
         .await
         .expect("should work");
 
-    let fingerprint = if let Ok(Some(msg)) =
-        timeout(Duration::from_secs(1), def_changed_subscribtion.next()).await
-    {
+    let timeout_result = timeout(Duration::from_secs(1), def_changed_subscribtion.next()).await;
+
+    let fingerprint = if let Ok(Some(msg)) = timeout_result {
         let provider_definition = root_as_read_provider_definition_query_response(&msg.payload)
             .unwrap()
             .unpack()
@@ -60,6 +60,7 @@ async fn test_write_variable_command() {
     } else {
         panic!("should receive a provider definition from register")
     };
+
     // act
     let mut var1 = var1.clone();
     var1.value = Value::Boolean(false);

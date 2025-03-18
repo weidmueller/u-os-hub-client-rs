@@ -10,25 +10,24 @@ use u_os_hub_client::{
     variable::value::Value,
 };
 
-use crate::utils::create_fake_registry;
+use crate::utils::{self, fake_registry::FakeRegistry};
 
-const NATS_HOSTNAME: &str = "nats://localhost:4222";
 const PROVIDER_ID: &str = "delete_variable_test";
 
 #[tokio::test]
 #[serial]
 async fn test_remove_variables() {
     // Prepare
-    let test_nats_client = async_nats::ConnectOptions::new();
-    let test_nats_client = test_nats_client.connect(NATS_HOSTNAME).await.unwrap();
-    let _fake_registry = create_fake_registry(test_nats_client.clone(), PROVIDER_ID.to_string());
+    let _fake_registry = FakeRegistry::new().await;
+    let auth_nats_con = utils::create_auth_con(PROVIDER_ID).await;
+    let test_nats_client = auth_nats_con.get_client();
 
     let mut def_changed_subscribtion = test_nats_client
         .subscribe(format!("v1.loc.{}.def.evt.changed", PROVIDER_ID))
         .await
         .unwrap();
 
-    let provider_builder = ProviderOptions::new(PROVIDER_ID);
+    let provider_builder = ProviderOptions::new();
     let var1 = VariableBuilder::new(0, "my_folder.my_variable_1")
         .value(Value::Boolean(true))
         .build()
@@ -42,7 +41,7 @@ async fn test_remove_variables() {
     let provider = provider_builder
         .add_variables(vec![var1.clone(), var2.clone()])
         .expect("Variables should be added")
-        .register_and_connect(NATS_HOSTNAME)
+        .register(auth_nats_con)
         .await
         .expect("provider should register");
 
