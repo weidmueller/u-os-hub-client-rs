@@ -70,3 +70,13 @@ You can run all tests via
 ```sh
 cargo test
 ```
+
+==== Check merge request before creating it
+
+Before issuing a merge request, you can locally simulate all pipeline checks by running
+
+```sh
+./tools/check_merge_request.sh
+```
+
+This will build, lint, create docs and run audit and unit tests.
