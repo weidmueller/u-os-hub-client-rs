@@ -5,7 +5,7 @@ use serial_test::serial;
 use u_os_hub_client::{
     authenticated_nats_con::{
         AuthenticatedNatsConnection, AuthenticationSettings, AuthenticationSettingsBuilder,
-        Permissions,
+        NatsPermission,
     },
     consumer::dh_consumer::DataHubConsumer,
     oauth2::OAuth2Credentials,
@@ -18,7 +18,7 @@ use crate::{
 
 const CONSUMER_ID: &str = "test_consumer";
 
-fn consumer_auth_settings(perms: Permissions) -> AuthenticationSettings {
+fn consumer_auth_settings(perms: NatsPermission) -> AuthenticationSettings {
     AuthenticationSettingsBuilder::new(perms)
         .with_credentials(OAuth2Credentials {
             client_name: CONSUMER_ID.to_string(),
@@ -32,7 +32,7 @@ fn consumer_auth_settings(perms: Permissions) -> AuthenticationSettings {
 #[serial]
 async fn test_connect() {
     run_with_timeout(async move {
-        let auth_settings = consumer_auth_settings(Permissions::Read);
+        let auth_settings = consumer_auth_settings(NatsPermission::VariableHubRead);
         let con_result = DataHubConsumer::connect(NATS_HOSTNAME, &auth_settings).await;
         assert!(con_result.is_ok());
     })
@@ -43,7 +43,7 @@ async fn test_connect() {
 #[serial]
 async fn test_reuse_con() {
     run_with_timeout(async move {
-        let auth_settings = consumer_auth_settings(Permissions::Read);
+        let auth_settings = consumer_auth_settings(NatsPermission::VariableHubRead);
         let con = Arc::new(
             AuthenticatedNatsConnection::new(NATS_HOSTNAME, &auth_settings)
                 .await
@@ -60,7 +60,7 @@ async fn test_reuse_con() {
 #[serial]
 async fn test_invalid_scope() {
     run_with_timeout(async move {
-        let auth_settings = consumer_auth_settings(Permissions::Provide);
+        let auth_settings = consumer_auth_settings(NatsPermission::VariableHubProvide);
         let con_result = DataHubConsumer::connect(NATS_HOSTNAME, &auth_settings).await;
         assert!(con_result.is_err());
     })
@@ -71,7 +71,7 @@ async fn test_invalid_scope() {
 #[serial]
 async fn registry_offline() {
     run_with_timeout(async move {
-        let auth_settings = consumer_auth_settings(Permissions::Read);
+        let auth_settings = consumer_auth_settings(NatsPermission::VariableHubRead);
         let consumer = DataHubConsumer::connect(NATS_HOSTNAME, &auth_settings)
             .await
             .unwrap();
@@ -94,7 +94,7 @@ async fn monitor_providers() {
         let _fake_reg = FakeRegistry::new().await;
 
         //create consumer
-        let auth_settings = consumer_auth_settings(Permissions::Read);
+        let auth_settings = consumer_auth_settings(NatsPermission::VariableHubRead);
         let consumer = DataHubConsumer::connect(NATS_HOSTNAME, &auth_settings)
             .await
             .unwrap();

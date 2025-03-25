@@ -69,7 +69,7 @@ pipeline {
         stage('u-os-hub-client-rs: Gen Docs') { 
             steps {
                 gitlabCommitStatus(name:"$STAGE_NAME") {
-                    sh 'cargo doc --no-deps'
+                    sh 'RUSTDOCFLAGS="-D warnings" cargo doc --no-deps'
                 }
             }
         }

@@ -13,7 +13,7 @@ use thiserror::Error;
 use tokio::task::JoinHandle;
 use tracing::{error, warn};
 
-use crate::{authenticated_nats_con::Permissions, generated::weidmueller::ucontrol::hub::*};
+use crate::{authenticated_nats_con::NatsPermission, generated::weidmueller::ucontrol::hub::*};
 
 use super::nats_consumer::NatsConsumer;
 
@@ -87,6 +87,8 @@ where
 /// We use FxHash for lookup tables because rusts default hash algorithm is quite slow for integer keys. See FxHash crate docs for more info.
 #[derive(Debug)]
 pub(super) struct ConnectedNatsProviderState {
+    /// The current fingerprint of the provider definition.
+    /// Will be set to `None` if the provider is offline or the definition is invalid.
     pub(super) cur_fingerprint: Option<u64>,
     ///Maps from variable ID to variable definition
     pub(super) cur_variable_defs: FxHashMap<VariableID, VariableDefinitionT>,
@@ -360,12 +362,12 @@ impl ConnectedNatsProvider {
 
     /// Same as `write_variables`, but does not check variable IDs, permissions or value types.
     ///
-    /// This can be more performant, but the user must ensure that the write request is sound,
+    /// This can be more performant, but the user must ensure that the write command is sound,
     /// otherwise it may lead to unexpected behavior of the provider.
     ///
     /// In order to offer at least a minimum of safety, this method will perform cheap checks:
     ///
-    /// - NATS connection must have ReadWrite permissions
+    /// - Needs a connection with [NatsPermission::VariableHubReadWrite](`crate::authenticated_nats_con::NatsPermission::VariableHubReadWrite`)
     /// - Provider must be online
     /// - The current provider fingerprint must match the one in the write command
     pub async fn write_variables_unchecked(
@@ -377,7 +379,7 @@ impl ConnectedNatsProvider {
             .get_consumer()
             .get_nats_con()
             .get_permissions()
-            .contains(&Permissions::ReadWrite)
+            .contains(&NatsPermission::VariableHubReadWrite)
         {
             return Err(Error::NotPermitted);
         }
@@ -416,12 +418,12 @@ impl ConnectedNatsProvider {
         Ok(())
     }
 
-    /// Sends a variable write request to the provider.
+    /// Sends a variable write command to the provider.
     /// Note that the provider decides if the write is accepted or not, however, the provider will not reply to the write command.
     ///
     /// This triggers a nats publish and flush command.
     ///
-    /// This method will check if all supplied variable IDs are still valid before sending the write request.
+    /// This method will check if all supplied variable IDs are still valid before sending the write command.
     /// It will also check if the variable IDs are writable and if the value types match the variable definitions.
     ///
     /// This method may fail if there is an issue with the nats connection or the provider is unavailable.

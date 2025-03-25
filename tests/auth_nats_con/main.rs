@@ -4,7 +4,7 @@ use serial_test::serial;
 use tokio::time::timeout;
 use u_os_hub_client::{
     authenticated_nats_con::{
-        AuthenticatedNatsConnection, AuthenticationSettingsBuilder, Permissions,
+        AuthenticatedNatsConnection, AuthenticationSettingsBuilder, NatsPermission,
     },
     oauth2::OAuth2Credentials,
 };
@@ -16,7 +16,8 @@ mod utils;
 #[tokio::test]
 #[serial]
 async fn test_successful_con() {
-    let auth_settings = AuthenticationSettingsBuilder::new(Permissions::Provide).build();
+    let auth_settings =
+        AuthenticationSettingsBuilder::new(NatsPermission::VariableHubProvide).build();
 
     let con_result = run_with_timeout(AuthenticatedNatsConnection::new(
         NATS_HOSTNAME,
@@ -30,7 +31,8 @@ async fn test_successful_con() {
 #[tokio::test]
 #[serial]
 async fn test_default_name_and_single_perms() {
-    let auth_settings = AuthenticationSettingsBuilder::new(Permissions::Provide).build();
+    let auth_settings =
+        AuthenticationSettingsBuilder::new(NatsPermission::VariableHubProvide).build();
 
     let con = run_with_timeout(AuthenticatedNatsConnection::new(
         NATS_HOSTNAME,
@@ -40,15 +42,20 @@ async fn test_default_name_and_single_perms() {
     .unwrap();
 
     assert!(con.get_client_name() == "_UNAUTHENTICATED");
-    assert!(con.get_permissions() == &([Permissions::Provide].into_iter().collect::<HashSet<_>>()));
+    assert!(
+        con.get_permissions()
+            == &([NatsPermission::VariableHubProvide]
+                .into_iter()
+                .collect::<HashSet<_>>())
+    );
 }
 
 #[tokio::test]
 #[serial]
 async fn test_custom_name_and_multi_perms() {
-    let auth_settings = AuthenticationSettingsBuilder::new(Permissions::Provide)
-        .add_permission(Permissions::Read)
-        .add_permission(Permissions::ReadWrite)
+    let auth_settings = AuthenticationSettingsBuilder::new(NatsPermission::VariableHubProvide)
+        .add_permission(NatsPermission::VariableHubRead)
+        .add_permission(NatsPermission::VariableHubReadWrite)
         .with_credentials(OAuth2Credentials {
             client_name: "test_client".to_string(),
             client_secret: "".to_string(),
@@ -67,9 +74,9 @@ async fn test_custom_name_and_multi_perms() {
     assert!(
         con.get_permissions()
             == &([
-                Permissions::Read,
-                Permissions::ReadWrite,
-                Permissions::Provide
+                NatsPermission::VariableHubRead,
+                NatsPermission::VariableHubReadWrite,
+                NatsPermission::VariableHubProvide
             ]
             .into_iter()
             .collect::<HashSet<_>>())
@@ -79,7 +86,8 @@ async fn test_custom_name_and_multi_perms() {
 #[tokio::test]
 #[serial]
 async fn test_server_offline() {
-    let auth_settings = AuthenticationSettingsBuilder::new(Permissions::Provide).build();
+    let auth_settings =
+        AuthenticationSettingsBuilder::new(NatsPermission::VariableHubProvide).build();
 
     let con_result = run_with_timeout(AuthenticatedNatsConnection::new(
         "nats://localhost:4223".to_string(),
@@ -93,7 +101,7 @@ async fn test_server_offline() {
 #[tokio::test]
 #[serial]
 async fn test_creds_with_invalid_auth_server() {
-    let auth_settings = AuthenticationSettingsBuilder::new(Permissions::Provide)
+    let auth_settings = AuthenticationSettingsBuilder::new(NatsPermission::VariableHubProvide)
         .with_credentials(OAuth2Credentials {
             client_name: "test_client".to_string(),
             client_secret: "somepass".to_string(),
@@ -116,7 +124,7 @@ async fn test_creds_with_invalid_auth_server() {
 #[tokio::test]
 #[serial]
 async fn test_invalid_auth_server_but_no_creds() {
-    let auth_settings = AuthenticationSettingsBuilder::new(Permissions::Provide)
+    let auth_settings = AuthenticationSettingsBuilder::new(NatsPermission::VariableHubProvide)
         //doesnt exist in dev container
         .with_custom_oauth2_endpoint("https://127.0.0.1/oauth2/token")
         .build();

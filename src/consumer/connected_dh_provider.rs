@@ -1,19 +1,17 @@
 //! This module provides a high-level API for interacting with a variable hub provider
 //! by abstacting the low-level API details via easy to use rust types.
 
-use std::{
-    collections::{HashMap, HashSet},
-    sync::Arc,
-};
+use std::{collections::HashSet, sync::Arc};
 
 use futures::{Stream, StreamExt};
+use rustc_hash::FxHashMap;
 use thiserror::Error;
 use tracing::error;
 
 use crate::{
     generated::weidmueller::ucontrol::hub::{
         ProviderDefinitionState, ReadVariablesQueryRequestT, TimestampT, VariableListT,
-        VariableQuality, VariableT, WriteVariablesCommandT,
+        VariableQuality, VariableT, VariablesChangedEventT, WriteVariablesCommandT,
     },
     variable,
 };
@@ -274,7 +272,7 @@ impl ConnectedDataHubProvider {
     pub async fn read_variables(
         &self,
         filter: Option<&[impl VariableKeyLike]>,
-    ) -> Result<HashMap<VariableID, ConsumerVariableState>> {
+    ) -> Result<FxHashMap<VariableID, ConsumerVariableState>> {
         self.connected_provider.check_online()?;
 
         //Build ll api read request
@@ -300,6 +298,8 @@ impl ConnectedDataHubProvider {
             .read_variables_unchecked(&var_ids)
             .await?;
 
+        let base_timestamp = low_level_data.variables.base_timestamp.try_into()?;
+
         //map to user friendly data types
         let result = low_level_data
             .variables
@@ -307,7 +307,10 @@ impl ConnectedDataHubProvider {
             .unwrap_or_default()
             .into_iter()
             .filter_map(|ll_var| -> Option<(u32, ConsumerVariableState)> {
-                let map_entry = (ll_var.id, ll_var.try_into().ok()?);
+                let map_entry = (
+                    ll_var.id,
+                    ConsumerVariableState::new(ll_var, base_timestamp).ok()?,
+                );
 
                 Some(map_entry)
             })
@@ -350,19 +353,22 @@ impl ConnectedDataHubProvider {
     pub async fn subscribe_variables_with_filter(
         &self,
         filter_list: Option<Vec<impl VariableKeyLike>>,
-    ) -> Result<impl Stream<Item = HashMap<VariableID, ConsumerVariableState>>> {
+    ) -> Result<impl Stream<Item = FxHashMap<VariableID, ConsumerVariableState>>> {
         let mut last_fp = self.connected_provider.get_fingerprint();
         let state_clone = self.connected_provider.get_state().clone();
 
+        //build initial filter set and remember initial fingerprint
         let mut filter_set = filter_list
             .as_ref()
             .map(|filter_list| Self::build_filter_set(filter_list, &state_clone.read().unwrap()));
 
+        //Subscibe to all, unfiltered variable change events
         let low_level_data = self.connected_provider.subscribe_variables().await?;
 
+        //Filter variables and map to user friendly type
         let mapped_stream = low_level_data.filter_map(move |var_changed_evt| {
             if let Some(filter_list) = &filter_list {
-                //check if we need to rebuild the filter
+                //check if we need to rebuild the filter because provider changed
                 let readable_state = state_clone.read().unwrap();
                 let current_fp = readable_state.cur_fingerprint;
                 if current_fp.is_some() && current_fp != last_fp {
@@ -371,46 +377,24 @@ impl ConnectedDataHubProvider {
                 }
             }
 
-            let result = if let Ok(var_changed_evt) = var_changed_evt {
-                let mapped_result = var_changed_evt
-                    .changed_variables
-                    .items
-                    .unwrap_or_default()
-                    .into_iter()
-                    .filter_map(|ll_var| -> Option<(u32, ConsumerVariableState)> {
-                        if let Some(filter_set) = &filter_set {
-                            if !filter_set.contains(&ll_var.id) {
-                                return None;
-                            }
-                        }
+            let mapped_and_filtered_vars =
+                Self::process_var_changed_evt(&filter_set, var_changed_evt);
 
-                        let map_entry = (ll_var.id, ll_var.try_into().ok()?);
-
-                        Some(map_entry)
-                    })
-                    .collect();
-
-                Some(mapped_result)
-            } else {
-                //simply ignore invalid events for high level api
-                None
-            };
-
-            async move { result }
+            async move { mapped_and_filtered_vars }
         });
 
         Ok(Box::pin(mapped_stream))
     }
 
-    /// Sends a write request to the provider for a single variable.
+    /// Sends a write command to the provider for a single variable.
     /// Note that the provider decides if the write is accepted or not, however, the provider will not reply to the write command.
     ///
     /// If you want to write multiple variables, use [`Self::write_variables()`] instead,
     /// as this will be more performant for writing multiple values at once.
     ///
-    /// You need to have NATS ReadWrite permissions to be able to write variables.
+    /// You need a connection with [NatsPermission::VariableHubReadWrite](`crate::authenticated_nats_con::NatsPermission::VariableHubReadWrite`) to be able to write variables.
     ///
-    /// This method will check if the specified variable is still valid before sending the write request.
+    /// This method will check if the specified variable is still valid before sending the write command.
     /// It will also check if the variable is writable and if the value type matches the variable definitions.
     ///
     /// This method may fail if there is an issue with the nats connection or the provider is unavailable.
@@ -450,7 +434,7 @@ impl ConnectedDataHubProvider {
             changed_vars.push(ll_var);
         }
 
-        //build write request
+        //build write command
         let var_list = Box::new(VariableListT {
             provider_definition_fingerprint,
             //TODO: Only to be set by the provider. For now, add default filler. May revise flatbuffer api later
@@ -489,5 +473,46 @@ impl ConnectedDataHubProvider {
         }
 
         filter_set
+    }
+
+    /// Applies the specified filter set to the event and returns a hashmap of variable IDs to variable states.
+    fn process_var_changed_evt(
+        filter_set: &Option<HashSet<u32>>,
+        var_changed_evt: connected_nats_provider::Result<VariablesChangedEventT>,
+    ) -> Option<FxHashMap<VariableID, ConsumerVariableState>> {
+        let Ok(var_changed_evt) = var_changed_evt else {
+            //Low level error while receiving event
+            return None;
+        };
+
+        let Ok(base_timestamp) = var_changed_evt.changed_variables.base_timestamp.try_into() else {
+            //base_timestamp of change event could not be converted to SystemTime
+            return None;
+        };
+
+        //Convert the list of all received variables to a user
+        //friendly hashmap of ids -> ConsumerVariableState
+        let received_filtered_vars = var_changed_evt
+            .changed_variables
+            .items
+            .unwrap_or_default()
+            .into_iter()
+            .filter_map(|ll_var| -> Option<(VariableID, ConsumerVariableState)> {
+                if let Some(filter_set) = &filter_set {
+                    if !filter_set.contains(&ll_var.id) {
+                        return None;
+                    }
+                }
+
+                let map_entry = (
+                    ll_var.id,
+                    ConsumerVariableState::new(ll_var, base_timestamp).ok()?,
+                );
+
+                Some(map_entry)
+            })
+            .collect();
+
+        Some(received_filtered_vars)
     }
 }

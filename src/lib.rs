@@ -4,7 +4,7 @@
 //! This library primary contains:
 //!
 //! - Provider Handling
-//! - Consumer Handling (currently not implemented)
+//! - Consumer Handling
 //! - The generated flatbuffers of the Variable-NATS-API
 //!
 
@@ -22,3 +22,26 @@ pub mod payload_builders;
 pub mod provider;
 pub mod subjects;
 pub mod variable;
+
+/// Commonly used imports for the u-OS Data Hub client library.
+pub mod prelude {
+    /// Common imports for data hub consumers.
+    pub mod consumer {
+        pub use crate::authenticated_nats_con::AuthenticatedNatsConnection;
+        pub use crate::consumer::connected_dh_provider::{
+            ConnectedDataHubProvider, ProviderEvent, VariableKeyLike,
+        };
+        pub use crate::consumer::connected_nats_provider::{VariableID, VariableKey};
+        pub use crate::consumer::dh_consumer::DataHubConsumer;
+        pub use crate::consumer::dh_types::{
+            ConsumerVariableDefinition, ConsumerVariableQuality, ConsumerVariableState,
+            ConsumerVariableType, DhRegistryState,
+        };
+    }
+
+    /// Common imports for data hub providers.
+    pub mod provider {
+        pub use crate::authenticated_nats_con::AuthenticatedNatsConnection;
+        pub use crate::provider::{Provider, ProviderOptions, VariableBuilder};
+    }
+}

@@ -8,7 +8,7 @@ use futures::{Stream, StreamExt};
 use thiserror::Error;
 
 use crate::{
-    authenticated_nats_con::{AuthenticatedNatsConnection, Permissions, PermissionsList},
+    authenticated_nats_con::{AuthenticatedNatsConnection, NatsPermission, NatsPermissionList},
     generated::weidmueller::ucontrol::hub::{
         ProviderDefinitionState, ProvidersChangedEvent, ProvidersChangedEventT,
         ReadProviderDefinitionQueryRequestT, ReadProvidersQueryResponse,
@@ -27,7 +27,7 @@ pub enum Error {
     #[error("Invalid payload/deserialization failure: {0}")]
     InvalidPayload(#[from] flatbuffers::InvalidFlatbuffer),
     #[error("Invalid NATS permissions: {0:?}")]
-    InvalidNatsPermissions(PermissionsList),
+    InvalidNatsPermission(NatsPermissionList),
     #[error("Failed to wait for provider: {0}")]
     FailedToWaitForProvider(#[from] connected_nats_provider::Error),
 }
@@ -43,12 +43,16 @@ pub struct NatsConsumer {
 impl NatsConsumer {
     /// Creates a consumer object using an existing nats connection.
     ///
-    /// The permissions of the nats connection must contain either `Read` or `ReadWrite`.
+    /// The permissions of the nats connection must contain either
+    /// [NatsPermission::VariableHubRead](`crate::authenticated_nats_con::NatsPermission::VariableHubRead`)
+    /// or [NatsPermission::VariableHubReadWrite](`crate::authenticated_nats_con::NatsPermission::VariableHubReadWrite`).
     pub async fn new(nats_con: Arc<AuthenticatedNatsConnection>) -> Result<Self> {
         let perms = nats_con.get_permissions();
-        if !perms.contains(&Permissions::Read) && !perms.contains(&Permissions::ReadWrite) {
+        if !perms.contains(&NatsPermission::VariableHubRead)
+            && !perms.contains(&NatsPermission::VariableHubReadWrite)
+        {
             //It makes no sense to use a consumer without read or readwrite permissions
-            return Err(Error::InvalidNatsPermissions(perms.clone()));
+            return Err(Error::InvalidNatsPermission(perms.clone()));
         }
 
         Ok(Self { nats_con })
@@ -147,12 +151,12 @@ impl NatsConsumer {
             ConnectedNatsProvider::subscribe_provider_definition_internal(nats_client, provider_id)
                 .await?;
 
-        //Get list of providers
+        //Get current provider definition
         let provider_def_resp =
             ConnectedNatsProvider::read_provider_definition_internal(nats_client, provider_id)
                 .await;
 
-        //Check if provider is already available
+        //Check if provider is already valid
         if let Ok(provider_def_resp) = &provider_def_resp {
             if let Some(provider_def) = &provider_def_resp.provider_definition {
                 if provider_def.state == ProviderDefinitionState::OK {

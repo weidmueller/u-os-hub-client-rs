@@ -7,7 +7,7 @@ use std::{future::IntoFuture, sync::Arc, time::Duration};
 use tokio::time::timeout;
 use u_os_hub_client::{
     authenticated_nats_con::{
-        AuthenticatedNatsConnection, AuthenticationSettingsBuilder, Permissions,
+        AuthenticatedNatsConnection, AuthenticationSettingsBuilder, NatsPermission,
     },
     oauth2::OAuth2Credentials,
 };
@@ -18,7 +18,7 @@ pub const NATS_HOSTNAME: &str = "nats://localhost:4222";
 pub const DEFAULT_TIMEOUT: Duration = Duration::from_secs(10);
 
 pub async fn create_auth_con(provider_id: &str) -> Arc<AuthenticatedNatsConnection> {
-    let auth_settings = AuthenticationSettingsBuilder::new(Permissions::Provide)
+    let auth_settings = AuthenticationSettingsBuilder::new(NatsPermission::VariableHubProvide)
         .with_credentials(OAuth2Credentials {
             client_name: provider_id.to_owned(),
             client_id: "".to_owned(),

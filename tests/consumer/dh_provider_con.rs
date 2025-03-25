@@ -4,7 +4,9 @@ use futures::StreamExt;
 use serial_test::serial;
 use tokio::time::timeout;
 use u_os_hub_client::{
-    authenticated_nats_con::{AuthenticationSettings, AuthenticationSettingsBuilder, Permissions},
+    authenticated_nats_con::{
+        AuthenticationSettings, AuthenticationSettingsBuilder, NatsPermission,
+    },
     consumer::{
         connected_dh_provider::{self, ConnectedDataHubProvider, ProviderEvent},
         connected_nats_provider::{self, VariableKey},
@@ -19,18 +21,6 @@ use crate::{
     dummy_provider::{self, DummyProvider, PROVIDER_ID},
     utils::{fake_registry::FakeRegistry, run_with_timeout, NATS_HOSTNAME},
 };
-
-const CONSUMER_ID: &str = "test_consumer";
-
-fn consumer_auth_settings(perms: Permissions) -> AuthenticationSettings {
-    AuthenticationSettingsBuilder::new(perms)
-        .with_credentials(OAuth2Credentials {
-            client_name: CONSUMER_ID.to_string(),
-            client_id: "".to_owned(),
-            client_secret: "".to_owned(),
-        })
-        .build()
-}
 
 /// Things that can go wrong while we are connected to a provider:
 ///
@@ -47,11 +37,23 @@ fn consumer_auth_settings(perms: Permissions) -> AuthenticationSettings {
 ///
 /// - Registry goes offline -> we cant react to this, as the consumer doesnt get registry down events.
 
+const CONSUMER_ID: &str = "test_consumer";
+
+fn consumer_auth_settings(perms: NatsPermission) -> AuthenticationSettings {
+    AuthenticationSettingsBuilder::new(perms)
+        .with_credentials(OAuth2Credentials {
+            client_name: CONSUMER_ID.to_string(),
+            client_id: "".to_owned(),
+            client_secret: "".to_owned(),
+        })
+        .build()
+}
+
 #[tokio::test]
 #[serial]
 async fn registry_offline() {
     run_with_timeout(async move {
-        let auth_settings = consumer_auth_settings(Permissions::Read);
+        let auth_settings = consumer_auth_settings(NatsPermission::VariableHubRead);
         let consumer = Arc::new(
             DataHubConsumer::connect(NATS_HOSTNAME, &auth_settings)
                 .await
@@ -79,7 +81,7 @@ async fn provider_offline() {
     run_with_timeout(async move {
         let _fake_reg = FakeRegistry::new().await;
 
-        let auth_settings = consumer_auth_settings(Permissions::Read);
+        let auth_settings = consumer_auth_settings(NatsPermission::VariableHubRead);
         let consumer = Arc::new(
             DataHubConsumer::connect(NATS_HOSTNAME, &auth_settings)
                 .await
@@ -118,7 +120,7 @@ async fn wait_for_variable_keys() {
     run_with_timeout(async move {
         let _fake_reg = FakeRegistry::new().await;
 
-        let auth_settings = consumer_auth_settings(Permissions::Read);
+        let auth_settings = consumer_auth_settings(NatsPermission::VariableHubRead);
         let consumer = Arc::new(
             DataHubConsumer::connect(NATS_HOSTNAME, &auth_settings)
                 .await
@@ -170,7 +172,7 @@ async fn read_var_defs() {
     run_with_timeout(async move {
         let _fake_reg = FakeRegistry::new().await;
 
-        let auth_settings = consumer_auth_settings(Permissions::Read);
+        let auth_settings = consumer_auth_settings(NatsPermission::VariableHubRead);
         let consumer = Arc::new(
             DataHubConsumer::connect(NATS_HOSTNAME, &auth_settings)
                 .await
@@ -284,7 +286,7 @@ async fn read_var_state() {
     run_with_timeout(async move {
         let _fake_reg = FakeRegistry::new().await;
 
-        let auth_settings = consumer_auth_settings(Permissions::Read);
+        let auth_settings = consumer_auth_settings(NatsPermission::VariableHubRead);
         let consumer = Arc::new(
             DataHubConsumer::connect(NATS_HOSTNAME, &auth_settings)
                 .await
@@ -370,7 +372,7 @@ async fn subscribe_variables() {
     run_with_timeout(async move {
         let _fake_reg = FakeRegistry::new().await;
 
-        let auth_settings = consumer_auth_settings(Permissions::Read);
+        let auth_settings = consumer_auth_settings(NatsPermission::VariableHubRead);
         let consumer = Arc::new(
             DataHubConsumer::connect(NATS_HOSTNAME, &auth_settings)
                 .await
@@ -418,7 +420,7 @@ async fn write_variables() {
     run_with_timeout(async move {
         let _fake_reg = FakeRegistry::new().await;
 
-        let auth_settings = consumer_auth_settings(Permissions::ReadWrite);
+        let auth_settings = consumer_auth_settings(NatsPermission::VariableHubReadWrite);
         let consumer = Arc::new(
             DataHubConsumer::connect(NATS_HOSTNAME, &auth_settings)
                 .await
@@ -487,7 +489,7 @@ async fn write_with_insufficient_nats_permissions() {
     run_with_timeout(async move {
         let _fake_reg = FakeRegistry::new().await;
 
-        let auth_settings = consumer_auth_settings(Permissions::Read);
+        let auth_settings = consumer_auth_settings(NatsPermission::VariableHubRead);
         let consumer = Arc::new(
             DataHubConsumer::connect(NATS_HOSTNAME, &auth_settings)
                 .await
@@ -514,7 +516,7 @@ async fn change_var_defs() {
     run_with_timeout(async move {
         let _fake_reg = FakeRegistry::new().await;
 
-        let auth_settings = consumer_auth_settings(Permissions::Read);
+        let auth_settings = consumer_auth_settings(NatsPermission::VariableHubRead);
         let consumer = Arc::new(
             DataHubConsumer::connect(NATS_HOSTNAME, &auth_settings)
                 .await
@@ -624,7 +626,7 @@ async fn provider_goes_offline() {
     run_with_timeout(async move {
         let _fake_reg = FakeRegistry::new().await;
 
-        let auth_settings = consumer_auth_settings(Permissions::ReadWrite);
+        let auth_settings = consumer_auth_settings(NatsPermission::VariableHubReadWrite);
         let consumer = Arc::new(
             DataHubConsumer::connect(NATS_HOSTNAME, &auth_settings)
                 .await

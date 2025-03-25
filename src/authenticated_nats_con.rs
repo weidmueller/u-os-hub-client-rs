@@ -13,31 +13,31 @@ use crate::oauth2::OAuth2Credentials;
 
 type Result<T> = core::result::Result<T, async_nats::Error>;
 
-/// Access permissions for the data hub.
+/// Access permissions for the NATS connection.
 /// Internally gets converted to Oauth2 scopes.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum Permissions {
-    Read,
-    ReadWrite,
-    Provide,
+pub enum NatsPermission {
+    VariableHubRead,
+    VariableHubReadWrite,
+    VariableHubProvide,
 }
 
-impl Display for Permissions {
+impl Display for NatsPermission {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Permissions::Read => write!(f, "hub.variables.readonly"),
-            Permissions::ReadWrite => write!(f, "hub.variables.readwrite"),
-            Permissions::Provide => write!(f, "hub.variables.provide"),
+            NatsPermission::VariableHubRead => write!(f, "hub.variables.readonly"),
+            NatsPermission::VariableHubReadWrite => write!(f, "hub.variables.readwrite"),
+            NatsPermission::VariableHubProvide => write!(f, "hub.variables.provide"),
         }
     }
 }
 
-pub type PermissionsList = HashSet<Permissions>;
+pub type NatsPermissionList = HashSet<NatsPermission>;
 
 /// Determines how the connection authenticates to the NATS server.
 #[derive(Clone, Debug)]
 pub struct AuthenticationSettings {
-    permissions: PermissionsList,
+    permissions: NatsPermissionList,
     oauth2_endpoint: String,
     creds: Option<OAuth2Credentials>,
 }
@@ -50,10 +50,10 @@ pub struct AuthenticationSettingsBuilder {
 }
 
 impl AuthenticationSettingsBuilder {
-    pub fn new(permission: Permissions) -> Self {
+    pub fn new(permission: NatsPermission) -> Self {
         Self {
             settings: AuthenticationSettings {
-                permissions: PermissionsList::from([permission]),
+                permissions: NatsPermissionList::from([permission]),
                 oauth2_endpoint: "https://127.0.0.1/oauth2/token".to_string(),
                 creds: None,
             },
@@ -63,7 +63,7 @@ impl AuthenticationSettingsBuilder {
     /// Allows to add multiple permissions at once.
     ///
     /// This is useful if the connection should be shared between e.g. a provider and a consumer.
-    pub fn add_permission(mut self, permission: Permissions) -> Self {
+    pub fn add_permission(mut self, permission: NatsPermission) -> Self {
         self.settings.permissions.insert(permission);
         self
     }
@@ -101,7 +101,7 @@ impl AuthenticationSettingsBuilder {
 pub struct AuthenticatedNatsConnection {
     nats_client: async_nats::Client,
     event_sender: broadcast::Sender<async_nats::Event>,
-    nats_permissions: PermissionsList,
+    nats_permissions: NatsPermissionList,
     client_name: String,
 }
 
@@ -161,7 +161,7 @@ impl AuthenticatedNatsConnection {
     }
 
     /// Returns a set of permissions that were requested by the client.
-    pub fn get_permissions(&self) -> &PermissionsList {
+    pub fn get_permissions(&self) -> &NatsPermissionList {
         &self.nats_permissions
     }
 

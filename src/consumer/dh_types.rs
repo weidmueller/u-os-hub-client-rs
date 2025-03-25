@@ -156,19 +156,20 @@ impl TryFrom<VariableDefinitionT> for ConsumerVariableDefinition {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ConsumerVariableState {
-    pub timestamp: Option<SystemTime>,
+    pub timestamp: SystemTime,
     pub value: variable::value::Value,
     pub quality: ConsumerVariableQuality,
 }
 
-impl TryFrom<VariableT> for ConsumerVariableState {
-    type Error = Error;
-
-    fn try_from(ll_var: VariableT) -> Result<Self, Self::Error> {
+impl ConsumerVariableState {
+    /// Creates a new variable state from a low level variable and a fallback timestamp.
+    ///
+    /// If the low level variable has a timestamp, it will be used. Otherwise, `fallback_timestamp` will be used.
+    pub(super) fn new(ll_var: VariableT, fallback_timestamp: SystemTime) -> Result<Self, Error> {
         let mapped_ts = if let Some(ts) = ll_var.timestamp {
-            Some(ts.try_into()?)
+            ts.try_into()?
         } else {
-            None
+            fallback_timestamp
         };
 
         let mapped_value = Option::<variable::value::Value>::from(ll_var.value)
