@@ -72,14 +72,14 @@ pub fn build_provider_definition_changed_event(
 }
 
 /// Builds the payload of the read provider ids query response
-pub fn build_provider_ids_response<'a, I>(provider_ids_iter: I) -> Bytes
+pub fn build_read_providers_response<'a, I>(provider_ids_iter: I) -> Bytes
 where
-    I: Iterator<Item = &'a String>,
+    I: Iterator<Item = &'a str>,
 {
     let provider_list = ProviderListT {
         items: Some(
             provider_ids_iter
-                .map(|id| ProviderT { id: id.clone() })
+                .map(|id| ProviderT { id: id.to_owned() })
                 .collect(),
         ),
     };
@@ -115,12 +115,12 @@ pub fn build_read_provider_definition_response(
 /// Builds the payload of the providers changed event
 pub fn build_providers_changed_event<'a, I>(provider_ids_iter: I) -> Bytes
 where
-    I: Iterator<Item = &'a String>,
+    I: Iterator<Item = &'a str>,
 {
     let provider_list = ProviderListT {
         items: Some(
             provider_ids_iter
-                .map(|id| ProviderT { id: id.clone() })
+                .map(|id| ProviderT { id: id.to_owned() })
                 .collect(),
         ),
     };
@@ -190,4 +190,140 @@ pub fn build_variables_changed_event(variables: &BTreeMap<u32, Variable>) -> Byt
     builder.finish(packed_response, None);
     let (all_bytes, data_start_offset) = builder.collapse();
     Bytes::from(all_bytes).slice(data_start_offset..)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::generated::weidmueller::ucontrol::hub::*;
+    use rstest::rstest;
+
+    fn valid_provider_definition_with_variables() -> ProviderDefinitionT {
+        ProviderDefinitionT {
+            fingerprint: 1,
+            variable_definitions: Some(vec![
+                VariableDefinitionT {
+                    key: "var_boolean".to_string(),
+                    id: 1,
+                    data_type: VariableDataType::BOOLEAN,
+                    access_type: VariableAccessType::READ_ONLY,
+                    ..VariableDefinitionT::default()
+                },
+                VariableDefinitionT {
+                    key: "var_string".to_string(),
+                    id: 2,
+                    data_type: VariableDataType::STRING,
+                    access_type: VariableAccessType::READ_ONLY,
+                    ..VariableDefinitionT::default()
+                },
+                VariableDefinitionT {
+                    key: "var_int64".to_string(),
+                    id: 3,
+                    data_type: VariableDataType::INT64,
+                    access_type: VariableAccessType::READ_WRITE,
+                    ..VariableDefinitionT::default()
+                },
+            ]),
+            state: ProviderDefinitionState::OK,
+            ..ProviderDefinitionT::default()
+        }
+    }
+
+    #[rstest]
+    #[case(Some(valid_provider_definition_with_variables()))]
+    fn test_build_provider_definition_changed_payload(
+        #[case] definition: Option<ProviderDefinitionT>,
+    ) {
+        // arrange
+        // act
+        let payload = build_provider_definition_changed_event(definition.clone());
+
+        // assert
+        let result: ProviderDefinitionChangedEventT =
+            root_as_provider_definition_changed_event(&payload)
+                .unwrap()
+                .unpack();
+
+        match definition {
+            Some(def) => {
+                assert_eq!(result.provider_definition.unwrap().as_ref().clone(), def);
+            }
+            None => {
+                assert!(result.provider_definition.is_none());
+            }
+        }
+    }
+
+    #[rstest]
+    #[case(&[])]
+    #[case(&["Provider 1"])]
+    #[case(&["Provider 1", "Pröväidêr_2"])]
+    fn test_build_providers_changed_event_payload(#[case] provider_ids: &[&str]) {
+        // arrange
+        // act
+
+        let payload = build_providers_changed_event(provider_ids.iter().copied());
+
+        // assert
+        let result_providers = root_as_read_providers_query_response(&payload)
+            .unwrap()
+            .providers()
+            .items()
+            .unwrap();
+        assert_eq!(result_providers.len(), provider_ids.len());
+        for (pos, id) in provider_ids.iter().enumerate() {
+            assert_eq!(&result_providers.get(pos).id(), id);
+        }
+    }
+
+    #[rstest]
+    #[case::valid_provider_definition_without_nodes(ProviderDefinitionT::default())]
+    #[case::valid_provider_definition_with_variables(valid_provider_definition_with_variables())]
+    fn test_build_read_provider_definition_response_payload(
+        #[case] provider_definition: ProviderDefinitionT,
+    ) {
+        // act
+        let payload = build_read_provider_definition_response(Some(provider_definition.clone()));
+
+        // assert
+        let result_provider_definition = root_as_read_provider_definition_query_response(&payload)
+            .unwrap()
+            .unpack()
+            .provider_definition
+            .unwrap();
+        assert_eq!(
+            result_provider_definition.as_ref().clone(),
+            provider_definition
+        );
+    }
+
+    #[rstest]
+    #[case(&[])]
+    #[case(&["Provider 1"])]
+    #[case(&["Provider 1", "Pröväidêr_2"])]
+    fn test_build_read_providers_query_response_payload(#[case] provider_ids: &[&str]) {
+        // arrange
+        // act
+        let payload = build_read_providers_response(provider_ids.iter().copied());
+
+        // assert
+        let result_providers = root_as_read_providers_query_response(&payload)
+            .unwrap()
+            .providers()
+            .items()
+            .unwrap();
+        assert_eq!(result_providers.len(), provider_ids.len());
+        for (pos, id) in provider_ids.iter().enumerate() {
+            assert_eq!(&result_providers.get(pos).id(), id);
+        }
+    }
+
+    #[rstest]
+    #[case::running(State::RUNNING)]
+    #[case::stopping(State::STOPPING)]
+    fn test_build_state_changed_payload(#[case] state_input: State) {
+        let payload = build_state_changed_event_payload(state_input);
+
+        root_as_state_changed_event(&payload).unwrap();
+    }
 }

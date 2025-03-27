@@ -11,8 +11,8 @@ use u_os_hub_client::{
         ProviderDefinitionChangedEvent, ProviderDefinitionState, ProviderDefinitionT,
     },
     payload_builders::{
-        build_provider_definition_changed_event, build_provider_ids_response,
-        build_providers_changed_event, build_read_provider_definition_response,
+        build_provider_definition_changed_event, build_providers_changed_event,
+        build_read_provider_definition_response, build_read_providers_response,
     },
     subjects::{get_provider_id_from_subject, registry_provider_definition_changed_event},
 };
@@ -136,8 +136,14 @@ impl FakeRegistry {
         }
 
         // Publish provider definitions changed eventz
-        let providers_changed_event =
-            build_providers_changed_event(state.lock().unwrap().registered_providers.keys());
+        let providers_changed_event = build_providers_changed_event(
+            state
+                .lock()
+                .unwrap()
+                .registered_providers
+                .keys()
+                .map(String::as_ref),
+        );
 
         client
             .publish(
@@ -160,7 +166,7 @@ impl FakeRegistry {
         let resp = {
             let locked_state = state.lock().unwrap();
             let iter = locked_state.registered_providers.keys();
-            build_provider_ids_response(iter)
+            build_read_providers_response(iter.map(String::as_ref))
         };
 
         client.publish(msg.reply.unwrap(), resp).await?;
