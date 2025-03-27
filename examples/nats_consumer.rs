@@ -2,7 +2,7 @@
 //! using the low level data hub API.
 
 use clap::Parser;
-use std::{sync::Arc, time::Duration};
+use std::{path::PathBuf, sync::Arc, time::Duration};
 
 use futures::StreamExt;
 use tokio::task::JoinSet;
@@ -18,25 +18,33 @@ use u_os_hub_client::{
 
 mod utils;
 
-/// Run in dev container like this:
-/// cargo run --example nats_consumer -- --client-name test-consumer
-/// Note that you will need a data hub registry that is running in the devcontainer for this to work.
+#[derive(Parser, Debug)]
+pub struct Args {
+    /// Path to client config json file
+    #[clap(long)]
+    pub config_file: PathBuf,
+    /// The provider ID to connect to
+    #[clap(long)]
+    pub provider_id: String,
+}
+
+/// Run the example by specifying a configuration file like so:
+/// cargo run --example nats_consumer -- --config-file consumer_conf.json --provider_id "test_provider"
 ///
-/// Run on a device like this (Replace IP and machine client credentials):
-/// cargo run --example nats_consumer -- --nats-ip 192.168.1.102 --nats-port 49360 --client-name test_consumer --client-id 65f20f74-3803-48b4-9e6e-29f72a96be51 --client-secret WkegQAoS0~-g77LVzgWeGG36C-
-/// Note that the nats server on the device must be reachable from outside for this to work.
+/// See the json file for available parameters. Change them according to your system and target device.
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt()
-        .with_max_level(tracing::Level::WARN)
+        .with_max_level(tracing::Level::INFO)
         .init();
 
-    let args = utils::Args::parse();
-    let auth_settings = utils::build_auth_settings_from_args(&args, false);
+    let args = Args::parse();
+    let conf = utils::Config::from_file(&args.config_file)?;
+    let auth_settings = utils::build_auth_settings_from_conf(&conf, false)?;
 
     let auth_nats_con = Arc::new(
         AuthenticatedNatsConnection::new(
-            format!("nats://{}:{}", &args.nats_ip, &args.nats_port),
+            format!("nats://{}:{}", &conf.nats_ip, &conf.nats_port),
             &auth_settings,
         )
         .await
@@ -56,7 +64,7 @@ async fn main() -> anyhow::Result<()> {
     //Create NatsConsumer
     let consumer = Arc::new(NatsConsumer::new(auth_nats_con).await?);
 
-    let test_provider_id = "test_provider";
+    let test_provider_id = &args.provider_id;
 
     //Monitor registry state & provider list
     let mut registry_events = consumer.subscribe_registry_state().await?;

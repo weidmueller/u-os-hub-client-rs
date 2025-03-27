@@ -3,34 +3,42 @@
 
 use clap::Parser;
 use futures::StreamExt;
-use std::{sync::Arc, time::Duration};
+use std::{path::PathBuf, sync::Arc, time::Duration};
 use tokio::task::JoinSet;
 use u_os_hub_client::prelude::consumer::*;
 
 mod utils;
 
-/// Run in dev container like this:
-/// cargo run --example dh_consumer -- --client-name test-consumer
-/// Note that you will need a data hub registry that is running in the devcontainer for this to work.
+#[derive(Parser, Debug)]
+pub struct Args {
+    /// Path to client config json file
+    #[clap(long)]
+    pub config_file: PathBuf,
+    /// The provider ID to connect to
+    #[clap(long)]
+    pub provider_id: String,
+}
+
+/// Run the example by specifying a configuration file like so:
+/// cargo run --example uc-hub-dummy-consumer -- --config-file consumer_conf.json --provider_id "test_provider"
 ///
-/// Run on a device like this (Replace IP and machine client credentials):
-/// cargo run --example dh_consumer -- --nats-ip 192.168.1.102 --nats-port 49360 --client-name test_consumer --client-id 65f20f74-3803-48b4-9e6e-29f72a96be51 --client-secret WkegQAoS0~-g77LVzgWeGG36C-
-/// Note that the nats server on the device must be reachable from outside for this to work.
+/// See the json file for available parameters. Change them according to your system and target device.
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt()
-        .with_max_level(tracing::Level::WARN)
+        .with_max_level(tracing::Level::INFO)
         .init();
 
-    let args = utils::Args::parse();
-    let auth_settings = utils::build_auth_settings_from_args(&args, false);
+    let args = Args::parse();
+    let conf = utils::Config::from_file(&args.config_file)?;
+    let auth_settings = utils::build_auth_settings_from_conf(&conf, false)?;
 
     let mut js = JoinSet::new();
 
     //Create consumer
     let dh_consumer = Arc::new(
         DataHubConsumer::connect(
-            format!("nats://{}:{}", &args.nats_ip, &args.nats_port),
+            format!("nats://{}:{}", &conf.nats_ip, &conf.nats_port),
             &auth_settings,
         )
         .await?,
@@ -44,7 +52,7 @@ async fn main() -> anyhow::Result<()> {
     }
 
     //Connect to a provider
-    let provider_id = "test_provider";
+    let provider_id = args.provider_id;
     println!("Trying to connect to provider {provider_id:?} ...");
     let dh_provider_con =
         Arc::new(ConnectedDataHubProvider::new(dh_consumer, provider_id, true).await?);

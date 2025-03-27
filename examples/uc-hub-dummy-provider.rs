@@ -1,7 +1,7 @@
 //! This example shows how to provide variables to the data hub.
 
 use clap::Parser;
-use std::{sync::Arc, time::SystemTime};
+use std::{path::PathBuf, sync::Arc, time::SystemTime};
 
 use tokio::{
     select, task,
@@ -12,26 +12,31 @@ use u_os_hub_client::{prelude::provider::*, variable::value::Value};
 
 mod utils;
 
-/// Run in dev container like this:
-/// cargo run --example provide -- --client-name test-provider
-/// Note that you will need a data hub registry that is running in the devcontainer for this to work.
+#[derive(Parser, Debug)]
+pub struct Args {
+    /// Path to client config json file
+    #[clap(long)]
+    pub config_file: PathBuf,
+}
+
+/// Run the example by specifying a configuration file like so:
+/// cargo run --example uc-hub-dummy-provider -- --config-file provider_conf.json
 ///
-/// Run on a device like this (Replace IP and machine client credentials):
-/// cargo run --example provide -- --nats-ip 192.168.1.102 --nats-port 49360 --client-name test_provider --client-id ab102c8a-13b2-49db-8f0d-1389aa6f8a12 --client-secret QIk81W9UC87gHV~u7bCiRPgZkY
-/// Note that the nats server on the device must be reachable from outside for this to work.
+/// See the json file for available parameters. Change them according to your system and target device.
 #[tokio::main]
-async fn main() {
+async fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt()
-        .with_max_level(tracing::Level::WARN)
+        .with_max_level(tracing::Level::INFO)
         .init();
 
-    let args = utils::Args::parse();
-    let auth_settings = utils::build_auth_settings_from_args(&args, true);
+    let args = Args::parse();
+    let conf = utils::Config::from_file(&args.config_file)?;
+    let auth_settings = utils::build_auth_settings_from_conf(&conf, true)?;
 
     println!("Connecting to nats server ...");
     let auth_nats_con = Arc::new(
         AuthenticatedNatsConnection::new(
-            format!("nats://{}:{}", &args.nats_ip, &args.nats_port),
+            format!("nats://{}:{}", &conf.nats_ip, &conf.nats_port),
             &auth_settings,
         )
         .await
@@ -40,33 +45,33 @@ async fn main() {
 
     println!("Registering provider ...");
     let builder = ProviderOptions::new();
-    let hub_provider = builder.register(auth_nats_con).await.unwrap();
+    let hub_provider = builder.register(auth_nats_con).await?;
 
     println!("Serving variables ...");
 
     // The provider can be copied into different tasks
     let provider_cloned = hub_provider.clone();
     task::spawn(async move {
-        example_service_1(provider_cloned).await;
+        example_service_1(provider_cloned).await.unwrap();
     });
 
-    example_service_2(hub_provider.clone()).await;
+    example_service_2(hub_provider.clone()).await?;
+
+    Ok(())
 }
 
-async fn example_service_1(hub_provider: Provider) {
+async fn example_service_1(hub_provider: Provider) -> anyhow::Result<()> {
     let dat1_builder = VariableBuilder::new(0, "folder1.int_counter").value(Value::Int(0));
 
-    let mut data1 = dat1_builder.build().unwrap();
+    let mut data1 = dat1_builder.build()?;
 
     let folder_version = VariableBuilder::new(1, "folder1.version")
         .value(Value::String("1.0.0".to_string()))
-        .build()
-        .unwrap();
+        .build()?;
 
     hub_provider
         .add_variables(&[data1.clone(), folder_version.clone()])
-        .await
-        .unwrap();
+        .await?;
 
     let mut counter = 0;
     loop {
@@ -82,26 +87,23 @@ async fn example_service_1(hub_provider: Provider) {
     }
 }
 
-async fn example_service_2(hub_provider: Provider) {
+async fn example_service_2(hub_provider: Provider) -> anyhow::Result<()> {
     let dat1_builder = VariableBuilder::new(3, "folder2.float_counter").value(Value::Float64(0.0));
 
     let writable_string = VariableBuilder::new(5, "folder2.writable_string")
         .value(Value::String("Write me!".to_owned()))
         .read_write()
-        .build()
-        .unwrap();
+        .build()?;
     let writable_int = VariableBuilder::new(6, "folder2.writable_int")
         .value(Value::Int(0))
         .read_write()
-        .build()
-        .unwrap();
+        .build()?;
 
-    let mut data1 = dat1_builder.build().unwrap();
+    let mut data1 = dat1_builder.build()?;
 
     let folder_version = VariableBuilder::new(4, "folder2.version")
         .value("1.0.0".into())
-        .build()
-        .unwrap();
+        .build()?;
 
     hub_provider
         .add_variables(&[
@@ -110,15 +112,13 @@ async fn example_service_2(hub_provider: Provider) {
             writable_string.clone(),
             writable_int.clone(),
         ])
-        .await
-        .unwrap();
+        .await?;
 
     let mut interval = tokio::time::interval(Duration::from_secs(1));
 
     let mut rw_subscribtion = hub_provider
         .subscribe_to_write_command(&[writable_string.clone(), writable_int.clone()])
-        .await
-        .unwrap();
+        .await?;
 
     let mut float_counter = 0.0;
     loop {
@@ -129,7 +129,7 @@ async fn example_service_2(hub_provider: Provider) {
 
                 float_counter += 1.23;
 
-                hub_provider.update_variable_values(vec![data1.clone()]).await.unwrap();
+                hub_provider.update_variable_values(vec![data1.clone()]).await?;
             }
 
             Some(mut vars) = rw_subscribtion.recv() => {
@@ -137,7 +137,7 @@ async fn example_service_2(hub_provider: Provider) {
                 for var in &mut vars {
                     var.last_value_change = SystemTime::now();
                 }
-                hub_provider.update_variable_values(vars).await.unwrap();
+                hub_provider.update_variable_values(vars).await?;
             }
         }
     }

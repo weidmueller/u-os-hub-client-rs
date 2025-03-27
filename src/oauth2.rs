@@ -18,11 +18,10 @@ impl OAuth2Credentials {
         &self,
         token_endpoint: T,
         scope: T2,
-    ) -> Result<TokenResponse, String> {
+    ) -> anyhow::Result<TokenResponse> {
         let reqwest_client = reqwest::ClientBuilder::new()
             .danger_accept_invalid_certs(true)
-            .build()
-            .map_err(|x| x.to_string())?;
+            .build()?;
 
         let mut params = BTreeMap::new();
         params.insert("grant_type", "client_credentials");
@@ -34,7 +33,7 @@ impl OAuth2Credentials {
             urlencoding::encode(&self.client_secret)
         );
 
-        let response: TokenResponse = reqwest_client
+        let http_response = reqwest_client
             .post(token_endpoint.as_ref())
             .header("Content-Type", "application/x-www-form-urlencoded")
             .header("Accept", "application/json")
@@ -44,13 +43,16 @@ impl OAuth2Credentials {
             )
             .form(&params)
             .send()
-            .await
-            .map_err(|x| x.to_string())?
-            .json()
-            .await
-            .map_err(|x| x.to_string())?;
+            .await?;
 
-        Ok(response)
+        let response_text = http_response.text().await?;
+        let json_body = serde_json::from_str(&response_text).map_err(|e| {
+            anyhow::anyhow!(
+                "Failed to convert response body to json: {e} (Response was: {response_text}"
+            )
+        })?;
+
+        Ok(json_body)
     }
 }
 

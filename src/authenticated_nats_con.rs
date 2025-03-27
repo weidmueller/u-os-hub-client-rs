@@ -216,10 +216,10 @@ impl AuthenticatedNatsConnection {
                             Ok(auth)
                         }
                         Err(e) => {
-                            error!("Error requesting token: {:?}", e);
-                            Err(async_nats::AuthError::new(
-                                "Error requesting token".to_string(),
-                            ))
+                            let error_text = format!("Error requesting token: {e}");
+
+                            error!(error_text);
+                            Err(async_nats::AuthError::new(error_text))
                         }
                     }
                 }
