@@ -22,6 +22,8 @@ pub mod payload_builders;
 pub mod provider;
 pub mod subjects;
 pub mod variable;
+pub mod variable_definition_serde_extension;
+pub mod variable_value_type_serde_extension;
 
 /// Commonly used imports for the u-OS Data Hub client library.
 pub mod prelude {

@@ -1,7 +1,9 @@
 //! Contains the provider client.
 
+pub mod provider_definition_validator;
 pub mod provider_options;
 pub mod variable_builder;
+pub mod variable_definition_validator;
 mod worker;
 
 pub use provider_options::ProviderOptions;

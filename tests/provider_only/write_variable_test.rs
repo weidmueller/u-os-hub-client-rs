@@ -64,7 +64,7 @@ async fn test_write_variable_command() {
     // act
     let mut var1 = var1.clone();
     var1.value = Value::Boolean(false);
-    let write_cmd_payload = build_write_variables_command(vec![var1.clone()], fingerprint);
+    let write_cmd_payload = build_write_variables_command(vec![var1.clone().into()], fingerprint);
 
     test_nats_client
         .publish(write_variables_command_from(PROVIDER_ID), write_cmd_payload)

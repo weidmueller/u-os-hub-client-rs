@@ -10,10 +10,38 @@ use crate::{
         ProviderDefinitionChangedEventT, ProviderDefinitionT, ProviderListT, ProviderT,
         ProvidersChangedEventT, ReadProviderDefinitionQueryResponseT, ReadProvidersQueryResponseT,
         ReadVariablesQueryRequestT, ReadVariablesQueryResponseT, State, StateChangedEvent,
-        StateChangedEventArgs, VariableListT, VariablesChangedEventT, WriteVariablesCommandT,
+        StateChangedEventArgs, VariableListT, VariableQuality, VariableT, VariableValueT,
+        VariablesChangedEventT, WriteVariablesCommandT,
     },
     variable::{calc_variables_hash, Variable},
 };
+
+#[derive(Clone, Debug)]
+pub struct VariableUpdate {
+    pub id: u32,
+    pub value: VariableValueT,
+}
+
+impl From<Variable> for VariableUpdate {
+    fn from(var: Variable) -> Self {
+        VariableUpdate {
+            id: var.id,
+            value: VariableValueT::from(&var.value),
+        }
+    }
+}
+
+impl From<VariableUpdate> for VariableT {
+    fn from(variable_update: VariableUpdate) -> Self {
+        VariableT {
+            id: variable_update.id,
+            value: variable_update.value,
+            //Write defaults/zeroes for quality and timestamp
+            quality: VariableQuality::BAD,
+            timestamp: None,
+        }
+    }
+}
 
 /// Builds the payload of the read variables query request
 pub fn build_read_variables_query_request(ids: Option<Vec<u32>>) -> Bytes {
@@ -25,12 +53,15 @@ pub fn build_read_variables_query_request(ids: Option<Vec<u32>>) -> Bytes {
 }
 
 /// Builds the payload of the write variables command
-pub fn build_write_variables_command(variables: Vec<Variable>, based_on_fingerprint: u64) -> Bytes {
+pub fn build_write_variables_command(
+    variables: Vec<VariableUpdate>,
+    based_on_fingerprint: u64,
+) -> Bytes {
     let mut builder = FlatBufferBuilder::new();
 
     let var_list = VariableListT {
         provider_definition_fingerprint: based_on_fingerprint,
-        items: Some(variables.iter().map(|v| v.into()).collect()),
+        items: Some(variables.into_iter().map(|v| v.into()).collect()),
         ..Default::default()
     };
 
