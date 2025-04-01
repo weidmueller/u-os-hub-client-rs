@@ -44,7 +44,7 @@ async fn test_default_name_and_single_perms() {
     assert!(con.get_client_name() == "_UNAUTHENTICATED");
     assert!(
         con.get_permissions()
-            == &([NatsPermission::VariableHubProvide]
+            == ([NatsPermission::VariableHubProvide.to_string()]
                 .into_iter()
                 .collect::<HashSet<_>>())
     );
@@ -73,10 +73,10 @@ async fn test_custom_name_and_multi_perms() {
     assert!(con.get_client_name() == "test_client");
     assert!(
         con.get_permissions()
-            == &([
-                NatsPermission::VariableHubRead,
-                NatsPermission::VariableHubReadWrite,
-                NatsPermission::VariableHubProvide
+            == ([
+                NatsPermission::VariableHubRead.to_string(),
+                NatsPermission::VariableHubReadWrite.to_string(),
+                NatsPermission::VariableHubProvide.to_string()
             ]
             .into_iter()
             .collect::<HashSet<_>>())

@@ -32,14 +32,14 @@ impl Display for NatsPermission {
     }
 }
 
-pub type NatsPermissionList = HashSet<NatsPermission>;
+pub type NatsPermissionList = HashSet<String>;
 
 /// Determines how the connection authenticates to the NATS server.
 #[derive(Clone, Debug)]
 pub struct AuthenticationSettings {
-    permissions: NatsPermissionList,
-    oauth2_endpoint: String,
-    creds: Option<OAuth2Credentials>,
+    pub permissions: NatsPermissionList,
+    pub oauth2_endpoint: String,
+    pub creds: Option<OAuth2Credentials>,
 }
 
 /// Helper struct to build the authentication settings.
@@ -53,7 +53,7 @@ impl AuthenticationSettingsBuilder {
     pub fn new(permission: NatsPermission) -> Self {
         Self {
             settings: AuthenticationSettings {
-                permissions: NatsPermissionList::from([permission]),
+                permissions: NatsPermissionList::from([permission.to_string()]),
                 oauth2_endpoint: "https://127.0.0.1/oauth2/token".to_string(),
                 creds: None,
             },
@@ -64,7 +64,7 @@ impl AuthenticationSettingsBuilder {
     ///
     /// This is useful if the connection should be shared between e.g. a provider and a consumer.
     pub fn add_permission(mut self, permission: NatsPermission) -> Self {
-        self.settings.permissions.insert(permission);
+        self.settings.permissions.insert(permission.to_string());
         self
     }
 
@@ -93,6 +93,21 @@ impl AuthenticationSettingsBuilder {
     }
 }
 
+/// The authentication method used to connect to the NATS server.
+#[derive(Debug)]
+pub enum NatsAuthenticationMethod {
+    /// Client wont authenticate at all and registers via name "_UNAUTHENTICATED".
+    Unauthenticated,
+
+    /// User and password authentication.
+    UsernameAndPassword { username: String, password: String },
+    /// You should use OAuth2Client instead to refresh the token one connect retry.
+    Token(String),
+
+    /// Default authentication method for providers and consumers.
+    OAuth2Client(AuthenticationSettings),
+}
+
 /// Abstracts the nats connection and handles authentication and reconnection.
 ///
 /// Can be used by provider and consumer modules alike.
@@ -101,8 +116,8 @@ impl AuthenticationSettingsBuilder {
 pub struct AuthenticatedNatsConnection {
     nats_client: async_nats::Client,
     event_sender: broadcast::Sender<async_nats::Event>,
-    nats_permissions: NatsPermissionList,
     client_name: String,
+    auth_method: NatsAuthenticationMethod,
 }
 
 impl AuthenticatedNatsConnection {
@@ -116,19 +131,45 @@ impl AuthenticatedNatsConnection {
         nats_server_addr: impl Into<String>,
         auth_settings: &AuthenticationSettings,
     ) -> Result<Self> {
-        let (event_sender, _) = broadcast::channel(128);
+        let client_name = auth_settings
+            .creds
+            .as_ref()
+            .map(|creds| creds.client_name.clone());
 
-        let nats_permissions = auth_settings.permissions.clone();
-        let client_name = auth_settings.creds.as_ref().map_or_else(
-            || "_UNAUTHENTICATED".to_string(),
-            |creds| creds.client_name.clone(),
-        );
+        Self::connect_with_auth_method(
+            nats_server_addr,
+            client_name,
+            NatsAuthenticationMethod::OAuth2Client(auth_settings.clone()),
+            true,
+        )
+        .await
+    }
+
+    /// Allows to connect with advanced options.
+    ///
+    /// This is useful if a certain authorization method should be used.
+    ///
+    /// Usually, this is not needed for providers and consumers and they should use [Self::new()] instead.
+    pub async fn connect_with_auth_method(
+        nats_server_addr: impl Into<String>,
+        client_name: Option<impl Into<String>>,
+        auth_method: NatsAuthenticationMethod,
+        wait_for_con: bool,
+    ) -> Result<Self> {
+        let mut client_name =
+            client_name.map_or_else(|| "_UNAUTHENTICATED".to_string(), |creds| creds.into());
+
+        if let NatsAuthenticationMethod::Unauthenticated = auth_method {
+            client_name = "_UNAUTHENTICATED".to_string();
+        }
+
+        let (event_sender, _) = broadcast::channel(128);
 
         //must subscribe to nats events before trying to connect, as otherwise we may miss the connect event
         let event_receiver = event_sender.subscribe();
 
         let nats_client = Self::connect_to_nats(
-            auth_settings,
+            &auth_method,
             nats_server_addr.into(),
             &client_name,
             event_sender.clone(),
@@ -138,11 +179,13 @@ impl AuthenticatedNatsConnection {
         let instance = Self {
             nats_client: nats_client.clone(),
             event_sender,
-            nats_permissions,
             client_name,
+            auth_method,
         };
 
-        Self::wait_for_connection(event_receiver).await;
+        if wait_for_con {
+            Self::wait_for_connection(event_receiver).await;
+        }
 
         Ok(instance)
     }
@@ -161,8 +204,15 @@ impl AuthenticatedNatsConnection {
     }
 
     /// Returns a set of permissions that were requested by the client.
-    pub fn get_permissions(&self) -> &NatsPermissionList {
-        &self.nats_permissions
+    ///
+    /// This only works if the authentication method is [NatsAuthenticationMethod::OAuth2Client], as otherwise the nats
+    /// connection has no knowledge of the permissions. In that case, an empty list is returned.
+    pub fn get_permissions(&self) -> NatsPermissionList {
+        if let NatsAuthenticationMethod::OAuth2Client(auth_settings) = &self.auth_method {
+            auth_settings.permissions.clone()
+        } else {
+            NatsPermissionList::new()
+        }
     }
 
     /// Gets the nats client name that was supplied in the auth settings.
@@ -182,7 +232,24 @@ impl AuthenticatedNatsConnection {
         self.event_sender.subscribe()
     }
 
-    fn setup_nats_auth_callback(
+    fn setup_nats_auth(auth_method: &NatsAuthenticationMethod) -> async_nats::ConnectOptions {
+        match auth_method {
+            NatsAuthenticationMethod::Unauthenticated => async_nats::ConnectOptions::new(),
+            NatsAuthenticationMethod::UsernameAndPassword { username, password } => {
+                async_nats::ConnectOptions::new()
+                    .user_and_password(username.clone(), password.clone())
+                    .retry_on_initial_connect()
+            }
+            NatsAuthenticationMethod::Token(token) => {
+                async_nats::ConnectOptions::new().token(token.clone())
+            }
+            NatsAuthenticationMethod::OAuth2Client(auth_settings) => {
+                Self::setup_oauth2_client_auth(auth_settings)
+            }
+        }
+    }
+
+    fn setup_oauth2_client_auth(
         auth_settings: &AuthenticationSettings,
     ) -> async_nats::ConnectOptions {
         let token_endpoint = auth_settings.oauth2_endpoint.clone();
@@ -231,12 +298,12 @@ impl AuthenticatedNatsConnection {
     }
 
     async fn connect_to_nats(
-        auth_settings: &AuthenticationSettings,
+        auth_method: &NatsAuthenticationMethod,
         nats_hostname: String,
         client_name: &str,
         event_sender: broadcast::Sender<async_nats::Event>,
     ) -> Result<async_nats::Client> {
-        let connection_options = Self::setup_nats_auth_callback(auth_settings);
+        let connection_options = Self::setup_nats_auth(auth_method);
 
         let connection_options = connection_options
             .name(client_name)

@@ -379,7 +379,7 @@ impl ConnectedNatsProvider {
             .get_consumer()
             .get_nats_con()
             .get_permissions()
-            .contains(&NatsPermission::VariableHubReadWrite)
+            .contains(&NatsPermission::VariableHubReadWrite.to_string())
         {
             return Err(Error::NotPermitted);
         }

@@ -48,8 +48,8 @@ impl NatsConsumer {
     /// or [NatsPermission::VariableHubReadWrite](`crate::authenticated_nats_con::NatsPermission::VariableHubReadWrite`).
     pub async fn new(nats_con: Arc<AuthenticatedNatsConnection>) -> Result<Self> {
         let perms = nats_con.get_permissions();
-        if !perms.contains(&NatsPermission::VariableHubRead)
-            && !perms.contains(&NatsPermission::VariableHubReadWrite)
+        if !perms.contains(&NatsPermission::VariableHubRead.to_string())
+            && !perms.contains(&NatsPermission::VariableHubReadWrite.to_string())
         {
             //It makes no sense to use a consumer without read or readwrite permissions
             return Err(Error::InvalidNatsPermission(perms.clone()));
