@@ -67,8 +67,11 @@ impl From<VariableValueT> for Option<Value> {
             VariableValueT::Boolean(v) => Value::Boolean(v.value),
             VariableValueT::Duration(v) => {
                 let value = v.value?;
-                let secs = Duration::from_secs(value.seconds as u64);
-                let nanos = Duration::from_nanos(value.nanos as u64);
+
+                //TODO: this currently underflows for negative values, so we set it to zero in that case.
+                //See: https://devops-weidmueller.atlassian.net/browse/UC20-14743
+                let secs = Duration::from_secs(u64::try_from(value.seconds).unwrap_or_default());
+                let nanos = Duration::from_nanos(u64::try_from(value.nanos).unwrap_or_default());
 
                 Value::Duration(secs + nanos)
             }
@@ -77,10 +80,29 @@ impl From<VariableValueT> for Option<Value> {
             VariableValueT::String(v) => Value::String(v.value?),
             VariableValueT::Timestamp(v) => {
                 let value = v.value?;
-                let secs = Duration::from_secs(value.seconds as u64);
-                let nanos = Duration::from_nanos(value.nanos as u64);
 
-                Value::Timestamp(UNIX_EPOCH + secs + nanos)
+                //Note: Duration can not be negative, but SystemTime can!
+                //So we create positive durations via abs,
+                //but subtract them from the UNIX_EPOCH if they have a negative source value
+                //See: https://devops-weidmueller.atlassian.net/browse/UC20-14743
+                let secs = Duration::from_secs(value.seconds.unsigned_abs());
+                let nanos = Duration::from_nanos(u64::from(value.nanos.unsigned_abs()));
+
+                let mut system_time = UNIX_EPOCH;
+
+                if value.seconds < 0 {
+                    system_time -= secs;
+                } else {
+                    system_time += secs;
+                }
+
+                if value.nanos < 0 {
+                    system_time -= nanos;
+                } else {
+                    system_time += nanos;
+                }
+
+                Value::Timestamp(system_time)
             }
         })
     }
@@ -110,8 +132,10 @@ impl From<&Value> for VariableValueT {
             Value::Duration(val) => {
                 let val_t = VariableValueDurationT {
                     value: Some(DurationT {
-                        seconds: val.as_secs() as i64,
-                        nanos: val.subsec_nanos() as i32,
+                        //TODO: this may overflow for very large integers, so we set it to zero in that case.
+                        //See: https://devops-weidmueller.atlassian.net/browse/UC20-14743
+                        seconds: i64::try_from(val.as_secs()).unwrap_or_default(),
+                        nanos: i32::try_from(val.subsec_nanos()).unwrap_or_default(),
                     }),
                 };
                 VariableValueT::Duration(Box::new(val_t))
@@ -120,11 +144,13 @@ impl From<&Value> for VariableValueT {
                 let mut val_t = VariableValueTimestampT::default();
                 let mut time_t = TimestampT::default();
                 //TODO: Support timestamps before unix epoch
-                let value_since_unix = val
-                    .duration_since(UNIX_EPOCH)
-                    .expect("should get duration since unix epoch (you can only use timestamps after this epoch)");
-                time_t.seconds = value_since_unix.as_secs() as i64;
-                time_t.nanos = value_since_unix.subsec_nanos() as i32;
+                //For now, we set it to zero in that case.
+                //See: https://devops-weidmueller.atlassian.net/browse/UC20-14743
+                let value_since_unix = val.duration_since(UNIX_EPOCH).unwrap_or_default();
+
+                //TODO: this may overflow for very large integers, so we set it to zero in that case.
+                time_t.seconds = i64::try_from(value_since_unix.as_secs()).unwrap_or_default();
+                time_t.nanos = i32::try_from(value_since_unix.subsec_nanos()).unwrap_or_default();
                 val_t.value = Some(time_t);
                 VariableValueT::Timestamp(Box::new(val_t))
             }
