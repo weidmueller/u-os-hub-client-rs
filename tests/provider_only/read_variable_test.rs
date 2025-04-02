@@ -1,9 +1,9 @@
 use serial_test::serial;
 use u_os_hub_client::{
     generated::weidmueller::ucontrol::hub::root_as_read_variables_query_response,
+    nats_subjects,
     payload_builders::build_read_variables_query_request,
     provider::{ProviderOptions, VariableBuilder},
-    subjects::read_variables_query_from,
     variable::value::Value,
 };
 
@@ -40,7 +40,7 @@ async fn test_read_all_variables() {
     // act
     let result = test_nats_client
         .request(
-            read_variables_query_from(PROVIDER_ID),
+            nats_subjects::read_variables_query(PROVIDER_ID),
             build_read_variables_query_request(None),
         )
         .await
@@ -126,7 +126,7 @@ async fn test_read_one_variable() {
     // act
     let result = test_nats_client
         .request(
-            read_variables_query_from(PROVIDER_ID),
+            nats_subjects::read_variables_query(PROVIDER_ID),
             build_read_variables_query_request(Some(vec![1])),
         )
         .await

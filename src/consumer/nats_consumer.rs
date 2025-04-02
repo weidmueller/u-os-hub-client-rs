@@ -14,6 +14,7 @@ use crate::{
         ReadProviderDefinitionQueryRequestT, ReadProvidersQueryResponse,
         ReadProvidersQueryResponseT, StateChangedEvent, StateChangedEventT,
     },
+    nats_subjects,
 };
 
 use super::connected_nats_provider::{self, ConnectedNatsProvider};
@@ -76,7 +77,7 @@ impl NatsConsumer {
         let subscription = self
             .nats_con
             .get_client()
-            .subscribe("v1.loc.registry.state.evt.changed")
+            .subscribe(nats_subjects::registry_state_changed_event())
             .await?;
 
         let result_stream = subscription.map(|message| -> Result<StateChangedEventT> {
@@ -105,7 +106,10 @@ impl NatsConsumer {
         let reply = self
             .nats_con
             .get_client()
-            .request("v1.loc.registry.providers.qry.read", request_bytes)
+            .request(
+                nats_subjects::registry_providers_read_query(),
+                request_bytes,
+            )
             .await?;
 
         let payload = flatbuffers::root::<ReadProvidersQueryResponse>(&reply.payload)?;
@@ -126,7 +130,7 @@ impl NatsConsumer {
         let subscription = self
             .nats_con
             .get_client()
-            .subscribe("v1.loc.registry.providers.evt.changed")
+            .subscribe(nats_subjects::registry_providers_changed_event())
             .await?;
 
         let result_stream = subscription.map(|message| -> Result<ProvidersChangedEventT> {

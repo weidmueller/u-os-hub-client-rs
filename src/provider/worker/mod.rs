@@ -30,11 +30,11 @@ use crate::{
         ProviderDefinitionChangedEvent, ProviderDefinitionState, ProviderDefinitionT,
         ReadVariablesQueryRequest, WriteVariablesCommand,
     },
+    nats_subjects,
     payload_builders::{
         build_provider_definition_changed_event, build_read_variables_query_response,
         build_variables_changed_event,
     },
-    subjects::{registry_provider_definition_changed_event, REGISTRY_STATE_CHANGED_EVENT_SUBJECT},
     variable::calc_variables_hash,
 };
 
@@ -87,15 +87,15 @@ impl ProviderWorker {
 
         let (tx, rx) = mpsc::channel(100);
         let query_subscription = client
-            .subscribe(format!("v1.loc.{}.vars.qry.read", provider_id))
+            .subscribe(nats_subjects::read_variables_query(provider_id))
             .await
             .map_err(|x| ConnectError::Nats(Box::new(x)))?;
         let write_subscription = client
-            .subscribe(format!("v1.loc.{}.vars.cmd.write", provider_id))
+            .subscribe(nats_subjects::write_variables_command(provider_id))
             .await
             .map_err(|x| ConnectError::Nats(Box::new(x)))?;
         let registry_up = client
-            .subscribe(REGISTRY_STATE_CHANGED_EVENT_SUBJECT.to_string())
+            .subscribe(nats_subjects::registry_state_changed_event())
             .await
             .map_err(|x| ConnectError::Nats(Box::new(x)))?;
 
@@ -160,7 +160,7 @@ impl ProviderWorker {
 
         self.get_nats_client()
             .publish(
-                format!("v1.loc.{}.def.evt.changed", self.get_provider_id()).to_string(),
+                nats_subjects::provider_changed_event(self.get_provider_id()),
                 provider_def_payload,
             )
             .await
@@ -176,8 +176,8 @@ impl ProviderWorker {
     ) -> Result<(), UpdateProviderDefinitionError> {
         let mut registry_provider_definition_updated_subscribtion = self
             .get_nats_client()
-            .subscribe(registry_provider_definition_changed_event(
-                self.get_provider_id().to_owned(),
+            .subscribe(nats_subjects::registry_provider_definition_changed_event(
+                self.get_provider_id(),
             ))
             .await
             .map_err(|x| UpdateProviderDefinitionError::Nats(Box::new(x)))?;
@@ -190,7 +190,7 @@ impl ProviderWorker {
             }));
         self.get_nats_client()
             .publish(
-                format!("v1.loc.{}.def.evt.changed", self.get_provider_id()).to_string(),
+                nats_subjects::provider_changed_event(self.get_provider_id()),
                 provider_def_payload.clone(),
             )
             .await
@@ -219,11 +219,11 @@ impl ProviderWorker {
                     Some(_) = self.registry_up.next() => {
                         // Republish the definition
                         self.get_nats_client()
-                        .publish(
-                            format!("v1.loc.{}.def.evt.changed", self.get_provider_id()).to_string(),
-                            provider_def_payload.clone(),
-                        )
-                        .await.map_err(|x| UpdateProviderDefinitionError::Nats(Box::new(x)))?;
+                            .publish(
+                                nats_subjects::provider_changed_event(self.get_provider_id()),
+                                provider_def_payload.clone(),
+                            )
+                            .await.map_err(|x| UpdateProviderDefinitionError::Nats(Box::new(x)))?;
                     }
                 }
             }
@@ -619,7 +619,7 @@ impl ProviderWorker {
 
         self.get_nats_client()
             .publish(
-                format!("v1.loc.{}.vars.evt.changed", self.get_provider_id()),
+                nats_subjects::vars_changed_event(self.get_provider_id()),
                 payload,
             )
             .await

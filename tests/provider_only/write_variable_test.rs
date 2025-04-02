@@ -5,9 +5,9 @@ use serial_test::serial;
 use tokio::time::timeout;
 use u_os_hub_client::{
     generated::weidmueller::ucontrol::hub::root_as_read_provider_definition_query_response,
+    nats_subjects,
     payload_builders::build_write_variables_command,
     provider::{ProviderOptions, VariableBuilder},
-    subjects::write_variables_command_from,
     variable::value::Value,
 };
 
@@ -24,7 +24,7 @@ async fn test_write_variable_command() {
     let test_nats_client = auth_nats_con.get_client().clone();
 
     let mut def_changed_subscribtion = test_nats_client
-        .subscribe(format!("v1.loc.{}.def.evt.changed", PROVIDER_ID))
+        .subscribe(nats_subjects::provider_changed_event(PROVIDER_ID))
         .await
         .unwrap();
 
@@ -67,7 +67,10 @@ async fn test_write_variable_command() {
     let write_cmd_payload = build_write_variables_command(vec![var1.clone().into()], fingerprint);
 
     test_nats_client
-        .publish(write_variables_command_from(PROVIDER_ID), write_cmd_payload)
+        .publish(
+            nats_subjects::write_variables_command(PROVIDER_ID),
+            write_cmd_payload,
+        )
         .await
         .expect("should publish write command");
 

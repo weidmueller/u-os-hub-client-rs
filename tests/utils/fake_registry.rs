@@ -10,11 +10,11 @@ use u_os_hub_client::{
     generated::weidmueller::ucontrol::hub::{
         ProviderDefinitionChangedEvent, ProviderDefinitionState, ProviderDefinitionT,
     },
+    nats_subjects,
     payload_builders::{
         build_provider_definition_changed_event, build_providers_changed_event,
         build_read_provider_definition_response, build_read_providers_response,
     },
-    subjects::{get_provider_id_from_subject, registry_provider_definition_changed_event},
 };
 
 use super::create_auth_con;
@@ -48,19 +48,19 @@ impl FakeRegistry {
 
         let mut def_changed_subscribtion = auth_nats_con
             .get_client()
-            .subscribe("v1.loc.*.def.evt.changed")
+            .subscribe(nats_subjects::provider_changed_event("*"))
             .await
             .unwrap();
 
         let mut read_provider_ids_sub = auth_nats_con
             .get_client()
-            .subscribe("v1.loc.registry.providers.qry.read")
+            .subscribe(nats_subjects::registry_providers_read_query())
             .await
             .unwrap();
 
         let mut read_provider_def_sub = auth_nats_con
             .get_client()
-            .subscribe("v1.loc.registry.providers.*.def.qry.read")
+            .subscribe(nats_subjects::registry_provider_definition_read_query("*"))
             .await
             .unwrap();
 
@@ -95,8 +95,8 @@ impl FakeRegistry {
         client: &client::Client,
         state: &SharedFakeRegistryState,
     ) -> anyhow::Result<()> {
-        let provider_id = get_provider_id_from_subject(&msg.subject)?;
-        let subject = registry_provider_definition_changed_event(provider_id.clone());
+        let provider_id = nats_subjects::get_provider_id_from_subject(&msg.subject)?;
+        let subject = nats_subjects::registry_provider_definition_changed_event(&provider_id);
 
         let parsed_message = flatbuffers::root::<ProviderDefinitionChangedEvent>(&msg.payload)?;
 
@@ -147,7 +147,7 @@ impl FakeRegistry {
 
         client
             .publish(
-                "v1.loc.registry.providers.evt.changed",
+                nats_subjects::registry_providers_changed_event(),
                 providers_changed_event,
             )
             .await?;
@@ -180,7 +180,7 @@ impl FakeRegistry {
         client: &client::Client,
         state: &SharedFakeRegistryState,
     ) -> anyhow::Result<()> {
-        let provider_id = get_provider_id_from_subject(&msg.subject)?;
+        let provider_id = nats_subjects::get_provider_id_from_subject(&msg.subject)?;
 
         let resp = {
             let locked_state = state.lock().unwrap();

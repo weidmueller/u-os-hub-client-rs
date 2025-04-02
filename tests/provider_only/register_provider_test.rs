@@ -7,15 +7,10 @@ use u_os_hub_client::{
     generated::weidmueller::ucontrol::hub::{
         root_as_read_provider_definition_query_response, State,
     },
+    nats_subjects,
+    payload_builders::build_state_changed_event_payload,
     provider::{ProviderOptions, VariableBuilder},
     variable::value::Value,
-    {
-        payload_builders::build_state_changed_event_payload,
-        subjects::{
-            get_provider_name_from_subject, registry_provider_definition_changed_event,
-            REGISTRY_STATE_CHANGED_EVENT_SUBJECT,
-        },
-    },
 };
 
 use crate::utils::{self, fake_registry::FakeRegistry};
@@ -31,8 +26,8 @@ async fn test_register_provider_with_variables() {
     let test_nats_client = auth_nats_con.get_client();
 
     let mut registry_def_changed_subscribtion = test_nats_client
-        .subscribe(registry_provider_definition_changed_event(
-            PROVIDER_ID.to_string(),
+        .subscribe(nats_subjects::registry_provider_definition_changed_event(
+            PROVIDER_ID,
         ))
         .await
         .expect("should subscribe to def changed event from registry");
@@ -72,7 +67,8 @@ async fn test_register_provider_with_variables() {
             .expect("there should be a provider definition");
 
         assert_eq!(
-            get_provider_name_from_subject(&msg.subject).expect("should be there set"),
+            nats_subjects::get_provider_name_from_subject(&msg.subject)
+                .expect("should be there set"),
             PROVIDER_ID
         );
         assert_eq!(provider_definition.fingerprint, 17906070203590430274);
@@ -100,7 +96,7 @@ async fn test_resend_provider_definition_on_registry_up_event() {
     let test_nats_client = auth_nats_con.get_client().clone();
 
     let mut def_changed_subscribtion = test_nats_client
-        .subscribe(format!("v1.loc.{}.def.evt.changed", PROVIDER_ID))
+        .subscribe(nats_subjects::provider_changed_event(PROVIDER_ID))
         .await
         .unwrap();
 
@@ -130,7 +126,7 @@ async fn test_resend_provider_definition_on_registry_up_event() {
 
     test_nats_client
         .publish(
-            REGISTRY_STATE_CHANGED_EVENT_SUBJECT.to_string(),
+            nats_subjects::registry_state_changed_event(),
             build_state_changed_event_payload(State::RUNNING),
         )
         .await
@@ -145,7 +141,8 @@ async fn test_resend_provider_definition_on_registry_up_event() {
             .expect("there should be a provider definition");
 
         assert_eq!(
-            get_provider_name_from_subject(&msg.subject).expect("should be there set"),
+            nats_subjects::get_provider_name_from_subject(&msg.subject)
+                .expect("should be there set"),
             PROVIDER_ID
         );
         assert_eq!(provider_definition.fingerprint, 17906070203590430274);

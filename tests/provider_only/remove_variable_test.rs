@@ -5,8 +5,8 @@ use serial_test::serial;
 use tokio::time::timeout;
 use u_os_hub_client::{
     generated::weidmueller::ucontrol::hub::root_as_read_provider_definition_query_response,
+    nats_subjects::{self, get_provider_name_from_subject},
     provider::{ProviderOptions, VariableBuilder},
-    subjects::get_provider_name_from_subject,
     variable::value::Value,
 };
 
@@ -23,7 +23,7 @@ async fn test_remove_variables() {
     let test_nats_client = auth_nats_con.get_client();
 
     let mut def_changed_subscribtion = test_nats_client
-        .subscribe(format!("v1.loc.{}.def.evt.changed", PROVIDER_ID))
+        .subscribe(nats_subjects::provider_changed_event(PROVIDER_ID))
         .await
         .unwrap();
 

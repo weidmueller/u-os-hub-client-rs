@@ -13,7 +13,9 @@ use thiserror::Error;
 use tokio::task::JoinHandle;
 use tracing::{error, warn};
 
-use crate::{authenticated_nats_con::NatsPermission, generated::weidmueller::ucontrol::hub::*};
+use crate::{
+    authenticated_nats_con::NatsPermission, generated::weidmueller::ucontrol::hub::*, nats_subjects,
+};
 
 use super::nats_consumer::NatsConsumer;
 
@@ -324,7 +326,7 @@ impl ConnectedNatsProvider {
         let reply = self
             .get_nats_client()
             .request(
-                format!("v1.loc.{}.vars.qry.read", self.provider_id),
+                nats_subjects::read_variables_query(&self.provider_id),
                 request_bytes,
             )
             .await?;
@@ -349,7 +351,7 @@ impl ConnectedNatsProvider {
     ) -> Result<impl Stream<Item = Result<VariablesChangedEventT>>> {
         let subscription = self
             .get_nats_client()
-            .subscribe(format!("v1.loc.{}.vars.evt.changed", self.provider_id))
+            .subscribe(nats_subjects::vars_changed_event(&self.provider_id))
             .await?;
 
         let result_stream = subscription.map(|message| -> Result<VariablesChangedEventT> {
@@ -407,7 +409,7 @@ impl ConnectedNatsProvider {
         //Send write command
         self.get_nats_client()
             .publish(
-                format!("v1.loc.{}.vars.cmd.write", self.provider_id),
+                nats_subjects::write_variables_command(&self.provider_id),
                 request_bytes,
             )
             .await?;
@@ -450,7 +452,7 @@ impl ConnectedNatsProvider {
 
         let reply = nats_client
             .request(
-                format!("v1.loc.registry.providers.{provider_id}.def.qry.read"),
+                nats_subjects::registry_provider_definition_read_query(provider_id),
                 request_bytes,
             )
             .await?;
@@ -464,8 +466,8 @@ impl ConnectedNatsProvider {
         provider_id: &str,
     ) -> Result<impl Stream<Item = Result<ProviderDefinitionChangedEventT>>> {
         let subscription = nats_client
-            .subscribe(format!(
-                "v1.loc.registry.providers.{provider_id}.def.evt.changed"
+            .subscribe(nats_subjects::registry_provider_definition_changed_event(
+                provider_id,
             ))
             .await?;
 
