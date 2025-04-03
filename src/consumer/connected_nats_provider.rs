@@ -13,9 +13,7 @@ use thiserror::Error;
 use tokio::task::JoinHandle;
 use tracing::{error, warn};
 
-use crate::{
-    authenticated_nats_con::NatsPermission, generated::weidmueller::ucontrol::hub::*, nats_subjects,
-};
+use crate::{generated::weidmueller::ucontrol::hub::*, nats_subjects};
 
 use super::nats_consumer::NatsConsumer;
 
@@ -369,23 +367,12 @@ impl ConnectedNatsProvider {
     ///
     /// In order to offer at least a minimum of safety, this method will perform cheap checks:
     ///
-    /// - Needs a connection with [NatsPermission::VariableHubReadWrite](`crate::authenticated_nats_con::NatsPermission::VariableHubReadWrite`)
     /// - Provider must be online
     /// - The current provider fingerprint must match the one in the write command
     pub async fn write_variables_unchecked(
         &self,
         write_command: &WriteVariablesCommandT,
     ) -> Result<()> {
-        //perform cheap checks only
-        if !self
-            .get_consumer()
-            .get_nats_con()
-            .get_permissions()
-            .contains(&NatsPermission::VariableHubReadWrite.to_string())
-        {
-            return Err(Error::NotPermitted);
-        }
-
         let Some(cur_fingerprint) = self.get_fingerprint() else {
             return Err(Error::ProviderOfflineOrInvalid);
         };

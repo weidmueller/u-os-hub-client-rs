@@ -117,7 +117,6 @@ pub struct AuthenticatedNatsConnection {
     nats_client: async_nats::Client,
     event_sender: broadcast::Sender<async_nats::Event>,
     client_name: String,
-    auth_method: NatsAuthenticationMethod,
 }
 
 impl AuthenticatedNatsConnection {
@@ -180,7 +179,6 @@ impl AuthenticatedNatsConnection {
             nats_client: nats_client.clone(),
             event_sender,
             client_name,
-            auth_method,
         };
 
         if wait_for_con {
@@ -200,18 +198,6 @@ impl AuthenticatedNatsConnection {
                 //Connection established!
                 break;
             }
-        }
-    }
-
-    /// Returns a set of permissions that were requested by the client.
-    ///
-    /// This only works if the authentication method is [NatsAuthenticationMethod::OAuth2Client], as otherwise the nats
-    /// connection has no knowledge of the permissions. In that case, an empty list is returned.
-    pub fn get_permissions(&self) -> NatsPermissionList {
-        if let NatsAuthenticationMethod::OAuth2Client(auth_settings) = &self.auth_method {
-            auth_settings.permissions.clone()
-        } else {
-            NatsPermissionList::new()
         }
     }
 

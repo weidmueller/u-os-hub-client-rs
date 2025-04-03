@@ -39,6 +39,7 @@ pub mod prelude {
             ConsumerVariableDefinition, ConsumerVariableQuality, ConsumerVariableState,
             ConsumerVariableType, DhRegistryState,
         };
+        pub use crate::variable::value::Value as ConsumerVariableValue;
     }
 
     /// Common imports for data hub providers.

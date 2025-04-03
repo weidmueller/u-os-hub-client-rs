@@ -8,7 +8,7 @@ use futures::{Stream, StreamExt};
 use thiserror::Error;
 
 use crate::{
-    authenticated_nats_con::{AuthenticatedNatsConnection, NatsPermission, NatsPermissionList},
+    authenticated_nats_con::AuthenticatedNatsConnection,
     generated::weidmueller::ucontrol::hub::{
         ProviderDefinitionState, ProvidersChangedEvent, ProvidersChangedEventT,
         ReadProviderDefinitionQueryRequestT, ReadProvidersQueryResponse,
@@ -27,8 +27,6 @@ pub enum Error {
     NatsSub(#[from] async_nats::SubscribeError),
     #[error("Invalid payload/deserialization failure: {0}")]
     InvalidPayload(#[from] flatbuffers::InvalidFlatbuffer),
-    #[error("Invalid NATS permissions: {0:?}")]
-    InvalidNatsPermission(NatsPermissionList),
     #[error("Failed to wait for provider: {0}")]
     FailedToWaitForProvider(#[from] connected_nats_provider::Error),
 }
@@ -43,19 +41,7 @@ pub struct NatsConsumer {
 
 impl NatsConsumer {
     /// Creates a consumer object using an existing nats connection.
-    ///
-    /// The permissions of the nats connection must contain either
-    /// [NatsPermission::VariableHubRead](`crate::authenticated_nats_con::NatsPermission::VariableHubRead`)
-    /// or [NatsPermission::VariableHubReadWrite](`crate::authenticated_nats_con::NatsPermission::VariableHubReadWrite`).
     pub async fn new(nats_con: Arc<AuthenticatedNatsConnection>) -> Result<Self> {
-        let perms = nats_con.get_permissions();
-        if !perms.contains(&NatsPermission::VariableHubRead.to_string())
-            && !perms.contains(&NatsPermission::VariableHubReadWrite.to_string())
-        {
-            //It makes no sense to use a consumer without read or readwrite permissions
-            return Err(Error::InvalidNatsPermission(perms.clone()));
-        }
-
         Ok(Self { nats_con })
     }
 
