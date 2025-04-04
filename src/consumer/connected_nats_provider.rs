@@ -124,7 +124,10 @@ impl ConnectedNatsProvider {
 
         //This will automatically fail if the provider ID doesnt exist, so we dont need additional error handling
         let provider_def_read_resp =
-            Self::read_provider_definition_internal(nats_client, &provider_id).await?;
+            Self::read_provider_definition_internal(nats_client, &provider_id)
+                .await
+                .map_err(|_| Error::ProviderOfflineOrInvalid)?;
+
         let provider_def = provider_def_read_resp
             .provider_definition
             .ok_or(Error::ProviderOfflineOrInvalid)?;

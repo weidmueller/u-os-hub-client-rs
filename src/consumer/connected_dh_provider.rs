@@ -4,7 +4,6 @@
 use std::{collections::HashSet, sync::Arc};
 
 use futures::{Stream, StreamExt};
-use rustc_hash::FxHashMap;
 use thiserror::Error;
 use tracing::error;
 
@@ -254,9 +253,10 @@ impl ConnectedDataHubProvider {
         let response_variable_list = self.read_variables(Some(&[var])).await?;
 
         let state = response_variable_list
-            .into_values()
+            .into_iter()
             .next()
-            .ok_or(connected_nats_provider::Error::InvalidVariableKey)?;
+            .ok_or(connected_nats_provider::Error::InvalidVariableKey)?
+            .1;
 
         Ok(state)
     }
@@ -272,7 +272,7 @@ impl ConnectedDataHubProvider {
     pub async fn read_variables(
         &self,
         filter: Option<&[impl VariableKeyLike]>,
-    ) -> Result<FxHashMap<VariableID, ConsumerVariableState>> {
+    ) -> Result<Vec<(VariableID, ConsumerVariableState)>> {
         self.connected_provider.check_online()?;
 
         //Build ll api read request
@@ -327,7 +327,7 @@ impl ConnectedDataHubProvider {
         let mapped_stream = self
             .subscribe_variables_with_filter(Some(vec![var]))
             .await?
-            .filter_map(|map| async move { map.into_values().next() });
+            .filter_map(|map| async move { map.into_iter().next().map(|(_id, state)| state) });
 
         Ok(Box::pin(mapped_stream))
     }
@@ -353,7 +353,7 @@ impl ConnectedDataHubProvider {
     pub async fn subscribe_variables_with_filter(
         &self,
         filter_list: Option<Vec<impl VariableKeyLike>>,
-    ) -> Result<impl Stream<Item = FxHashMap<VariableID, ConsumerVariableState>>> {
+    ) -> Result<impl Stream<Item = Vec<(VariableID, ConsumerVariableState)>>> {
         let mut last_fp = self.connected_provider.get_fingerprint();
         let state_clone = self.connected_provider.get_state().clone();
 
@@ -479,7 +479,7 @@ impl ConnectedDataHubProvider {
     fn process_var_changed_evt(
         filter_set: &Option<HashSet<u32>>,
         var_changed_evt: connected_nats_provider::Result<VariablesChangedEventT>,
-    ) -> Option<FxHashMap<VariableID, ConsumerVariableState>> {
+    ) -> Option<Vec<(VariableID, ConsumerVariableState)>> {
         let Ok(var_changed_evt) = var_changed_evt else {
             //Low level error while receiving event
             return None;

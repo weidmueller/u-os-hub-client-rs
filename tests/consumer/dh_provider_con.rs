@@ -1,4 +1,4 @@
-use std::{sync::Arc, time::Duration};
+use std::{collections::HashMap, sync::Arc, time::Duration};
 
 use futures::StreamExt;
 use serial_test::serial;
@@ -14,6 +14,7 @@ use u_os_hub_client::{
         dh_types::{ConsumerVariableDefinition, ConsumerVariableQuality, ConsumerVariableType},
     },
     oauth2::OAuth2Credentials,
+    prelude::consumer::{ConsumerVariableState, VariableID},
     variable::value::Value,
 };
 
@@ -321,6 +322,9 @@ async fn read_var_state() {
             .variable_id_from_key("my_folder.rw_int")
             .unwrap();
 
+        let var_states: HashMap<VariableID, ConsumerVariableState> =
+            var_states.into_iter().collect();
+
         let state = var_states.get(&ro_float_id).unwrap();
         assert_eq!(state.value, Value::Float64(123.0));
         assert_eq!(state.quality, ConsumerVariableQuality::Good);
@@ -393,13 +397,13 @@ async fn subscribe_variables() {
         //wait for the some events
         let change_evt = change_stream.next().await.unwrap();
         assert_eq!(change_evt.len(), 1);
-        let changed_var = change_evt.values().next().unwrap();
+        let changed_var = &change_evt.first().unwrap().1;
         assert_eq!(changed_var.value, 0.0.into());
         assert_eq!(changed_var.quality, ConsumerVariableQuality::Good);
 
         let change_evt = change_stream.next().await.unwrap();
         assert_eq!(change_evt.len(), 1);
-        let changed_var = change_evt.values().next().unwrap();
+        let changed_var = &change_evt.first().unwrap().1;
         assert_eq!(changed_var.value, 123.0.into());
         assert_eq!(changed_var.quality, ConsumerVariableQuality::Good);
 
@@ -463,7 +467,7 @@ async fn write_variables() {
             .unwrap();
 
         //write should have triggered a change event
-        let change_evt = change_stream.next().await.unwrap();
+        let change_evt: HashMap<_, _> = change_stream.next().await.unwrap().into_iter().collect();
         assert_eq!(change_evt.len(), 1);
         assert_eq!(change_evt.get(&200).unwrap().value, "Hello World!".into());
 
@@ -475,7 +479,7 @@ async fn write_variables() {
         dh_provider_con.write_variables(&var_changes).await.unwrap();
 
         //write should have triggered a change event
-        let change_evt = change_stream.next().await.unwrap();
+        let change_evt: HashMap<_, _> = change_stream.next().await.unwrap().into_iter().collect();
         assert_eq!(change_evt.len(), 2);
         assert_eq!(change_evt.get(&200).unwrap().value, "Multi write!!!".into());
         assert_eq!(change_evt.get(&300).unwrap().value, 123.into());
