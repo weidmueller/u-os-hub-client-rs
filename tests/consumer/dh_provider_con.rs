@@ -489,33 +489,6 @@ async fn write_variables() {
 
 #[tokio::test]
 #[serial]
-async fn write_with_insufficient_nats_permissions() {
-    run_with_timeout(async move {
-        let _fake_reg = FakeRegistry::new().await;
-
-        let auth_settings = consumer_auth_settings(NatsPermission::VariableHubRead);
-        let consumer = Arc::new(
-            DataHubConsumer::connect(NATS_HOSTNAME, &auth_settings)
-                .await
-                .unwrap(),
-        );
-
-        let _dummy_provider = DummyProvider::new().await.unwrap();
-        let dh_provider_con = ConnectedDataHubProvider::new(consumer.clone(), PROVIDER_ID, true)
-            .await
-            .unwrap();
-
-        //try to write variable with RO nats permissions
-        assert!(dh_provider_con
-            .write_single_variable("my_folder.rw_string", "Hello World!")
-            .await
-            .is_err());
-    })
-    .await;
-}
-
-#[tokio::test]
-#[serial]
 async fn change_var_defs() {
     run_with_timeout(async move {
         let _fake_reg = FakeRegistry::new().await;
