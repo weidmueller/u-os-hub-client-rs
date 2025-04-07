@@ -33,14 +33,14 @@ pub enum Error {
     ProviderFingerprintMismatch { expected: u64, actual: u64 },
     #[error("Variable ID {0} is unknown")]
     InvalidVariableId(VariableID),
-    #[error("Variable with key {0:?} is not available")]
+    #[error("Variable with key '{0}' not found")]
     InvalidVariableKey(String),
-    #[error("Variable does not allow writing")]
-    NotPermitted,
+    #[error("Variable with key '{0}' does not allow writing")]
+    NotPermitted(String),
     #[error("Invalid variable value type")]
     InvalidValueType,
-    #[error("The provider is currently offline or has invalid state")]
-    ProviderOfflineOrInvalid,
+    #[error("The provider '{0}' is currently offline or has invalid state")]
+    ProviderOfflineOrInvalid(String),
 }
 
 /// Shared state for the connected provider.
@@ -101,14 +101,14 @@ impl ConnectedNatsProvider {
         let provider_def_read_resp =
             Self::read_provider_definition_internal(nats_client, &provider_id)
                 .await
-                .map_err(|_| Error::ProviderOfflineOrInvalid)?;
+                .map_err(|_| Error::ProviderOfflineOrInvalid(provider_id.clone()))?;
 
         let provider_def = provider_def_read_resp
             .provider_definition
-            .ok_or(Error::ProviderOfflineOrInvalid)?;
+            .ok_or(Error::ProviderOfflineOrInvalid(provider_id.clone()))?;
 
         if provider_def.state != ProviderDefinitionState::OK {
-            return Err(Error::ProviderOfflineOrInvalid);
+            return Err(Error::ProviderOfflineOrInvalid(provider_id.clone()));
         }
 
         let cur_fingerprint = provider_def.fingerprint;
@@ -141,6 +141,11 @@ impl ConnectedNatsProvider {
     /// Gets the linked nats consumer.
     pub fn get_consumer(&self) -> &Arc<NatsConsumer> {
         &self.consumer
+    }
+
+    /// Returns the provider ID.
+    pub fn get_provider_id(&self) -> &str {
+        &self.provider_id
     }
 
     /// Returns the cached provider fingerprint.
@@ -352,7 +357,7 @@ impl ConnectedNatsProvider {
         write_command: &WriteVariablesCommandT,
     ) -> Result<()> {
         let Some(cur_fingerprint) = self.get_fingerprint() else {
-            return Err(Error::ProviderOfflineOrInvalid);
+            return Err(Error::ProviderOfflineOrInvalid(self.provider_id.clone()));
         };
 
         if cur_fingerprint != write_command.variables.provider_definition_fingerprint {
@@ -553,7 +558,7 @@ impl ConnectedNatsProvider {
 
                 //check if var has write permission
                 if var_def.access_type != VariableAccessType::READ_WRITE {
-                    return Err(Error::NotPermitted);
+                    return Err(Error::NotPermitted(var_def.key.clone()));
                 }
 
                 //check if value type matches var def
@@ -566,7 +571,7 @@ impl ConnectedNatsProvider {
 
     pub(super) fn check_online(&self) -> Result<()> {
         if !self.is_online() {
-            return Err(Error::ProviderOfflineOrInvalid);
+            return Err(Error::ProviderOfflineOrInvalid(self.provider_id.clone()));
         }
         Ok(())
     }

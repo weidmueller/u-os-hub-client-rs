@@ -153,6 +153,11 @@ impl ConnectedDataHubProvider {
         &self.connected_provider
     }
 
+    /// Returns the provider ID.
+    pub fn get_provider_id(&self) -> &str {
+        self.connected_provider.get_provider_id()
+    }
+
     /// Returns a stream of events for the connected provider.
     /// This allows you to receive events when the provider goes offline or when the provider definition changes.
     ///
@@ -417,10 +422,11 @@ impl ConnectedDataHubProvider {
         &self,
         new_values: &[(impl VariableKeyLike<'a>, variable::value::Value)],
     ) -> Result<()> {
-        let provider_definition_fingerprint = self
-            .connected_provider
-            .get_fingerprint()
-            .ok_or(connected_nats_provider::Error::ProviderOfflineOrInvalid)?;
+        let provider_definition_fingerprint = self.connected_provider.get_fingerprint().ok_or(
+            connected_nats_provider::Error::ProviderOfflineOrInvalid(
+                self.get_provider_id().to_owned(),
+            ),
+        )?;
 
         let mut changed_vars = Vec::with_capacity(new_values.len());
 

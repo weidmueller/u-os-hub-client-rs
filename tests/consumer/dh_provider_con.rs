@@ -639,7 +639,7 @@ async fn provider_goes_offline() {
                 .read_variables(Option::<&[VariableKey]>::None)
                 .await,
             Err(connected_dh_provider::Error::LowLevelApi(
-                connected_nats_provider::Error::ProviderOfflineOrInvalid,
+                connected_nats_provider::Error::ProviderOfflineOrInvalid(_),
             ))
         ),);
 
@@ -648,7 +648,7 @@ async fn provider_goes_offline() {
                 .write_single_variable("my_folder.rw_string", "Hello World!")
                 .await,
             Err(connected_dh_provider::Error::LowLevelApi(
-                connected_nats_provider::Error::ProviderOfflineOrInvalid,
+                connected_nats_provider::Error::ProviderOfflineOrInvalid(_),
             ))
         ),);
 
