@@ -17,10 +17,11 @@ use crate::{
 
 use super::{
     connected_nats_provider::{
-        self, ConnectedNatsProvider, ConnectedNatsProviderState, VariableID, VariableKey,
+        self, ConnectedNatsProvider, ConnectedNatsProviderState, VariableID,
     },
     dh_consumer::{self, DataHubConsumer},
     dh_types::{self, ConsumerVariableDefinition, ConsumerVariableState},
+    variable_key::VariableKey,
 };
 
 #[derive(Error, Debug)]
@@ -41,10 +42,10 @@ pub type Result<T> = core::result::Result<T, Error>;
 /// However, for maximum performance, it is recommended to always only create a variable key once and then reuse it for multiple calls.
 ///
 /// See documentation of [`VariableKey`] for more details.
-pub trait VariableKeyLike: Into<VariableKey> + Copy {}
-impl VariableKeyLike for VariableKey {}
-impl VariableKeyLike for &str {}
-impl VariableKeyLike for &String {}
+pub trait VariableKeyLike<'a>: Into<VariableKey<'a>> + Copy {}
+impl<'a> VariableKeyLike<'a> for VariableKey<'a> {}
+impl<'a> VariableKeyLike<'a> for &'a str {}
+impl<'a> VariableKeyLike<'a> for &'a String {}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 /// Represents a change in the provider state.
@@ -208,7 +209,7 @@ impl ConnectedDataHubProvider {
     ///
     /// Will fail if the variable key is unknown.
     #[inline(always)]
-    pub fn variable_id_from_key(&self, key: impl VariableKeyLike) -> Result<VariableID> {
+    pub fn variable_id_from_key<'a>(&self, key: impl VariableKeyLike<'a>) -> Result<VariableID> {
         Ok(self.connected_provider.variable_id_from_key(key.into())?)
     }
 
@@ -230,9 +231,9 @@ impl ConnectedDataHubProvider {
     ///
     /// Will fail if the variable is unknown.
     /// The cached value will be updated internally once the provider definition changes.
-    pub fn get_variable_definition(
+    pub fn get_variable_definition<'a>(
         &self,
-        var: impl VariableKeyLike,
+        var: impl VariableKeyLike<'a>,
     ) -> Result<ConsumerVariableDefinition> {
         let id = self.variable_id_from_key(var)?;
 
@@ -246,16 +247,19 @@ impl ConnectedDataHubProvider {
     ///
     /// This method may fail if there is an issue with the nats connection, the provider is unavailable
     /// or something goes wrong while deserializing flatbuffer payloads.
-    pub async fn read_single_variable(
+    pub async fn read_single_variable<'a>(
         &self,
-        var: impl VariableKeyLike,
+        var: impl VariableKeyLike<'a>,
     ) -> Result<ConsumerVariableState> {
-        let response_variable_list = self.read_variables(Some(&[var])).await?;
+        let key = var.into();
+        let response_variable_list = self.read_variables(Some(&[key])).await?;
 
         let state = response_variable_list
             .into_iter()
             .next()
-            .ok_or(connected_nats_provider::Error::InvalidVariableKey)?
+            .ok_or(connected_nats_provider::Error::InvalidVariableKey(
+                key.to_string(),
+            ))?
             .1;
 
         Ok(state)
@@ -269,9 +273,9 @@ impl ConnectedDataHubProvider {
     ///
     /// This method may fail if there is an issue with the nats connection, the provider is unavailable
     /// or something goes wrong while deserializing flatbuffer payloads.
-    pub async fn read_variables(
+    pub async fn read_variables<'a>(
         &self,
-        filter: Option<&[impl VariableKeyLike]>,
+        filter: Option<&[impl VariableKeyLike<'a>]>,
     ) -> Result<Vec<(VariableID, ConsumerVariableState)>> {
         self.connected_provider.check_online()?;
 
@@ -320,9 +324,9 @@ impl ConnectedDataHubProvider {
     }
 
     /// Same as [`Self::subscribe_variables_with_filter`], but only returns changes of a single variable.
-    pub async fn subscribe_single_variable(
+    pub async fn subscribe_single_variable<'a>(
         &self,
-        var: impl VariableKeyLike,
+        var: impl VariableKeyLike<'a>,
     ) -> Result<impl Stream<Item = ConsumerVariableState>> {
         let mapped_stream = self
             .subscribe_variables_with_filter(Some(vec![var]))
@@ -350,9 +354,9 @@ impl ConnectedDataHubProvider {
     /// Internally uses the low level api to receive the values.
     /// Each received value from the low level api will be converted to an easy to use rust type.
     /// If the low level api stream returned an error value, this value will be silenly ignored, but the subscription will not be cancelled.
-    pub async fn subscribe_variables_with_filter(
+    pub async fn subscribe_variables_with_filter<'a>(
         &self,
-        filter_list: Option<Vec<impl VariableKeyLike>>,
+        filter_list: Option<Vec<impl VariableKeyLike<'a>>>,
     ) -> Result<impl Stream<Item = Vec<(VariableID, ConsumerVariableState)>>> {
         let mut last_fp = self.connected_provider.get_fingerprint();
         let state_clone = self.connected_provider.get_state().clone();
@@ -398,9 +402,9 @@ impl ConnectedDataHubProvider {
     /// It will also check if the variable is writable and if the value type matches the variable definitions.
     ///
     /// This method may fail if there is an issue with the nats connection or the provider is unavailable.
-    pub async fn write_single_variable(
+    pub async fn write_single_variable<'a>(
         &self,
-        var: impl VariableKeyLike,
+        var: impl VariableKeyLike<'a>,
         new_value: impl Into<variable::value::Value>,
     ) -> Result<()> {
         self.write_variables(&[(var, new_value.into())]).await
@@ -409,9 +413,9 @@ impl ConnectedDataHubProvider {
     /// Same as [`Self::write_single_variable`], but allows to write multiple variables at once.
     ///
     /// This is more efficient than calling [`Self::write_single_variable`] multiple times.
-    pub async fn write_variables(
+    pub async fn write_variables<'a>(
         &self,
-        new_values: &[(impl VariableKeyLike, variable::value::Value)],
+        new_values: &[(impl VariableKeyLike<'a>, variable::value::Value)],
     ) -> Result<()> {
         let provider_definition_fingerprint = self
             .connected_provider
@@ -457,15 +461,15 @@ impl ConnectedDataHubProvider {
     /// Builds a hashset of filter IDs for efficient filtering in stream.
     ///
     /// If a key doesnt exist, its id will be skipped and not be inserted into the filter set.
-    fn build_filter_set(
-        filter_list: &[impl VariableKeyLike],
+    fn build_filter_set<'a>(
+        filter_list: &[impl VariableKeyLike<'a>],
         low_level_state: &ConnectedNatsProviderState,
     ) -> HashSet<VariableID> {
         let mut filter_set = HashSet::with_capacity(filter_list.len());
 
         for var in filter_list {
             let key: VariableKey = (*var).into();
-            let id = low_level_state.var_mapping.get(&key);
+            let id = low_level_state.var_mapping.get(&key.key_hash);
 
             if let Some(id) = id {
                 filter_set.insert(*id);

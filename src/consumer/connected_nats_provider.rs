@@ -1,21 +1,21 @@
 //! This module provides a low-level API for interacting with a variable hub provider via NATS.
 
-use std::{
-    hash::{Hash, Hasher},
-    sync::{Arc, RwLock},
-};
+use std::sync::{Arc, RwLock};
 
 use bytes::Bytes;
 use flatbuffers::FlatBufferBuilder;
 use futures::{Stream, StreamExt};
-use rustc_hash::{FxHashMap, FxHasher};
+use rustc_hash::FxHashMap;
 use thiserror::Error;
 use tokio::task::JoinHandle;
 use tracing::{error, warn};
 
 use crate::{generated::weidmueller::ucontrol::hub::*, nats_subjects};
 
-use super::nats_consumer::NatsConsumer;
+use super::{
+    nats_consumer::NatsConsumer,
+    variable_key::{VariableKey, VariableKeyHash},
+};
 
 #[derive(Error, Debug)]
 pub enum Error {
@@ -31,10 +31,10 @@ pub enum Error {
     InvalidPayload(#[from] flatbuffers::InvalidFlatbuffer),
     #[error("Provider fingerprint mismatch. Expected: {expected}, Actual: {actual}")]
     ProviderFingerprintMismatch { expected: u64, actual: u64 },
-    #[error("Variable ID is unknown: {0}")]
+    #[error("Variable ID {0} is unknown")]
     InvalidVariableId(VariableID),
-    #[error("Variable key is not available")]
-    InvalidVariableKey,
+    #[error("Variable with key {0:?} is not available")]
+    InvalidVariableKey(String),
     #[error("Variable does not allow writing")]
     NotPermitted,
     #[error("Invalid variable value type")]
@@ -54,31 +54,6 @@ pub type Result<T> = std::result::Result<T, Error>;
 /// Represents a variable ID on the hub.
 pub type VariableID = u32;
 
-/// Represents a variable key on the hub.
-///
-/// When constructed from a key string, this calculates a hash of the variable key and stores it inside,
-/// which is used for fast lookups of Variable ID from the key.
-///
-/// It is recommended construct a variable key only once per key string and reuse it for all operations.
-#[derive(Debug, Clone, Copy, Hash, Eq, PartialEq)]
-pub struct VariableKey {
-    /// The hash value of the variable key string
-    pub(super) hashed_key: u64,
-}
-
-impl<T> From<T> for VariableKey
-where
-    T: AsRef<str>,
-{
-    fn from(key: T) -> Self {
-        let mut hasher = FxHasher::default();
-        key.as_ref().hash(&mut hasher);
-        let hashed_key = hasher.finish();
-
-        Self { hashed_key }
-    }
-}
-
 /// Internal state of the provider connection.
 ///
 /// This is used to cache the provider definition and variable definitions.
@@ -93,7 +68,7 @@ pub(super) struct ConnectedNatsProviderState {
     ///Maps from variable ID to variable definition
     pub(super) cur_variable_defs: FxHashMap<VariableID, VariableDefinitionT>,
     ///Maps from hashed variable key to variable ID
-    pub(super) var_mapping: FxHashMap<VariableKey, VariableID>,
+    pub(super) var_mapping: FxHashMap<VariableKeyHash, VariableID>,
 }
 
 /// Represents a connection to a data hub provider.
@@ -220,14 +195,14 @@ impl ConnectedNatsProvider {
     /// Please note that variable IDs and their mapping to keys may change at any time if the provider definition changes.
     ///
     /// Will fail if the variable key is unknown.
-    pub fn variable_id_from_key(&self, handle: impl Into<VariableKey>) -> Result<VariableID> {
-        let handle = handle.into();
+    pub fn variable_id_from_key<'a>(&self, key: impl Into<VariableKey<'a>>) -> Result<VariableID> {
+        let key: VariableKey = key.into();
 
         let state = self.state.read().unwrap();
         let id = *state
             .var_mapping
-            .get(&handle)
-            .ok_or(Error::InvalidVariableKey)?;
+            .get(&key.key_hash)
+            .ok_or(Error::InvalidVariableKey(key.to_string()))?;
         Ok(id)
     }
 
@@ -490,10 +465,10 @@ impl ConnectedNatsProvider {
     /// Generates a mapping from hashed variable keys to variable IDs from an existing variable mapping table
     fn key_mapping_from_variable_defs(
         var_defs: &FxHashMap<VariableID, VariableDefinitionT>,
-    ) -> FxHashMap<VariableKey, VariableID> {
+    ) -> FxHashMap<VariableKeyHash, VariableID> {
         var_defs
             .iter()
-            .map(|(id, var_def)| (VariableKey::from(&var_def.key), *id))
+            .map(|(id, var_def)| (VariableKey::from(&var_def.key).key_hash, *id))
             .collect()
     }
 

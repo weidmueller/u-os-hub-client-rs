@@ -33,12 +33,13 @@ pub mod prelude {
         pub use crate::consumer::connected_dh_provider::{
             ConnectedDataHubProvider, ProviderEvent, VariableKeyLike,
         };
-        pub use crate::consumer::connected_nats_provider::{VariableID, VariableKey};
+        pub use crate::consumer::connected_nats_provider::VariableID;
         pub use crate::consumer::dh_consumer::DataHubConsumer;
         pub use crate::consumer::dh_types::{
             ConsumerVariableDefinition, ConsumerVariableQuality, ConsumerVariableState,
             ConsumerVariableType, DhRegistryState,
         };
+        pub use crate::consumer::variable_key::VariableKey;
         pub use crate::variable::value::Value as ConsumerVariableValue;
     }
 
