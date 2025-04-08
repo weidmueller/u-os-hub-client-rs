@@ -10,7 +10,9 @@ use thiserror::Error;
 use tokio::task::JoinHandle;
 use tracing::{error, warn};
 
-use crate::{generated::weidmueller::ucontrol::hub::*, nats_subjects};
+use crate::{
+    authenticated_nats_con::NatsPermission, generated::weidmueller::ucontrol::hub::*, nats_subjects,
+};
 
 use super::{
     nats_consumer::NatsConsumer,
@@ -36,11 +38,13 @@ pub enum Error {
     #[error("Variable with key '{0}' not found")]
     InvalidVariableKey(String),
     #[error("Variable with key '{0}' does not allow writing")]
-    NotPermitted(String),
+    WritingToReadonly(String),
     #[error("Invalid variable value type")]
     InvalidValueType,
     #[error("The provider '{0}' is currently offline or has invalid state")]
     ProviderOfflineOrInvalid(String),
+    #[error("Action not permitted: {0}")]
+    InsufficientPermissions(String),
 }
 
 /// Shared state for the connected provider.
@@ -105,7 +109,7 @@ impl ConnectedNatsProvider {
 
         let provider_def = provider_def_read_resp
             .provider_definition
-            .ok_or(Error::ProviderOfflineOrInvalid(provider_id.clone()))?;
+            .ok_or_else(|| Error::ProviderOfflineOrInvalid(provider_id.clone()))?;
 
         if provider_def.state != ProviderDefinitionState::OK {
             return Err(Error::ProviderOfflineOrInvalid(provider_id.clone()));
@@ -207,7 +211,7 @@ impl ConnectedNatsProvider {
         let id = *state
             .var_mapping
             .get(&key.key_hash)
-            .ok_or(Error::InvalidVariableKey(key.to_string()))?;
+            .ok_or_else(|| Error::InvalidVariableKey(key.to_string()))?;
         Ok(id)
     }
 
@@ -352,10 +356,24 @@ impl ConnectedNatsProvider {
     ///
     /// - Provider must be online
     /// - The current provider fingerprint must match the one in the write command
+    /// - Needs a connection with [NatsPermission::VariableHubReadWrite](`crate::authenticated_nats_con::NatsPermission::VariableHubReadWrite`)
     pub async fn write_variables_unchecked(
         &self,
         write_command: &WriteVariablesCommandT,
     ) -> Result<()> {
+        //perform cheap checks only
+
+        //Check nats permissions if the client knows them
+        //Note that the server will always check permissions, so this is just an additional convenience check
+        let nats_perms = self.get_consumer().get_nats_con().get_permissions();
+        if let Some(nats_perms) = nats_perms {
+            if !nats_perms.contains(NatsPermission::VariableHubReadWrite.as_str()) {
+                return Err(Error::InsufficientPermissions(
+                    "Needs ReadWrite permission.".to_string(),
+                ));
+            }
+        }
+
         let Some(cur_fingerprint) = self.get_fingerprint() else {
             return Err(Error::ProviderOfflineOrInvalid(self.provider_id.clone()));
         };
@@ -558,7 +576,7 @@ impl ConnectedNatsProvider {
 
                 //check if var has write permission
                 if var_def.access_type != VariableAccessType::READ_WRITE {
-                    return Err(Error::NotPermitted(var_def.key.clone()));
+                    return Err(Error::WritingToReadonly(var_def.key.clone()));
                 }
 
                 //check if value type matches var def

@@ -262,9 +262,7 @@ impl ConnectedDataHubProvider {
         let state = response_variable_list
             .into_iter()
             .next()
-            .ok_or(connected_nats_provider::Error::InvalidVariableKey(
-                key.to_string(),
-            ))?
+            .ok_or_else(|| connected_nats_provider::Error::InvalidVariableKey(key.to_string()))?
             .1;
 
         Ok(state)
@@ -422,11 +420,12 @@ impl ConnectedDataHubProvider {
         &self,
         new_values: &[(impl VariableKeyLike<'a>, variable::value::Value)],
     ) -> Result<()> {
-        let provider_definition_fingerprint = self.connected_provider.get_fingerprint().ok_or(
-            connected_nats_provider::Error::ProviderOfflineOrInvalid(
-                self.get_provider_id().to_owned(),
-            ),
-        )?;
+        let provider_definition_fingerprint =
+            self.connected_provider.get_fingerprint().ok_or_else(|| {
+                connected_nats_provider::Error::ProviderOfflineOrInvalid(
+                    self.get_provider_id().to_owned(),
+                )
+            })?;
 
         let mut changed_vars = Vec::with_capacity(new_values.len());
 

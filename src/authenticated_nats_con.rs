@@ -1,10 +1,7 @@
 //! Handles authentication and connection to NATS server.
 //! Used by both provider and consumer modules.
 
-use std::{
-    collections::HashSet,
-    fmt::{Display, Formatter},
-};
+use std::collections::HashSet;
 
 use tokio::sync::broadcast;
 use tracing::{debug, error};
@@ -22,12 +19,12 @@ pub enum NatsPermission {
     VariableHubProvide,
 }
 
-impl Display for NatsPermission {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+impl NatsPermission {
+    pub fn as_str(&self) -> &'static str {
         match self {
-            NatsPermission::VariableHubRead => write!(f, "hub.variables.readonly"),
-            NatsPermission::VariableHubReadWrite => write!(f, "hub.variables.readwrite"),
-            NatsPermission::VariableHubProvide => write!(f, "hub.variables.provide"),
+            NatsPermission::VariableHubRead => "hub.variables.readonly",
+            NatsPermission::VariableHubReadWrite => "hub.variables.readwrite",
+            NatsPermission::VariableHubProvide => "hub.variables.provide",
         }
     }
 }
@@ -53,7 +50,7 @@ impl AuthenticationSettingsBuilder {
     pub fn new(permission: NatsPermission) -> Self {
         Self {
             settings: AuthenticationSettings {
-                permissions: NatsPermissionList::from([permission.to_string()]),
+                permissions: NatsPermissionList::from([permission.as_str().to_owned()]),
                 oauth2_endpoint: "https://127.0.0.1/oauth2/token".to_string(),
                 creds: None,
             },
@@ -64,7 +61,9 @@ impl AuthenticationSettingsBuilder {
     ///
     /// This is useful if the connection should be shared between e.g. a provider and a consumer.
     pub fn add_permission(mut self, permission: NatsPermission) -> Self {
-        self.settings.permissions.insert(permission.to_string());
+        self.settings
+            .permissions
+            .insert(permission.as_str().to_owned());
         self
     }
 
@@ -116,6 +115,7 @@ pub enum NatsAuthenticationMethod {
 pub struct AuthenticatedNatsConnection {
     nats_client: async_nats::Client,
     event_sender: broadcast::Sender<async_nats::Event>,
+    nats_permissions: Option<NatsPermissionList>,
     client_name: String,
 }
 
@@ -175,9 +175,19 @@ impl AuthenticatedNatsConnection {
         )
         .await?;
 
+        let nats_permissions =
+            if let NatsAuthenticationMethod::OAuth2Client(auth_settings) = auth_method {
+                //If the client is using OAuth2Client, we can use the permissions from the auth settings for improved error checking
+                Some(auth_settings.permissions)
+            } else {
+                //Client does no know about permissions if not using OAuth2Client
+                None
+            };
+
         let instance = Self {
             nats_client: nats_client.clone(),
             event_sender,
+            nats_permissions,
             client_name,
         };
 
@@ -216,6 +226,14 @@ impl AuthenticatedNatsConnection {
     /// This simply forwards nats events to the caller.
     pub fn get_events(&self) -> broadcast::Receiver<async_nats::Event> {
         self.event_sender.subscribe()
+    }
+
+    /// Returns a set of permissions that were requested by the client.
+    ///
+    /// This will return [None] if the client is not using OAuth2Client authentication,
+    /// as in this case the client does not know about the permissions.
+    pub fn get_permissions(&self) -> &Option<NatsPermissionList> {
+        &self.nats_permissions
     }
 
     fn setup_nats_auth(auth_method: &NatsAuthenticationMethod) -> async_nats::ConnectOptions {

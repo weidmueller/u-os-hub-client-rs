@@ -58,6 +58,17 @@ async fn test_reuse_con() {
 
 #[tokio::test]
 #[serial]
+async fn test_invalid_scope() {
+    run_with_timeout(async move {
+        let auth_settings = consumer_auth_settings(NatsPermission::VariableHubProvide);
+        let con_result = DataHubConsumer::connect(NATS_HOSTNAME, &auth_settings).await;
+        assert!(con_result.is_err());
+    })
+    .await;
+}
+
+#[tokio::test]
+#[serial]
 async fn registry_offline() {
     run_with_timeout(async move {
         let auth_settings = consumer_auth_settings(NatsPermission::VariableHubRead);

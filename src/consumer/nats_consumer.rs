@@ -8,7 +8,7 @@ use futures::{Stream, StreamExt};
 use thiserror::Error;
 
 use crate::{
-    authenticated_nats_con::AuthenticatedNatsConnection,
+    authenticated_nats_con::{AuthenticatedNatsConnection, NatsPermission},
     generated::weidmueller::ucontrol::hub::{
         ProviderDefinitionState, ProvidersChangedEvent, ProvidersChangedEventT,
         ReadProviderDefinitionQueryRequestT, ReadProvidersQueryResponse,
@@ -29,6 +29,8 @@ pub enum Error {
     InvalidPayload(#[from] flatbuffers::InvalidFlatbuffer),
     #[error("Failed to wait for provider: {0}")]
     FailedToWaitForProvider(#[from] connected_nats_provider::Error),
+    #[error("Action not permitted: {0}")]
+    InsufficientPermissions(String),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
@@ -41,7 +43,24 @@ pub struct NatsConsumer {
 
 impl NatsConsumer {
     /// Creates a consumer object using an existing nats connection.
+    ///
+    /// If the connection uses oauth2 authentication, the constructor will check if the user has the required permissions
+    /// [NatsPermission::VariableHubRead](`crate::authenticated_nats_con::NatsPermission::VariableHubRead`)
+    /// or [NatsPermission::VariableHubReadWrite](`crate::authenticated_nats_con::NatsPermission::VariableHubReadWrite`).
     pub async fn new(nats_con: Arc<AuthenticatedNatsConnection>) -> Result<Self> {
+        //Check if the user has the required permissions if the connection uses oauth2 authentication
+        let perms = nats_con.get_permissions();
+        if let Some(perms) = perms {
+            if !perms.contains(NatsPermission::VariableHubRead.as_str())
+                && !perms.contains(NatsPermission::VariableHubReadWrite.as_str())
+            {
+                //It makes no sense to use a consumer without read or readwrite permissions
+                return Err(Error::InsufficientPermissions(
+                    "Consumers require read or readwrite permissions".to_string(),
+                ));
+            }
+        }
+
         Ok(Self { nats_con })
     }
 
