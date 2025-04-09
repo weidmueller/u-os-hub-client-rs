@@ -2,7 +2,7 @@
 //! using the low level data hub API.
 
 use clap::Parser;
-use std::{path::PathBuf, sync::Arc, time::Duration};
+use std::{sync::Arc, time::Duration};
 
 use futures::StreamExt;
 use tokio::task::JoinSet;
@@ -18,28 +18,20 @@ use u_os_hub_client::{
 
 mod utils;
 
-#[derive(Parser, Debug)]
-pub struct Args {
-    /// Path to client config json file
-    #[clap(long)]
-    pub config_file: PathBuf,
-    /// The provider ID to connect to
-    #[clap(long)]
-    pub provider_id: String,
-}
-
-/// Run the example by specifying a configuration file like so:
-/// cargo run --example nats_consumer -- --config-file consumer_conf.json --provider_id "test_provider"
-///
-/// See the json file for available parameters. Change them according to your system and target device.
+/// It is recommended to use the deploy examples script to copy this example to a device and register it as a systemd service.
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt()
         .with_max_level(tracing::Level::INFO)
         .init();
 
-    let args = Args::parse();
-    let conf = utils::Config::from_file(&args.config_file)?;
+    let conf = utils::Config::parse();
+
+    let test_provider_id = conf
+        .provider_id
+        .as_ref()
+        .ok_or_else(|| anyhow::anyhow!("Provider ID is mandatory for consumers"))?;
+
     let auth_settings = utils::build_auth_settings_from_conf(&conf, false)?;
 
     let auth_nats_con = Arc::new(
@@ -63,8 +55,6 @@ async fn main() -> anyhow::Result<()> {
 
     //Create NatsConsumer
     let consumer = Arc::new(NatsConsumer::new(auth_nats_con).await?);
-
-    let test_provider_id = &args.provider_id;
 
     //Monitor registry state & provider list
     let mut registry_events = consumer.subscribe_registry_state().await?;

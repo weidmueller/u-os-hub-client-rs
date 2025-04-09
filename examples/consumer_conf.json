@@ -1,6 +1,0 @@
-{
-    "nats_ip": "192.168.1.102",
-    "nats_port": 49360,
-    "client_name": "uc-hub-dummy-consumer",
-    "cred_file": "consumer.creds"
-}

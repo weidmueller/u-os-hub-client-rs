@@ -80,3 +80,20 @@ Before issuing a merge request, you can locally simulate all pipeline checks by 
 ```
 
 This will build, lint, create docs and run audit and unit tests.
+
+==== Running examples
+
+The examples folder contains some examples of how to use the library.
+Running the examples requires a running u-OS Data Hub instance as well as a nats server and various authentication services.
+
+The easiest way to do this is to cross compile the examples and run them directly on the target device.
+
+There are convenience scripts to deploy and remove the examples from a device:
+
+```bash
+#Cross compiles and installs examples as systemd services on the target device
+./tools/build_and_deploy_hub_examples.sh <IP> <arch>
+
+#Removes the examples from the target device
+./tools/remove_hub_examples.sh <IP>
+```

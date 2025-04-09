@@ -3,34 +3,26 @@
 
 use clap::Parser;
 use futures::StreamExt;
-use std::{path::PathBuf, sync::Arc, time::Duration};
+use std::{sync::Arc, time::Duration};
 use tokio::task::JoinSet;
 use u_os_hub_client::prelude::consumer::*;
 
 mod utils;
 
-#[derive(Parser, Debug)]
-pub struct Args {
-    /// Path to client config json file
-    #[clap(long)]
-    pub config_file: PathBuf,
-    /// The provider ID to connect to
-    #[clap(long)]
-    pub provider_id: String,
-}
-
-/// Run the example by specifying a configuration file like so:
-/// cargo run --example uc-hub-dummy-consumer -- --config-file consumer_conf.json --provider_id "test_provider"
-///
-/// See the json file for available parameters. Change them according to your system and target device.
+/// It is recommended to use the deploy examples script to copy this example to a device and register it as a systemd service.
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt()
         .with_max_level(tracing::Level::INFO)
         .init();
 
-    let args = Args::parse();
-    let conf = utils::Config::from_file(&args.config_file)?;
+    let conf = utils::Config::parse();
+
+    let provider_id = conf
+        .provider_id
+        .as_ref()
+        .ok_or_else(|| anyhow::anyhow!("Provider ID is mandatory for consumers"))?;
+
     let auth_settings = utils::build_auth_settings_from_conf(&conf, false)?;
 
     let mut js = JoinSet::new();
@@ -52,7 +44,6 @@ async fn main() -> anyhow::Result<()> {
     }
 
     //Connect to a provider
-    let provider_id = args.provider_id;
     println!("Trying to connect to provider {provider_id:?} ...");
     let dh_provider_con =
         Arc::new(ConnectedDataHubProvider::new(dh_consumer, provider_id, true).await?);

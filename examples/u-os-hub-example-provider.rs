@@ -1,7 +1,7 @@
 //! This example shows how to provide variables to the data hub.
 
 use clap::Parser;
-use std::{path::PathBuf, sync::Arc, time::SystemTime};
+use std::{sync::Arc, time::SystemTime};
 
 use tokio::{
     select, task,
@@ -12,25 +12,14 @@ use u_os_hub_client::{prelude::provider::*, variable::value::Value};
 
 mod utils;
 
-#[derive(Parser, Debug)]
-pub struct Args {
-    /// Path to client config json file
-    #[clap(long)]
-    pub config_file: PathBuf,
-}
-
-/// Run the example by specifying a configuration file like so:
-/// cargo run --example uc-hub-dummy-provider -- --config-file provider_conf.json
-///
-/// See the json file for available parameters. Change them according to your system and target device.
+/// It is recommended to use the deploy examples script to copy this example to a device and register it as a systemd service.
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt()
         .with_max_level(tracing::Level::INFO)
         .init();
 
-    let args = Args::parse();
-    let conf = utils::Config::from_file(&args.config_file)?;
+    let conf = utils::Config::parse();
     let auth_settings = utils::build_auth_settings_from_conf(&conf, true)?;
 
     println!("Connecting to nats server ...");

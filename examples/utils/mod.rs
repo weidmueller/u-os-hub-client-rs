@@ -1,11 +1,8 @@
 //!Utility functions and shared code for the examples
 
-use std::{
-    collections::HashMap,
-    fs,
-    path::{Path, PathBuf},
-};
+use std::{collections::HashMap, fs, path::PathBuf};
 
+use clap::Parser;
 use u_os_hub_client::{
     authenticated_nats_con::{
         AuthenticationSettings, AuthenticationSettingsBuilder, NatsPermission,
@@ -13,28 +10,26 @@ use u_os_hub_client::{
     oauth2::OAuth2Credentials,
 };
 
-#[derive(serde::Deserialize, Debug)]
+#[derive(Parser, Debug)]
 pub struct Config {
+    #[clap(long, default_value = "127.0.0.1")]
     pub nats_ip: String,
+    #[clap(long, default_value_t = 49360)]
     pub nats_port: u16,
+    /// Name of the NATS/DataHub participant
+    #[clap(long)]
     pub client_name: String,
+    /// Path to the credentials file
+    #[clap(long)]
     pub cred_file: PathBuf,
+    /// Optional OAuth2 token endpoint address.
+    /// If not provided, the default endpoint will be used.
+    #[clap(long)]
     pub oauth_token_endpoint: Option<String>,
-}
-
-impl Config {
-    pub fn from_file(file_path: &Path) -> anyhow::Result<Self> {
-        let file = std::fs::File::open(file_path)?;
-        let reader = std::io::BufReader::new(file);
-        let mut instance: Self = serde_json::from_reader(reader)?;
-
-        if instance.oauth_token_endpoint.is_none() {
-            instance.oauth_token_endpoint =
-                Some(format!("https://{}/oauth2/token", instance.nats_ip));
-        }
-
-        Ok(instance)
-    }
+    /// The provider ID to connect to.
+    /// Mandadory for consumers, ignored by providers.
+    #[clap(long)]
+    pub provider_id: Option<String>,
 }
 
 /// Read an env file and parse it into a HashMap
@@ -78,9 +73,12 @@ pub fn build_auth_settings_from_conf(
             .clone(),
     });
 
-    if let Some(token_endpoint) = &conf.oauth_token_endpoint {
-        builder = builder.with_custom_oauth2_endpoint(token_endpoint.clone());
-    }
+    //Add the token endpoint if it is provided, otherwise use default
+    builder = if let Some(token_endpoint) = &conf.oauth_token_endpoint {
+        builder.with_custom_oauth2_endpoint(token_endpoint.clone())
+    } else {
+        builder.with_custom_oauth2_endpoint(format!("https://{}/oauth2/token", conf.nats_ip))
+    };
 
     let auth_settings = builder.build();
     Ok(auth_settings)
