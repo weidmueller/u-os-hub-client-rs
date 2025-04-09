@@ -30,3 +30,7 @@ serial_test = "3"
 rstest = "0"
 tracing-subscriber = { version = "0.3", features = ["fmt"] }
 clap = { version = "4", features = ["derive"] }
+
+[features]
+# Include provider test data for unit and integration tests
+test-data = []

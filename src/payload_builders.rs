@@ -226,42 +226,11 @@ pub fn build_variables_changed_event(variables: &BTreeMap<u32, Variable>) -> Byt
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::generated::weidmueller::ucontrol::hub::*;
+    use crate::{generated::weidmueller::ucontrol::hub::*, provider::test_data};
     use rstest::rstest;
 
-    fn valid_provider_definition_with_variables() -> ProviderDefinitionT {
-        ProviderDefinitionT {
-            fingerprint: 1,
-            variable_definitions: Some(vec![
-                VariableDefinitionT {
-                    key: "var_boolean".to_string(),
-                    id: 1,
-                    data_type: VariableDataType::BOOLEAN,
-                    access_type: VariableAccessType::READ_ONLY,
-                    ..VariableDefinitionT::default()
-                },
-                VariableDefinitionT {
-                    key: "var_string".to_string(),
-                    id: 2,
-                    data_type: VariableDataType::STRING,
-                    access_type: VariableAccessType::READ_ONLY,
-                    ..VariableDefinitionT::default()
-                },
-                VariableDefinitionT {
-                    key: "var_int64".to_string(),
-                    id: 3,
-                    data_type: VariableDataType::INT64,
-                    access_type: VariableAccessType::READ_WRITE,
-                    ..VariableDefinitionT::default()
-                },
-            ]),
-            state: ProviderDefinitionState::OK,
-            ..ProviderDefinitionT::default()
-        }
-    }
-
     #[rstest]
-    #[case(Some(valid_provider_definition_with_variables()))]
+    #[case(Some(test_data::valid_provider_definition_with_variables()))]
     fn test_build_provider_definition_changed_payload(
         #[case] definition: Option<ProviderDefinitionT>,
     ) {
@@ -309,7 +278,9 @@ mod tests {
 
     #[rstest]
     #[case::valid_provider_definition_without_nodes(ProviderDefinitionT::default())]
-    #[case::valid_provider_definition_with_variables(valid_provider_definition_with_variables())]
+    #[case::valid_provider_definition_with_variables(
+        test_data::valid_provider_definition_with_variables()
+    )]
     fn test_build_read_provider_definition_response_payload(
         #[case] provider_definition: ProviderDefinitionT,
     ) {

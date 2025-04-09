@@ -3,8 +3,6 @@ use crate::generated::weidmueller::ucontrol::hub::{
     VariableDefinitionT,
 };
 
-// TODO: move this file out of provider_definition_validator folder into shared folder.
-
 pub fn valid_provider_definition_with_variables() -> ProviderDefinitionT {
     ProviderDefinitionT {
         fingerprint: 1,

@@ -1,3 +1,5 @@
+use crate::provider::test_data;
+
 use super::*;
 use rstest::rstest;
 use test_data::ReverseableVarDefinitions;

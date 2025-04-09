@@ -8,8 +8,6 @@ use super::variable_definition_validator::InvalidVariableDefinitionError;
 #[cfg(test)]
 mod provider_definition_validator_test;
 
-pub mod test_data;
-
 /// Errors when validating provider definitions.
 #[derive(Error, Debug, PartialEq)]
 pub enum InvalidProviderDefinitionError {
