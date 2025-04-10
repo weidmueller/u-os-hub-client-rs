@@ -3,7 +3,6 @@
 pub mod provider_definition_validator;
 pub mod provider_options;
 
-#[cfg(any(test, feature = "test-data"))]
 pub mod test_data;
 
 pub mod variable_builder;
