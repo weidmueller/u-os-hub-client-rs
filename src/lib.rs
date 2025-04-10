@@ -14,6 +14,7 @@
 #[rustfmt::skip]
 /// Contains the generated flatbuffers.
 pub mod generated;
+
 pub mod authenticated_nats_con;
 pub mod consumer;
 pub mod env_file_parser;

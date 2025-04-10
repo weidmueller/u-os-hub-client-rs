@@ -1,12 +1,13 @@
 //!Utility functions and shared code for the examples
 
-use std::{collections::HashMap, fs, path::PathBuf};
+use std::path::PathBuf;
 
 use clap::Parser;
 use u_os_hub_client::{
     authenticated_nats_con::{
         AuthenticationSettings, AuthenticationSettingsBuilder, NatsPermission,
     },
+    env_file_parser::read_and_parse_env_file,
     oauth2::OAuth2Credentials,
 };
 
@@ -32,22 +33,7 @@ pub struct Config {
     pub provider_id: Option<String>,
 }
 
-/// Read an env file and parse it into a HashMap
-fn read_and_parse_env_file(path: &PathBuf) -> anyhow::Result<HashMap<String, String>> {
-    let file_content = fs::read_to_string(path)?;
-
-    let mut map = HashMap::new();
-    for line in file_content.lines() {
-        let parts: Vec<&str> = line.splitn(2, '=').collect();
-        if let [key, value] = parts.as_slice() {
-            map.insert((*key).to_string(), (*value).trim_matches('"').to_string());
-        }
-    }
-
-    Ok(map)
-}
-
-pub fn build_auth_settings_from_conf(
+pub async fn build_auth_settings_from_conf(
     conf: &Config,
     is_provider: bool,
 ) -> anyhow::Result<AuthenticationSettings> {
@@ -59,7 +45,7 @@ pub fn build_auth_settings_from_conf(
         NatsPermission::VariableHubReadWrite
     });
 
-    let env_vars = read_and_parse_env_file(&conf.cred_file)?;
+    let env_vars = read_and_parse_env_file(&conf.cred_file).await?;
 
     builder = builder.with_credentials(OAuth2Credentials {
         client_name: conf.client_name.clone(),

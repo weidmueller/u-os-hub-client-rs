@@ -20,7 +20,7 @@ async fn main() -> anyhow::Result<()> {
         .init();
 
     let conf = utils::Config::parse();
-    let auth_settings = utils::build_auth_settings_from_conf(&conf, true)?;
+    let auth_settings = utils::build_auth_settings_from_conf(&conf, true).await?;
 
     println!("Connecting to nats server ...");
     let auth_nats_con = Arc::new(

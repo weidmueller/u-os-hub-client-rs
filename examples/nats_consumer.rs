@@ -32,7 +32,7 @@ async fn main() -> anyhow::Result<()> {
         .as_ref()
         .ok_or_else(|| anyhow::anyhow!("Provider ID is mandatory for consumers"))?;
 
-    let auth_settings = utils::build_auth_settings_from_conf(&conf, false)?;
+    let auth_settings = utils::build_auth_settings_from_conf(&conf, false).await?;
 
     let auth_nats_con = Arc::new(
         AuthenticatedNatsConnection::new(
