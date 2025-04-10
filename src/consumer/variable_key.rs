@@ -1,3 +1,5 @@
+//! This module contains the `VariableKey` struct, which is used to represent a variable key on the hub.
+
 use std::fmt::Display;
 use std::fmt::Formatter;
 use std::hash::Hash;

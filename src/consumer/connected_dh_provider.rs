@@ -24,6 +24,7 @@ use super::{
     variable_key::VariableKey,
 };
 
+/// Error type for the connected data hub provider.
 #[derive(Error, Debug)]
 pub enum Error {
     #[error("{0}")]
@@ -34,6 +35,7 @@ pub enum Error {
     LowLevelApi(#[from] connected_nats_provider::Error),
 }
 
+/// Result type for the connected data hub provider.
 pub type Result<T> = core::result::Result<T, Error>;
 
 /// A value that can be converted into a [`VariableKey`].

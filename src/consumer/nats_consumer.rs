@@ -19,6 +19,7 @@ use crate::{
 
 use super::connected_nats_provider::{self, ConnectedNatsProvider};
 
+/// Error type for the NATS consumer
 #[derive(Error, Debug)]
 pub enum Error {
     #[error("NATS Request Error: {0}")]
@@ -33,6 +34,7 @@ pub enum Error {
     InsufficientPermissions(String),
 }
 
+/// Result type for the NATS consumer
 pub type Result<T> = std::result::Result<T, Error>;
 
 /// Low Level API for nats and data hub registry abstraction.

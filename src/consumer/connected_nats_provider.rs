@@ -19,6 +19,7 @@ use super::{
     variable_key::{VariableKey, VariableKeyHash},
 };
 
+/// Error type for the connected nats provider
 #[derive(Error, Debug)]
 pub enum Error {
     #[error("NATS Flush Error: {0}")]
@@ -53,6 +54,7 @@ pub enum Error {
 /// and the RwLock allows parallel reads without contention.
 pub(super) type SharedState = Arc<RwLock<ConnectedNatsProviderState>>;
 
+/// Result type for the connected nats provider.
 pub type Result<T> = std::result::Result<T, Error>;
 
 /// Represents a variable ID on the hub.

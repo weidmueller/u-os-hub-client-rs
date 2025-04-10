@@ -1,3 +1,6 @@
+//! Collection of types that are used in the consumer side of the library.
+//! These types abstract the low level flatbuffer types and provide a more user-friendly interface.
+
 use std::time::{Duration, SystemTime};
 
 use thiserror::Error;
@@ -14,12 +17,14 @@ use super::connected_nats_provider::VariableID;
 
 //TODO: how to handle type conversion errors? should that really cause an error, or do we want to have placeholder values?
 
+/// Errors for data hub type conversions
 #[derive(Error, Debug)]
 pub enum Error {
     #[error("Failed to convert low level flatbuffer value")]
     FlatbufferDataTypeConversionFailure,
 }
 
+/// The state of the Data Hub registry
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum DhRegistryState {
     Running,
@@ -73,8 +78,7 @@ impl TryFrom<SystemTime> for TimestampT {
     }
 }
 
-/// Helper types for more comfortable variable and variable def handling
-/// Would implement From traits to easily convert to flatbuffer structs internally
+/// The quality of a variable
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum ConsumerVariableQuality {
     BadOrUndefined,
@@ -103,6 +107,7 @@ impl TryFrom<VariableQuality> for ConsumerVariableQuality {
     }
 }
 
+/// The type of the variable
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum ConsumerVariableType {
     Float64,
@@ -129,6 +134,7 @@ impl TryFrom<VariableDataType> for ConsumerVariableType {
     }
 }
 
+/// The definition of a variable
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct ConsumerVariableDefinition {
     pub id: VariableID,
@@ -154,6 +160,7 @@ impl TryFrom<VariableDefinitionT> for ConsumerVariableDefinition {
     }
 }
 
+/// The state of a variable
 #[derive(Debug, Clone, PartialEq)]
 pub struct ConsumerVariableState {
     pub timestamp: SystemTime,

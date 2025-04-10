@@ -10,6 +10,7 @@ use crate::authenticated_nats_con::{AuthenticatedNatsConnection, AuthenticationS
 
 use super::nats_consumer::{self, NatsConsumer};
 
+/// Error type for the data hub consumer
 #[derive(Error, Debug)]
 pub enum Error {
     #[error("{0}")]
@@ -18,6 +19,7 @@ pub enum Error {
     LowLevelApi(#[from] nats_consumer::Error),
 }
 
+/// Result type for the data hub consumer
 pub type Result<T> = std::result::Result<T, Error>;
 
 /// A high-level API for interacting with the variable hub registry
