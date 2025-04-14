@@ -1,11 +1,12 @@
 //! Contains the variable builder. It's a helper to create variables.
 
-use std::time::SystemTime;
-
 use regex::Regex;
 use thiserror::Error;
 
-use crate::variable::{value::Value, Variable};
+use crate::variable::{
+    value::{DhTimestamp, Value},
+    Variable,
+};
 
 #[cfg(test)]
 mod variable_builder_test;
@@ -73,7 +74,7 @@ impl VariableBuilder {
                 key: self.key,
                 id: self.id,
                 experimental: self.experimental,
-                last_value_change: SystemTime::now(),
+                last_value_change: DhTimestamp::now(),
             })
         } else {
             Err(VariableBuildError::MissingValue)

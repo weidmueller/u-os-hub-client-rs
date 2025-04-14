@@ -1,16 +1,14 @@
 //! Collection of types that are used in the consumer side of the library.
 //! These types abstract the low level flatbuffer types and provide a more user-friendly interface.
 
-use std::time::{Duration, SystemTime};
-
 use thiserror::Error;
 
 use crate::{
     generated::weidmueller::ucontrol::hub::{
-        State, TimestampT, VariableAccessType, VariableDataType, VariableDefinitionT,
-        VariableQuality, VariableT,
+        State, VariableAccessType, VariableDataType, VariableDefinitionT, VariableQuality,
+        VariableT,
     },
-    variable,
+    variable::{self, value::DhTimestamp},
 };
 
 use super::connected_nats_provider::VariableID;
@@ -42,39 +40,6 @@ impl TryFrom<State> for DhRegistryState {
             State::UNSPECIFIED => Ok(DhRegistryState::Unspecified),
             _ => Err(Error::FlatbufferDataTypeConversionFailure),
         }
-    }
-}
-
-impl TryFrom<TimestampT> for SystemTime {
-    type Error = Error;
-
-    fn try_from(value: TimestampT) -> Result<Self, Self::Error> {
-        let secs = Duration::from_secs(
-            u64::try_from(value.seconds).map_err(|_| Error::FlatbufferDataTypeConversionFailure)?,
-        );
-        let nanos = Duration::from_nanos(
-            u64::try_from(value.nanos).map_err(|_| Error::FlatbufferDataTypeConversionFailure)?,
-        );
-
-        Ok(SystemTime::UNIX_EPOCH + secs + nanos)
-    }
-}
-
-impl TryFrom<SystemTime> for TimestampT {
-    type Error = Error;
-
-    fn try_from(value: SystemTime) -> Result<Self, Self::Error> {
-        let time_since_epoch = value
-            .duration_since(SystemTime::UNIX_EPOCH)
-            .map_err(|_| Error::FlatbufferDataTypeConversionFailure)?;
-
-        let seconds = i64::try_from(time_since_epoch.as_secs())
-            .map_err(|_| Error::FlatbufferDataTypeConversionFailure)?;
-
-        let nanos = i32::try_from(time_since_epoch.subsec_nanos())
-            .map_err(|_| Error::FlatbufferDataTypeConversionFailure)?;
-
-        Ok(TimestampT { seconds, nanos })
     }
 }
 
@@ -163,7 +128,7 @@ impl TryFrom<VariableDefinitionT> for ConsumerVariableDefinition {
 /// The state of a variable
 #[derive(Debug, Clone, PartialEq)]
 pub struct ConsumerVariableState {
-    pub timestamp: SystemTime,
+    pub timestamp: DhTimestamp,
     pub value: variable::value::Value,
     pub quality: ConsumerVariableQuality,
 }
@@ -172,9 +137,9 @@ impl ConsumerVariableState {
     /// Creates a new variable state from a low level variable and a fallback timestamp.
     ///
     /// If the low level variable has a timestamp, it will be used. Otherwise, `fallback_timestamp` will be used.
-    pub(super) fn new(ll_var: VariableT, fallback_timestamp: SystemTime) -> Result<Self, Error> {
+    pub(super) fn new(ll_var: VariableT, fallback_timestamp: DhTimestamp) -> Result<Self, Error> {
         let mapped_ts = if let Some(ts) = ll_var.timestamp {
-            ts.try_into()?
+            ts.into()
         } else {
             fallback_timestamp
         };

@@ -1,10 +1,46 @@
 //! Contains the value of a variable.
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
-
 use crate::generated::weidmueller::ucontrol::hub::{
     DurationT, TimestampT, VariableValueBooleanT, VariableValueDurationT, VariableValueFloat64T,
     VariableValueInt64T, VariableValueStringT, VariableValueT, VariableValueTimestampT,
 };
+
+/// User friendly duration type that abstracts the low level flatbuffer value
+pub type DhDuration = time::Duration;
+
+impl From<DurationT> for DhDuration {
+    fn from(value: DurationT) -> Self {
+        DhDuration::new(value.seconds, value.nanos)
+    }
+}
+
+impl From<DhDuration> for DurationT {
+    fn from(value: DhDuration) -> Self {
+        Self {
+            seconds: value.whole_seconds(),
+            nanos: value.subsec_nanoseconds(),
+        }
+    }
+}
+
+/// User friendly timestamp type that abstracts the low level flatbuffer value
+pub type DhTimestamp = time::UtcDateTime;
+
+impl From<TimestampT> for DhTimestamp {
+    fn from(value: TimestampT) -> Self {
+        DhTimestamp::UNIX_EPOCH + DhDuration::new(value.seconds, value.nanos)
+    }
+}
+
+impl From<DhTimestamp> for TimestampT {
+    fn from(value: DhTimestamp) -> Self {
+        let duration_since_epoch = value - DhTimestamp::UNIX_EPOCH;
+
+        Self {
+            seconds: duration_since_epoch.whole_seconds(),
+            nanos: duration_since_epoch.subsec_nanoseconds(),
+        }
+    }
+}
 
 // TODO: We could try to use generics. The datatype shoudn't be changeable so we could move this check to compile time.
 /// The value of a variable.
@@ -14,8 +50,8 @@ pub enum Value {
     Boolean(bool),
     String(String),
     Float64(f64),
-    Duration(Duration),
-    Timestamp(SystemTime),
+    Duration(DhDuration),
+    Timestamp(DhTimestamp),
 }
 
 impl From<i64> for Value {
@@ -48,14 +84,14 @@ impl From<f64> for Value {
     }
 }
 
-impl From<Duration> for Value {
-    fn from(value: Duration) -> Self {
+impl From<DhDuration> for Value {
+    fn from(value: DhDuration) -> Self {
         Value::Duration(value)
     }
 }
 
-impl From<SystemTime> for Value {
-    fn from(value: SystemTime) -> Self {
+impl From<DhTimestamp> for Value {
+    fn from(value: DhTimestamp) -> Self {
         Value::Timestamp(value)
     }
 }
@@ -67,42 +103,14 @@ impl From<VariableValueT> for Option<Value> {
             VariableValueT::Boolean(v) => Value::Boolean(v.value),
             VariableValueT::Duration(v) => {
                 let value = v.value?;
-
-                //TODO: this currently underflows for negative values, so we set it to zero in that case.
-                //See: https://devops-weidmueller.atlassian.net/browse/UC20-14743
-                let secs = Duration::from_secs(u64::try_from(value.seconds).unwrap_or_default());
-                let nanos = Duration::from_nanos(u64::try_from(value.nanos).unwrap_or_default());
-
-                Value::Duration(secs + nanos)
+                Value::Duration(value.into())
             }
             VariableValueT::Float64(v) => Value::Float64(v.value),
             VariableValueT::Int64(v) => Value::Int(v.value),
             VariableValueT::String(v) => Value::String(v.value?),
             VariableValueT::Timestamp(v) => {
-                let value = v.value?;
-
-                //Note: Duration can not be negative, but SystemTime can!
-                //So we create positive durations via abs,
-                //but subtract them from the UNIX_EPOCH if they have a negative source value
-                //See: https://devops-weidmueller.atlassian.net/browse/UC20-14743
-                let secs = Duration::from_secs(value.seconds.unsigned_abs());
-                let nanos = Duration::from_nanos(u64::from(value.nanos.unsigned_abs()));
-
-                let mut system_time = UNIX_EPOCH;
-
-                if value.seconds < 0 {
-                    system_time -= secs;
-                } else {
-                    system_time += secs;
-                }
-
-                if value.nanos < 0 {
-                    system_time -= nanos;
-                } else {
-                    system_time += nanos;
-                }
-
-                Value::Timestamp(system_time)
+                let value: TimestampT = v.value?;
+                Value::Timestamp(value.into())
             }
         })
     }
@@ -131,27 +139,16 @@ impl From<&Value> for VariableValueT {
             }
             Value::Duration(val) => {
                 let val_t = VariableValueDurationT {
-                    value: Some(DurationT {
-                        //TODO: this may overflow for very large integers, so we set it to zero in that case.
-                        //See: https://devops-weidmueller.atlassian.net/browse/UC20-14743
-                        seconds: i64::try_from(val.as_secs()).unwrap_or_default(),
-                        nanos: i32::try_from(val.subsec_nanos()).unwrap_or_default(),
-                    }),
+                    value: Some((*val).into()),
                 };
+
                 VariableValueT::Duration(Box::new(val_t))
             }
             Value::Timestamp(val) => {
-                let mut val_t = VariableValueTimestampT::default();
-                let mut time_t = TimestampT::default();
-                //TODO: Support timestamps before unix epoch
-                //For now, we set it to zero in that case.
-                //See: https://devops-weidmueller.atlassian.net/browse/UC20-14743
-                let value_since_unix = val.duration_since(UNIX_EPOCH).unwrap_or_default();
+                let val_t = VariableValueTimestampT {
+                    value: Some((*val).into()),
+                };
 
-                //TODO: this may overflow for very large integers, so we set it to zero in that case.
-                time_t.seconds = i64::try_from(value_since_unix.as_secs()).unwrap_or_default();
-                time_t.nanos = i32::try_from(value_since_unix.subsec_nanos()).unwrap_or_default();
-                val_t.value = Some(time_t);
                 VariableValueT::Timestamp(Box::new(val_t))
             }
         }

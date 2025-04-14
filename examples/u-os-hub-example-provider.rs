@@ -1,14 +1,17 @@
 //! This example shows how to provide variables to the data hub.
 
 use clap::Parser;
-use std::{sync::Arc, time::SystemTime};
+use std::sync::Arc;
 
 use tokio::{
     select, task,
     time::{sleep, Duration},
 };
 
-use u_os_hub_client::{prelude::provider::*, variable::value::Value};
+use u_os_hub_client::{
+    prelude::provider::*,
+    variable::value::{DhTimestamp, Value},
+};
 
 mod utils;
 
@@ -65,7 +68,7 @@ async fn example_service_1(hub_provider: Provider) -> anyhow::Result<()> {
     let mut counter = 0;
     loop {
         data1.value = Value::Int(counter);
-        data1.last_value_change = SystemTime::now();
+        data1.last_value_change = DhTimestamp::now();
         counter += 1;
 
         hub_provider
@@ -114,7 +117,7 @@ async fn example_service_2(hub_provider: Provider) -> anyhow::Result<()> {
         select! {
             _ = interval.tick() => {
                 data1.value = Value::Float64(float_counter);
-                data1.last_value_change = SystemTime::now();
+                data1.last_value_change = DhTimestamp::now();
 
                 float_counter += 1.23;
 
@@ -124,7 +127,7 @@ async fn example_service_2(hub_provider: Provider) -> anyhow::Result<()> {
             Some(mut vars) = rw_subscribtion.recv() => {
                 // Just accept all and update the values and timestamps
                 for var in &mut vars {
-                    var.last_value_change = SystemTime::now();
+                    var.last_value_change = DhTimestamp::now();
                 }
                 hub_provider.update_variable_values(vars).await?;
             }

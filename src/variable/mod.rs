@@ -2,15 +2,14 @@
 use std::{
     collections::{hash_map::DefaultHasher, BTreeMap},
     hash::{Hash, Hasher},
-    time::{SystemTime, UNIX_EPOCH},
 };
 
 use crate::generated::weidmueller::ucontrol::hub::{
-    TimestampT, VariableAccessType, VariableDefinitionT, VariableQuality, VariableT,
+    VariableAccessType, VariableDefinitionT, VariableQuality, VariableT,
 };
 
 pub mod value;
-use value::Value;
+use value::{DhTimestamp, Value};
 
 /// Holds information about a variable (definition and value).
 /// Warning: If you initialise this struct directly, there is no validation.
@@ -28,25 +27,16 @@ pub struct Variable {
     /// Experimental marker
     pub experimental: bool,
     /// Latest value change (will be returned on variable read request).
-    pub last_value_change: SystemTime,
+    pub last_value_change: DhTimestamp,
 }
 
 impl From<&Variable> for VariableT {
     fn from(val: &Variable) -> Self {
-        let mut timestamp = TimestampT::default();
-        // This can't fail because last_value_change is always younger than unix epoch
-        let system_time = val
-            .last_value_change
-            .duration_since(UNIX_EPOCH)
-            .expect("should get duration since unix epoch, last change value should be younger than unix epoch");
-        timestamp.seconds = system_time.as_secs() as i64;
-        timestamp.nanos = system_time.subsec_nanos() as i32;
-
         VariableT {
             quality: VariableQuality::GOOD,
             id: val.id,
             value: (&val.value).into(),
-            timestamp: Some(timestamp),
+            timestamp: Some(val.last_value_change.into()),
             ..Default::default()
         }
     }

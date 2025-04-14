@@ -307,7 +307,7 @@ impl ConnectedDataHubProvider {
             .read_variables_unchecked(&var_ids)
             .await?;
 
-        let base_timestamp = low_level_data.variables.base_timestamp.try_into()?;
+        let base_timestamp = low_level_data.variables.base_timestamp.into();
 
         //map to user friendly data types
         let result = low_level_data
@@ -496,10 +496,7 @@ impl ConnectedDataHubProvider {
             return None;
         };
 
-        let Ok(base_timestamp) = var_changed_evt.changed_variables.base_timestamp.try_into() else {
-            //base_timestamp of change event could not be converted to SystemTime
-            return None;
-        };
+        let base_timestamp = var_changed_evt.changed_variables.base_timestamp.into();
 
         //Convert the list of all received variables to a user
         //friendly hashmap of ids -> ConsumerVariableState
