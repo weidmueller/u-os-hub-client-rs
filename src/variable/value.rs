@@ -35,10 +35,20 @@ impl From<DhTimestamp> for TimestampT {
     fn from(value: DhTimestamp) -> Self {
         let duration_since_epoch = value - DhTimestamp::UNIX_EPOCH;
 
-        Self {
-            seconds: duration_since_epoch.whole_seconds(),
-            nanos: duration_since_epoch.subsec_nanoseconds(),
+        let mut seconds = duration_since_epoch.whole_seconds();
+        let mut nanos = duration_since_epoch.subsec_nanoseconds();
+
+        //We want our timestamps on the hub to adhere to the google timestamp definition, which requires
+        //nanos to be positive, but time::UtcDateTime can use negative nanos by default.
+        //For example, -1.5s before EPOCH is represented as -1 sec and -500_000_000 nanos in time::UtcDateTime, but we want it to
+        //be represented as -2 sec and 500_000_000 nanos instead.
+        //So if nanos are negative, we subtract 1 from seconds and calculate the remaining positive nanos
+        if nanos < 0 {
+            seconds -= 1;
+            nanos += 1_000_000_000;
         }
+
+        Self { seconds, nanos }
     }
 }
 
@@ -152,5 +162,32 @@ impl From<&Value> for VariableValueT {
                 VariableValueT::Timestamp(Box::new(val_t))
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::generated::weidmueller::ucontrol::hub::TimestampT;
+    use rstest::rstest;
+
+    #[rstest]
+    #[case::pos_seconds_and_nanos(1, 600_000_000, TimestampT{seconds: 1, nanos: 600_000_000})]
+    #[case::pos_seconds_neg_nanos(1, -600_000_000, TimestampT{seconds: 0, nanos: 400_000_000})]
+    #[case::neg_seconds_and_nanos(-1, 600_000_000, TimestampT{seconds: -1, nanos: 600_000_000})]
+    #[case::neg_seconds_neg_nanos(-1, -600_000_000, TimestampT{seconds: -2, nanos: 400_000_000})]
+    fn test_timestamp_conversion_always_positive_nanos(
+        #[case] seconds_since_epoch: i64,
+        #[case] nanos_since_epoch: i32,
+        #[case] expected_fb_timestamp: TimestampT,
+    ) {
+        let dh_timestamp =
+            DhTimestamp::UNIX_EPOCH + DhDuration::new(seconds_since_epoch, nanos_since_epoch);
+
+        let flatbuffer_timestamp: TimestampT = dh_timestamp.into();
+        assert_eq!(flatbuffer_timestamp, expected_fb_timestamp);
+
+        let dh_timestamp_converted: DhTimestamp = flatbuffer_timestamp.into();
+        assert_eq!(dh_timestamp_converted, dh_timestamp);
     }
 }
