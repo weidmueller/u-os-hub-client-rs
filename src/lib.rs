@@ -42,11 +42,13 @@ pub mod prelude {
         };
         pub use crate::consumer::variable_key::VariableKey;
         pub use crate::variable::value::Value as ConsumerVariableValue;
+        pub use crate::variable::value::{DhDuration, DhTimestamp};
     }
 
     /// Common imports for data hub providers.
     pub mod provider {
         pub use crate::authenticated_nats_con::AuthenticatedNatsConnection;
         pub use crate::provider::{Provider, ProviderOptions, VariableBuilder};
+        pub use crate::variable::value::{DhDuration, DhTimestamp};
     }
 }
