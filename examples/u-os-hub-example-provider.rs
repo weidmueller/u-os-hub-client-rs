@@ -1,12 +1,9 @@
 //! This example shows how to provide variables to the data hub.
 
 use clap::Parser;
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 
-use tokio::{
-    select, task,
-    time::{sleep, Duration},
-};
+use tokio::{select, task, time::sleep};
 
 use u_os_hub_client::{
     prelude::provider::*,
@@ -82,34 +79,54 @@ async fn example_service_1(hub_provider: Provider) -> anyhow::Result<()> {
 async fn example_service_2(hub_provider: Provider) -> anyhow::Result<()> {
     let dat1_builder = VariableBuilder::new(3, "folder2.float_counter").value(Value::Float64(0.0));
 
-    let writable_string = VariableBuilder::new(5, "folder2.writable_string")
-        .value(Value::String("Write me!".to_owned()))
-        .read_write()
-        .build()?;
-    let writable_int = VariableBuilder::new(6, "folder2.writable_int")
-        .value(Value::Int(0))
-        .read_write()
-        .build()?;
+    //Make sure that there is one writable variable for each type so we can test read/write of all types
+    //Make some experimental
+    let writable_vars = vec![
+        VariableBuilder::new(4, "folder2.writable_string")
+            .value(Value::String("Write me!".to_owned()))
+            .read_write()
+            .build()?,
+        VariableBuilder::new(5, "folder2.writable_int")
+            .value(Value::Int(1337))
+            .read_write()
+            .build()?,
+        VariableBuilder::new(6, "folder2.writable_bool")
+            .value(Value::Boolean(true))
+            .read_write()
+            .build()?,
+        VariableBuilder::new(7, "folder2.writable_float")
+            .value(Value::Float64(1122.3344))
+            .read_write()
+            .build()?,
+        VariableBuilder::new(8, "folder2.writable_timestamp")
+            .value(Value::Timestamp(DhTimestamp::now()))
+            .read_write()
+            .build()?,
+        VariableBuilder::new(9, "folder2.writable_duration")
+            .value(Value::Duration(DhDuration::new(123, 456)))
+            .read_write()
+            .build()?,
+        VariableBuilder::new(10, "folder2.experimental_string")
+            .value("experimental_value".into())
+            .experimental()
+            .read_write()
+            .build()?,
+    ];
 
     let mut data1 = dat1_builder.build()?;
 
-    let folder_version = VariableBuilder::new(4, "folder2.version")
+    let folder_version = VariableBuilder::new(11, "folder2.version")
         .value("1.0.0".into())
         .build()?;
 
-    hub_provider
-        .add_variables(&[
-            data1.clone(),
-            folder_version.clone(),
-            writable_string.clone(),
-            writable_int.clone(),
-        ])
-        .await?;
+    let mut all_vars = vec![data1.clone(), folder_version.clone()];
+    all_vars.append(&mut writable_vars.clone());
+    hub_provider.add_variables(&all_vars).await?;
 
     let mut interval = tokio::time::interval(Duration::from_secs(1));
 
     let mut rw_subscribtion = hub_provider
-        .subscribe_to_write_command(&[writable_string.clone(), writable_int.clone()])
+        .subscribe_to_write_command(&writable_vars)
         .await?;
 
     let mut float_counter = 0.0;
