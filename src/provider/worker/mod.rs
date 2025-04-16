@@ -64,6 +64,8 @@ pub(super) struct ProviderWorker {
     /// Stores the variables with fast access.
     /// A BTreeMap is used instead of a HashMap because it is always deterministic.
     variables: BTreeMap<u32, Variable>,
+    /// The current fingerprint of the provider definition.
+    current_fingerprint: u64,
     /// Stores the senders for the write commands.
     /// Each sender will be notified about write commands for it's subscribed variable ids.
     /// A variable can't be mapped to multiple senders to avoid conflicts.
@@ -101,12 +103,16 @@ impl ProviderWorker {
 
         let (state_sender, mut state_receiver) = tokio::sync::broadcast::channel(1);
 
+        //Calculate initial FP. The FP will change each time the variables in the definition change.
+        let current_fingerprint = calc_variables_hash(&variables);
+
         let mut created = ProviderWorker {
             nats_con,
             state: State::Connecting,
             state_changed_sender: state_sender,
             command_channel: rx,
             variables,
+            current_fingerprint,
             write_event_notiers: vec![],
             query_subscription,
             write_subscription,
@@ -174,6 +180,9 @@ impl ProviderWorker {
         &mut self,
         wait_for_success: bool,
     ) -> Result<(), UpdateProviderDefinitionError> {
+        // Update the fingerprint
+        self.current_fingerprint = calc_variables_hash(&self.variables);
+
         let mut registry_provider_definition_updated_subscribtion = self
             .get_nats_client()
             .subscribe(nats_subjects::registry_provider_definition_changed_event(
@@ -184,7 +193,7 @@ impl ProviderWorker {
 
         let provider_def_payload =
             build_provider_definition_changed_event(Some(ProviderDefinitionT {
-                fingerprint: calc_variables_hash(&self.variables),
+                fingerprint: self.current_fingerprint,
                 variable_definitions: Some(self.variables.values().map(|var| var.into()).collect()),
                 state: ProviderDefinitionState::UNSPECIFIED,
             }));
@@ -430,9 +439,7 @@ impl ProviderWorker {
             _ => return,
         }
         .unpack();
-        if write_command.variables.provider_definition_fingerprint
-            != calc_variables_hash(&self.variables)
-        {
+        if write_command.variables.provider_definition_fingerprint != self.current_fingerprint {
             trace!("Ignore write command with wrong fingerprint");
             return;
         }
@@ -590,7 +597,11 @@ impl ProviderWorker {
             None => return,
         };
 
-        let response = build_read_variables_query_response(read_request.unpack(), &self.variables);
+        let response = build_read_variables_query_response(
+            read_request.unpack(),
+            &self.variables,
+            self.current_fingerprint,
+        );
         self.get_nats_client()
             .publish(reply_subject.into_string(), response)
             .await
@@ -615,7 +626,7 @@ impl ProviderWorker {
             None => self.variables.clone(),
         };
 
-        let payload = build_variables_changed_event(&to_publish);
+        let payload = build_variables_changed_event(&to_publish, self.current_fingerprint);
 
         self.get_nats_client()
             .publish(

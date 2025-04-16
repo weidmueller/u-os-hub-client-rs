@@ -13,7 +13,7 @@ use crate::{
         StateChangedEventArgs, VariableListT, VariableQuality, VariableT, VariableValueT,
         VariablesChangedEventT, WriteVariablesCommandT,
     },
-    variable::{calc_variables_hash, Variable},
+    variable::Variable,
 };
 
 #[derive(Clone, Debug)]
@@ -172,6 +172,7 @@ where
 pub fn build_read_variables_query_response(
     msg: ReadVariablesQueryRequestT,
     variables: &BTreeMap<u32, Variable>,
+    provider_definition_fingerprint: u64,
 ) -> Bytes {
     let mut response = ReadVariablesQueryResponseT::default();
 
@@ -189,7 +190,7 @@ pub fn build_read_variables_query_response(
     let items = items.into_iter().map(|x| x.into()).collect();
 
     var_list_flat.items = Some(items);
-    var_list_flat.provider_definition_fingerprint = calc_variables_hash(variables);
+    var_list_flat.provider_definition_fingerprint = provider_definition_fingerprint;
 
     response.variables = Box::new(var_list_flat);
 
@@ -202,14 +203,17 @@ pub fn build_read_variables_query_response(
 }
 
 /// Builds the payload of the variables changed event
-pub fn build_variables_changed_event(variables: &BTreeMap<u32, Variable>) -> Bytes {
+pub fn build_variables_changed_event(
+    variables: &BTreeMap<u32, Variable>,
+    provider_definition_fingerprint: u64,
+) -> Bytes {
     let mut response = VariablesChangedEventT::default();
 
     let to_publish = variables.iter().map(|(_, x)| x.into()).collect();
 
     let var_list_flat = VariableListT {
         items: Some(to_publish),
-        provider_definition_fingerprint: calc_variables_hash(variables),
+        provider_definition_fingerprint,
         ..Default::default()
     };
 
