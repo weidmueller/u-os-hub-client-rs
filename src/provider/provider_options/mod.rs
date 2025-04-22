@@ -18,6 +18,7 @@ use super::Provider;
 mod provider_options_test;
 
 /// The ProviderOptions is used to create a Provider
+#[derive(Debug, Clone)]
 pub struct ProviderOptions {
     variables: BTreeMap<u32, Variable>,
 }

@@ -31,9 +31,6 @@ fn test_get_provider_from_subject(
 #[case::provider_given_short_subject("v1.loc.test1-test-", "test1-test-")]
 #[case::provider_given_short_subject("v1.loc.0-test1-test-", "0-test1-test-")]
 fn test_get_provider_id_from_subject(#[case] subject: &str, #[case] expected_provider: String) {
-    let result = get_provider_id_from_subject(subject);
-    match result {
-        Ok(provider) => assert_eq!(provider, expected_provider),
-        Err(error) => panic!("{}", error),
-    }
+    let provider = get_provider_id_from_subject(subject).unwrap();
+    assert_eq!(provider, expected_provider);
 }

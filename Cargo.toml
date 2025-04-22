@@ -6,6 +6,9 @@ edition = "2021"
 rust-version = "1.75"
 
 [dependencies]
+#must force at least this ring version due to cross compile errors for older versions
+ring = "0.17.8"
+
 anyhow = "1.0"
 async-nats = "0.37"
 async-trait = "0.1.80"
@@ -26,12 +29,18 @@ thiserror = "1.0"
 urlencoding = "2.1"
 rustc-hash = "2.1"
 time = { version = "0.3.38" }
-
-#must force at least this ring version due to cross compile errors for older versions
-ring = "0.17.8"
+once_cell = "1.19.0"
 
 [dev-dependencies]
 serial_test = "3.2"
 rstest = "0.25"
 tracing-subscriber = { version = "0.3.15", features = ["fmt"] }
 clap = { version = "4.5", features = ["derive"] }
+
+# Additional lints to prevent runtime crashes
+# Some of them are relaxed for tests, see clippy.toml and source code allow tags
+[lints.clippy]
+unwrap_used = "warn"
+expect_used = "warn"
+panic = "warn"
+indexing_slicing = "warn"

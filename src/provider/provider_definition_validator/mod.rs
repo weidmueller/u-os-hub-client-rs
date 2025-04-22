@@ -96,7 +96,13 @@ impl ProviderDefinitionT {
     fn get_all_parent_paths(variable_key: &str) -> Vec<String> {
         let path_parts: Vec<&str> = variable_key.split('.').collect();
         (0..path_parts.len() - 1)
-            .map(|last_index| path_parts[0..=last_index].to_vec().join("."))
+            .map(|last_index| {
+                path_parts
+                    .get(0..=last_index)
+                    .unwrap_or_default()
+                    .to_vec()
+                    .join(".")
+            })
             .collect()
     }
 

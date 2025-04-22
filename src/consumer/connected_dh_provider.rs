@@ -367,9 +367,11 @@ impl ConnectedDataHubProvider {
         let state_clone = self.connected_provider.get_state().clone();
 
         //build initial filter set and remember initial fingerprint
-        let mut filter_set = filter_list
-            .as_ref()
-            .map(|filter_list| Self::build_filter_set(filter_list, &state_clone.read().unwrap()));
+        let mut filter_set = filter_list.as_ref().map(|filter_list| {
+            //Safety: Unwrap is ok here as we know that the mutex cant be poisoned during writing
+            #[allow(clippy::unwrap_used)]
+            Self::build_filter_set(filter_list, &state_clone.read().unwrap())
+        });
 
         //Subscibe to all, unfiltered variable change events
         let low_level_data = self.connected_provider.subscribe_variables().await?;
@@ -378,7 +380,11 @@ impl ConnectedDataHubProvider {
         let mapped_stream = low_level_data.filter_map(move |var_changed_evt| {
             if let Some(filter_list) = &filter_list {
                 //check if we need to rebuild the filter because provider changed
+
+                //Safety: Unwrap is ok here as we know that the mutex cant be poisoned during writing
+                #[allow(clippy::unwrap_used)]
                 let readable_state = state_clone.read().unwrap();
+
                 let current_fp = readable_state.cur_fingerprint;
                 if current_fp.is_some() && current_fp != last_fp {
                     filter_set = Some(Self::build_filter_set(filter_list, &readable_state));

@@ -1,5 +1,6 @@
 //! Contains the variable builder. It's a helper to create variables.
 
+use once_cell::sync::Lazy;
 use regex::Regex;
 use thiserror::Error;
 
@@ -59,11 +60,14 @@ impl VariableBuilder {
     /// It will return an error if any of the required fields are missing or if the key is invalid:
     /// Valid keys fit this regex: "^[a-zA-Z_]([a-zA-Z0-9_]{0,62})?(\.[a-zA-Z_]([a-zA-Z0-9_]{0,62})?)*$"
     pub fn build(self) -> Result<Variable, VariableBuildError> {
-        let key_pattern =
+        static KEY_PATTERN: Lazy<Regex> = Lazy::new(|| {
+            //Safety: This should actually be a hard error because an invalid regex would be a developer error
+            #[allow(clippy::expect_used)]
             Regex::new(r"^[a-zA-Z_]([a-zA-Z0-9_]{0,62})?(\.[a-zA-Z_]([a-zA-Z0-9_]{0,62})?)*$")
-                .expect("this regex should be valid");
+                .expect("this regex should be valid")
+        });
 
-        if !key_pattern.is_match(self.key.as_str()) {
+        if !KEY_PATTERN.is_match(self.key.as_str()) {
             return Err(VariableBuildError::InvalidVariableName(self.key));
         }
 
