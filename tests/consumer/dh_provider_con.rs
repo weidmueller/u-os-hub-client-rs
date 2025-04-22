@@ -26,18 +26,17 @@ use crate::{
 /// Things that can go wrong while we are connected to a provider:
 ///
 /// - Provider definiton changes -> internal var definitions / mappings should get updated.
-///     subscriptions should continue to run, but filters must be updated internally.
-///     if variable key -> id mappings change, the subscriptions should filter based on the new key -> id mapping
-///     if the var key no longer exists, stream should no longer yield values
+///   subscriptions should continue to run, but filters must be updated internally.
+///   if variable key -> id mappings change, the subscriptions should filter based on the new key -> id mapping
+///   if the var key no longer exists, stream should no longer yield values
 ///
 /// - Provider goes offline -> subscriptions should stay in tact but not yield new values,
-///     read and write variable commands fail,
-///     mapping methods continue to work and use latest cached state.
+///   read and write variable commands fail,
+///   mapping methods continue to work and use latest cached state.
 ///
 /// - Provider comes back online -> same actions as if provider changes
 ///
 /// - Registry goes offline -> we cant react to this, as the consumer doesnt get registry down events.
-
 const CONSUMER_ID: &str = "test_consumer";
 
 fn consumer_auth_settings(perms: NatsPermission) -> AuthenticationSettings {

@@ -13,12 +13,8 @@ pipeline {
     options {
         gitlabBuilds(builds: [
             'u-os-hub-client-rs: Check Code Formatting', 
-            'u-os-hub-client-rs: Build for x86', 
-            'u-os-hub-client-rs: Build for ARMv7', 
-            'u-os-hub-client-rs: Build for ARM64', 
-            'u-os-hub-client-rs: Unit tests',
-            'u-os-hub-client-rs: Run linter',
-            'u-os-hub-client-rs: Gen Docs',
+            'u-os-hub-client-rs: Build & Test with uOS rust version and oldest possible dependencies', 
+            'u-os-hub-client-rs: Build & Test with latest rust version and dependencies', 
             'u-os-hub-client-rs: Check for vulnerabilities'
         ])
     }
@@ -30,49 +26,36 @@ pipeline {
                     sh 'cargo fmt --check'
                 }
             }
+        }
+        stage('u-os-hub-client-rs: Build & Test with uOS rust version and oldest possible dependencies') { 
+            steps {
+                gitlabCommitStatus(name:"$STAGE_NAME") {
+                    sh 'rm -f Cargo.lock'
+                    sh 'cargo clean'
+                    sh 'cargo +nightly -Zminimal-versions update'
+                    sh './tools/build-for-target.sh dev x86_64-unknown-linux-gnu ${U_OS_RUST_VERSION}'
+                    sh './tools/build-for-target.sh dev armv7-unknown-linux-gnueabihf ${U_OS_RUST_VERSION}'
+                    sh './tools/build-for-target.sh dev aarch64-unknown-linux-gnu ${U_OS_RUST_VERSION}'
+                    sh 'cargo +${U_OS_RUST_VERSION} clippy --all-targets -- -D warnings'
+                    sh 'RUSTDOCFLAGS="-D warnings" cargo +${U_OS_RUST_VERSION} doc --no-deps'
+                    sh 'cargo +${U_OS_RUST_VERSION} test --target x86_64-unknown-linux-gnu'
+                }
+            }
         } 
-        stage('u-os-hub-client-rs: Build for x86') { 
+        stage('u-os-hub-client-rs: Build & Test with latest rust version and dependencies') { 
             steps {
                 gitlabCommitStatus(name:"$STAGE_NAME") {
-                    sh 'cargo build --all-targets'
-                }
-            }
-        }     
-        stage('u-os-hub-client-rs: Build for ARMv7') { 
-            steps {
-                gitlabCommitStatus(name:"$STAGE_NAME") {
+                    sh 'rm -f Cargo.lock'
+                    sh 'cargo clean'
+                    sh './tools/build-for-target.sh dev x86_64-unknown-linux-gnu'
                     sh './tools/build-for-target.sh dev armv7-unknown-linux-gnueabihf'
-                }
-            }
-        }  
-        stage('u-os-hub-client-rs: Build for ARM64') { 
-            steps {
-                gitlabCommitStatus(name:"$STAGE_NAME") {
                     sh './tools/build-for-target.sh dev aarch64-unknown-linux-gnu'
-                }
-            }
-        }     
-        stage('u-os-hub-client-rs: Unit tests') { 
-            steps {
-                gitlabCommitStatus(name:"$STAGE_NAME") {
-                    sh 'cargo test'
-                }
-            }
-        }
-        stage('u-os-hub-client-rs: Run linter') { 
-            steps {
-                gitlabCommitStatus(name:"$STAGE_NAME") {
-                    sh 'cargo clippy -- -D warnings'
-                }
-            }
-        }
-        stage('u-os-hub-client-rs: Gen Docs') { 
-            steps {
-                gitlabCommitStatus(name:"$STAGE_NAME") {
+                    sh 'cargo clippy --all-targets -- -D warnings'
                     sh 'RUSTDOCFLAGS="-D warnings" cargo doc --no-deps'
+                    sh 'cargo test --target x86_64-unknown-linux-gnu'
                 }
             }
-        }
+        }    
         stage('u-os-hub-client-rs: Check for vulnerabilities') { 
             steps {
                 gitlabCommitStatus(name:"$STAGE_NAME") {
