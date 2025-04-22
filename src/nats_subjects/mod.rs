@@ -51,18 +51,24 @@ pub fn registry_provider_definition_changed_event(provider_id: &str) -> String {
 
 /// Subject for reading registered provider ids from the registry.
 #[inline(always)]
+//Safety: formatcp uses unchecked indexing internally, so this creates a false positive for us.
+#[allow(clippy::indexing_slicing)]
 pub const fn registry_providers_read_query() -> &'static str {
     formatcp!("{VERSION_PREFIX}.{LOCATION_PREFIX}.registry.providers.qry.read")
 }
 
 /// Subject for notifying consumers about a changed provider id list.
 #[inline(always)]
+//Safety: formatcp uses unchecked indexing internally, so this creates a false positive for us.
+#[allow(clippy::indexing_slicing)]
 pub const fn registry_providers_changed_event() -> &'static str {
     formatcp!("{VERSION_PREFIX}.{LOCATION_PREFIX}.registry.providers.evt.changed")
 }
 
 /// Subject where the registry publishs it's current state
 #[inline(always)]
+//Safety: formatcp uses unchecked indexing internally, so this creates a false positive for us.
+#[allow(clippy::indexing_slicing)]
 pub const fn registry_state_changed_event() -> &'static str {
     formatcp!("{VERSION_PREFIX}.{LOCATION_PREFIX}.registry.state.evt.changed")
 }
@@ -72,7 +78,7 @@ pub fn get_provider_name_from_subject(subject: &str) -> Option<String> {
     let parts: Vec<&str> = subject.split('.').collect();
     let provider_name_index = if subject.contains("registry") { 4 } else { 2 };
     if parts.len() >= 3 {
-        let name = parts[provider_name_index].to_string();
+        let name = parts.get(provider_name_index)?.to_string();
         if name.is_empty() {
             None
         } else {
@@ -104,7 +110,7 @@ pub fn get_provider_id_from_subject(subject: &str) -> anyhow::Result<String> {
 /// if the subject is a registry subject the provider id
 /// is in the 4th position; else in 2nd position.
 fn get_index_of_provider_id(parts: &[&str]) -> usize {
-    if parts.len() >= 4 && parts[2] == "registry" && parts[3] == "providers" {
+    if parts.len() >= 4 && parts.get(2) == Some(&"registry") && parts.get(3) == Some(&"providers") {
         // registry subject
         4
     } else {

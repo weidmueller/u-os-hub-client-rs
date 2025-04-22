@@ -40,7 +40,7 @@ async fn main() -> anyhow::Result<()> {
             &auth_settings,
         )
         .await
-        .unwrap(),
+        .map_err(|e| anyhow::anyhow!(format!("Failed to connect to NATS server: {e}")))?,
     );
 
     let mut js = JoinSet::new();
@@ -153,8 +153,9 @@ async fn main() -> anyhow::Result<()> {
     new_var_value.value = VariableValueT::String(Box::new(written_val));
 
     let mut variables = VariableListT::default();
-    //Note: get_fingerprint() may return None if the provider went offline/invalid while we were working here...
-    variables.provider_definition_fingerprint = provider_con.get_fingerprint().unwrap();
+    variables.provider_definition_fingerprint = provider_con
+        .get_fingerprint()
+        .ok_or_else(|| anyhow::anyhow!("Provider went offline while we were working"))?;
     variables.items = Some(vec![new_var_value]);
 
     let mut write_vars_cmd = WriteVariablesCommandT::default();

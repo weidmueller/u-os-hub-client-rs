@@ -44,14 +44,10 @@ fn test_duplicated_variable_ids_1() {
         .expect("the variable should build");
 
     // Act
-    let result = provider.add_variables(vec![var1, var2]);
+    let error = provider.add_variables(vec![var1, var2]).unwrap_err();
 
     // Assert
-    if let Err(error) = result {
-        assert_eq!(error, AddVariablesError::DuplicatedId(var_id));
-    } else {
-        panic!("This should fail");
-    }
+    assert_eq!(error, AddVariablesError::DuplicatedId(var_id));
 }
 
 #[test]
@@ -71,17 +67,14 @@ fn test_duplicated_variable_ids_2() {
         .expect("the variable should build");
 
     // Act
-    let result = provider
+    let error = provider
         .add_variables(vec![var1])
         .expect("this should work")
-        .add_variables(vec![var2]);
+        .add_variables(vec![var2])
+        .unwrap_err();
 
     // Assert
-    if let Err(error) = result {
-        assert_eq!(error, AddVariablesError::DuplicatedId(var_id));
-    } else {
-        panic!("This should fail");
-    }
+    assert_eq!(error, AddVariablesError::DuplicatedId(var_id));
 }
 
 #[test]
@@ -101,17 +94,13 @@ fn test_duplicated_variable_names_1() {
         .expect("the variable should build");
 
     // Act
-    let result = provider.add_variables(vec![var1, var2]);
+    let error = provider.add_variables(vec![var1, var2]).unwrap_err();
 
     // Assert
-    if let Err(error) = result {
-        assert_eq!(
-            error,
-            AddVariablesError::DuplicatedKey(var_name.to_string())
-        );
-    } else {
-        panic!("This should fail");
-    }
+    assert_eq!(
+        error,
+        AddVariablesError::DuplicatedKey(var_name.to_string())
+    );
 }
 
 #[test]
@@ -131,18 +120,15 @@ fn test_duplicated_variable_names_2() {
         .expect("the variable should build");
 
     // Act
-    let result = provider
+    let error = provider
         .add_variables(vec![var1])
         .expect("this should work")
-        .add_variables(vec![var2]);
+        .add_variables(vec![var2])
+        .unwrap_err();
 
     // Assert
-    if let Err(error) = result {
-        assert_eq!(
-            error,
-            AddVariablesError::DuplicatedKey(var_name.to_string())
-        );
-    } else {
-        panic!("This should fail");
-    }
+    assert_eq!(
+        error,
+        AddVariablesError::DuplicatedKey(var_name.to_string())
+    );
 }

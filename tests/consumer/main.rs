@@ -1,3 +1,11 @@
+// For integration test code, these lints are explicitly allowed.
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::indexing_slicing
+)]
+
 #[path = "../utils/mod.rs"]
 mod utils;
 

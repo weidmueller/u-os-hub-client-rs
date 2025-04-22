@@ -1,3 +1,6 @@
+// For integration test code, these lints are explicitly allowed.
+#![allow(clippy::unwrap_used, clippy::expect_used)]
+
 use crate::generated::weidmueller::ucontrol::hub::{
     ProviderDefinitionState, ProviderDefinitionT, VariableAccessType, VariableDataType,
     VariableDefinitionT,

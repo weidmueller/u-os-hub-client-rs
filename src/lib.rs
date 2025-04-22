@@ -10,7 +10,7 @@
 
 // The module comment/description is located here to not change the generated files.
 // Because of the same reason the "dead_code", "unused_imports" and "clippy::all" is allowed for the generated module.
-#[allow(dead_code, unused_imports, clippy::all)]
+#[allow(dead_code, unused_imports, clippy::all, clippy::unwrap_used, clippy::expect_used)]
 #[rustfmt::skip]
 /// Contains the generated flatbuffers.
 pub mod generated;

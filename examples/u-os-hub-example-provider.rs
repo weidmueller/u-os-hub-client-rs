@@ -2,6 +2,7 @@
 
 use clap::Parser;
 use std::{sync::Arc, time::Duration};
+use tracing::error;
 
 use tokio::{select, task, time::sleep};
 
@@ -29,7 +30,7 @@ async fn main() -> anyhow::Result<()> {
             &auth_settings,
         )
         .await
-        .unwrap(),
+        .map_err(|e| anyhow::anyhow!(format!("Failed to connect to NATS server: {e}")))?,
     );
 
     println!("Registering provider ...");
@@ -41,7 +42,9 @@ async fn main() -> anyhow::Result<()> {
     // The provider can be copied into different tasks
     let provider_cloned = hub_provider.clone();
     task::spawn(async move {
-        example_service_1(provider_cloned).await.unwrap();
+        if let Err(e) = example_service_1(provider_cloned).await {
+            error!("Error in example_service_1: {e}");
+        }
     });
 
     example_service_2(hub_provider.clone()).await?;

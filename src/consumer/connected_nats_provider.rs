@@ -159,6 +159,8 @@ impl ConnectedNatsProvider {
     ///
     /// The cached value will be updated internally once the provider definition changes.
     pub fn get_fingerprint(&self) -> Option<u64> {
+        //Safety: Unwrap is ok here as we know that the mutex cant be poisoned during writing
+        #[allow(clippy::unwrap_used)]
         self.state.read().unwrap().cur_fingerprint
     }
 
@@ -171,6 +173,8 @@ impl ConnectedNatsProvider {
     ///
     /// The cached value will be updated internally once the provider definition changes.
     pub fn get_variable_ids(&self) -> Vec<VariableID> {
+        //Safety: Unwrap is ok here as we know that the mutex cant be poisoned during writing
+        #[allow(clippy::unwrap_used)]
         self.state
             .read()
             .unwrap()
@@ -185,6 +189,8 @@ impl ConnectedNatsProvider {
     /// Will fail if the variable ID is unknown.
     /// The cached value will be updated internally once the provider definition changes.
     pub fn get_variable_definition(&self, id: VariableID) -> Result<VariableDefinitionT> {
+        //Safety: Unwrap is ok here as we know that the mutex cant be poisoned during writing
+        #[allow(clippy::unwrap_used)]
         self.state
             .read()
             .unwrap()
@@ -198,6 +204,8 @@ impl ConnectedNatsProvider {
     ///
     /// The cached value will be updated internally once the provider definition changes.
     pub fn get_all_variable_definitions(&self) -> FxHashMap<VariableID, VariableDefinitionT> {
+        //Safety: Unwrap is ok here as we know that the mutex cant be poisoned during writing
+        #[allow(clippy::unwrap_used)]
         self.state.read().unwrap().cur_variable_defs.clone()
     }
 
@@ -209,6 +217,8 @@ impl ConnectedNatsProvider {
     pub fn variable_id_from_key<'a>(&self, key: impl Into<VariableKey<'a>>) -> Result<VariableID> {
         let key: VariableKey = key.into();
 
+        //Safety: Unwrap is ok here as we know that the mutex cant be poisoned during writing
+        #[allow(clippy::unwrap_used)]
         let state = self.state.read().unwrap();
         let id = *state
             .var_mapping
@@ -221,6 +231,8 @@ impl ConnectedNatsProvider {
     ///
     /// Will fail if the variable ID is unknown.
     pub fn variable_key_from_id(&self, id: VariableID) -> Result<String> {
+        //Safety: Unwrap is ok here as we know that the mutex cant be poisoned during writing
+        #[allow(clippy::unwrap_used)]
         let state = self.state.read().unwrap();
 
         let key = state
@@ -234,6 +246,8 @@ impl ConnectedNatsProvider {
 
     /// Checks if the specified variable ID exists on the provider
     pub fn is_variable_id_valid(&self, id: VariableID) -> bool {
+        //Safety: Unwrap is ok here as we know that the mutex cant be poisoned during writing
+        #[allow(clippy::unwrap_used)]
         self.state
             .read()
             .unwrap()
@@ -518,12 +532,18 @@ impl ConnectedNatsProvider {
                             let var_mapping =
                                 Self::key_mapping_from_variable_defs(&cur_variable_defs);
 
+                            //Safety: Unwrap is ok here as we know that the mutex cant be poisoned during writing
+                            #[allow(clippy::unwrap_used)]
                             let mut writeable_state = state.write().unwrap();
+
                             writeable_state.cur_fingerprint = Some(new_fingerprint);
                             writeable_state.cur_variable_defs = cur_variable_defs;
                             writeable_state.var_mapping = var_mapping;
                         } else {
                             //Provider definition is invalid
+
+                            //Safety: Unwrap is ok here as we know that the mutex cant be poisoned during writing
+                            #[allow(clippy::unwrap_used)]
                             let mut writeable_state = state.write().unwrap();
                             writeable_state.cur_fingerprint = None;
                         }
@@ -531,6 +551,9 @@ impl ConnectedNatsProvider {
                         //empty payload means provider was removed
                         //we keep mappings unchanged and do not clear the internal state, so user
                         //can still use mapping methods while provider is offline
+
+                        //Safety: Unwrap is ok here as we know that the mutex cant be poisoned during writing
+                        #[allow(clippy::unwrap_used)]
                         let mut writeable_state = state.write().unwrap();
                         writeable_state.cur_fingerprint = None;
                     }
@@ -566,6 +589,9 @@ impl ConnectedNatsProvider {
     /// This includes checking if the variable IDs are valid, if the variable is writable and if the value type matches the variable definition.
     fn check_write_command(&self, write_command: &WriteVariablesCommandT) -> Result<()> {
         //check variable IDs, permissions and types
+
+        //Safety: Unwrap is ok here as we know that the mutex cant be poisoned during writing
+        #[allow(clippy::unwrap_used)]
         let var_defs = &self.state.read().unwrap().cur_variable_defs;
 
         let written_vars = &write_command.variables.items;

@@ -68,8 +68,12 @@ pub fn adheres_to_name_schema(txt: &str) -> bool {
     // ^(?=.{1,1023}$)[a-z]([a-z0-9-]{0,61}[a-z0-9])?(\/[a-z]([a-z0-9-]{0,61}[a-z0-9])?)*$
     // is not working because look-ahead and look-behind are not supported from Regex-crade.
     // So we check the length seperately outside this function.
+
+    //Safety: This should actually be a hard error because an invalid regex would be a developer error
+    #[allow(clippy::expect_used)]
     let pattern =
-        Regex::new(r"^[a-zA-Z_]([a-zA-Z0-9_]{0,62})?(\.[a-zA-Z_]([a-zA-Z0-9_]{0,62})?)*$").unwrap();
+        Regex::new(r"^[a-zA-Z_]([a-zA-Z0-9_]{0,62})?(\.[a-zA-Z_]([a-zA-Z0-9_]{0,62})?)*$")
+            .expect("this regex should be valid");
 
     pattern.is_match(txt)
 }

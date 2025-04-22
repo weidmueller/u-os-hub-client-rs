@@ -1,3 +1,10 @@
+// For integration test code, these lints are explicitly allowed.
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::indexing_slicing
+)]
 #![allow(dead_code)]
 ///As integration tests are compiled into their own crates, this leads to unused warnings they dont use all functions of the utils module
 pub mod fake_registry;

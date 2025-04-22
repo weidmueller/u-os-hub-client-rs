@@ -259,7 +259,11 @@ impl ProviderWorker {
                 }
                 State::Running => {
                     select! {
-                        command = self.run_state_running_receive_command() => self.run_state_running_handle_command(command).await,
+                        command = self.run_state_running_receive_command() => {
+                            if let Err(e) = self.run_state_running_handle_command(command).await {
+                                error!("Error handling command: {e}");
+                            }
+                        },
                         msg = nats_events.recv() => self.handle_nats_event(msg).await,
                     };
                 }
@@ -314,11 +318,8 @@ impl ProviderWorker {
                 self.get_provider_id(),
                 e
             );
-            panic!(
-                "u-OS Data Hub provider `{}` failed to register: {:?}",
-                self.get_provider_id(),
-                e
-            );
+
+            return;
         }
 
         info!(
@@ -357,7 +358,10 @@ impl ProviderWorker {
     /// Handler for the running state
     ///
     /// Executes commands for the worker task.
-    async fn run_state_running_handle_command(&mut self, command: ProviderCommand) {
+    async fn run_state_running_handle_command(
+        &mut self,
+        command: ProviderCommand,
+    ) -> anyhow::Result<()> {
         // React in the command
         match command {
             ProviderCommand::AddVariables(vars, result_tx) => {
@@ -374,17 +378,12 @@ impl ProviderWorker {
             }
             ProviderCommand::Register => {
                 // This will be called on registry UP event.
-                // This thread crashes when the register fails.
                 // This can only fail on a nats error (e.g Permissions violation)
                 // because there were no changes to the register beforce (e.g. first register or definition change).
-                self.update_definition(true)
-                    .await
-                    .expect("should register provider");
+                self.update_definition(true).await?;
             }
             ProviderCommand::Unregister => {
-                self.send_empty_definition()
-                    .await
-                    .expect("should unregister provider");
+                self.send_empty_definition().await?;
             }
             ProviderCommand::Subscribe(vars, result_tx) => {
                 result_tx
@@ -395,6 +394,8 @@ impl ProviderWorker {
                 self.handle_write(msg).await;
             }
         }
+
+        Ok(())
     }
 
     /// Creates a new write event notifier

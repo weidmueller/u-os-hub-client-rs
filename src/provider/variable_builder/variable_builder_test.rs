@@ -47,19 +47,14 @@ fn test_key_validation(#[case] key: String, #[case] valid: bool) {
     // Assert
     match result {
         Ok(var) => {
-            if !valid {
-                panic!("the variable should be invalid")
-            } else {
-                assert_eq!(var.id, 0);
-                assert_eq!(var.key, key);
-                assert!(var.read_only);
-                assert_eq!(var.value, Value::Boolean(true));
-            }
+            assert!(valid, "the variable should be valid");
+            assert_eq!(var.id, 0);
+            assert_eq!(var.key, key);
+            assert!(var.read_only);
+            assert_eq!(var.value, Value::Boolean(true));
         }
         Err(e) => {
-            if valid {
-                panic!("the variable should be valid")
-            }
+            assert!(!valid, "the variable should not be valid");
             assert_eq!(e, VariableBuildError::InvalidVariableName(key.clone()));
         }
     }
