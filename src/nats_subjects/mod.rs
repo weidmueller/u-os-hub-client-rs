@@ -46,19 +46,19 @@ pub fn registry_provider_definition_read_query(provider_id: &str) -> String {
 /// The registry will publish the whole provider definition and not only the changes.
 #[inline(always)]
 pub fn registry_provider_definition_changed_event(provider_id: &str) -> String {
-    format!("{VERSION_PREFIX}.{LOCATION_PREFIX}.registry.providers.{provider_id}.def.evt.changed",)
+    format!("{VERSION_PREFIX}.{LOCATION_PREFIX}.registry.providers.{provider_id}.def.evt.changed")
 }
 
 /// Subject for reading registered provider ids from the registry.
 #[inline(always)]
 pub const fn registry_providers_read_query() -> &'static str {
-    formatcp!("{VERSION_PREFIX}.{LOCATION_PREFIX}.registry.providers.qry.read",)
+    formatcp!("{VERSION_PREFIX}.{LOCATION_PREFIX}.registry.providers.qry.read")
 }
 
 /// Subject for notifying consumers about a changed provider id list.
 #[inline(always)]
 pub const fn registry_providers_changed_event() -> &'static str {
-    formatcp!("{VERSION_PREFIX}.{LOCATION_PREFIX}.registry.providers.evt.changed",)
+    formatcp!("{VERSION_PREFIX}.{LOCATION_PREFIX}.registry.providers.evt.changed")
 }
 
 /// Subject where the registry publishs it's current state

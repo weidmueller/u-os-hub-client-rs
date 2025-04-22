@@ -1,7 +1,11 @@
+# For library crates, we always use the most recent stable version of rust
 ARG VARIANT="bookworm"
-FROM mcr.microsoft.com/vscode/devcontainers/rust:1.0.8-${VARIANT}
+FROM mcr.microsoft.com/vscode/devcontainers/rust:1.0.22-${VARIANT}
 # See here for the contents of the image:
-# https://github.com/devcontainers/images/blob/main/src/rust/history/1.0.8.md#variant-bookworm
+# https://github.com/devcontainers/images/blob/main/src/rust/history/dev.md#variant-bookworm
+
+# Rust Version that is used by uOS
+ENV U_OS_RUST_VERSION="1.75.0"
 
 # Adjust the following args to the username and groupname of the base image
 ARG BASE_IMAGE_USERNAME="vscode"
@@ -37,12 +41,27 @@ RUN git clone https://github.com/google/flatbuffers.git && cd flatbuffers \
     && cmake -G "Unix Makefiles" && make -j$(nproc) \
     && sudo cp /flatbuffers/flatc /usr/bin/flatc && chmod +x /usr/bin/flatc
 
-# Install targets for cross compiling
-RUN rustup target add armv7-unknown-linux-gnueabihf \
-    && rustup target add aarch64-unknown-linux-gnu \
-    && rustup target add x86_64-unknown-linux-gnu
+# Install nightly rust toolchain, needed for cargo -Z flags
+RUN rustup toolchain install nightly
 
-RUN su -c "cargo install cargo-audit@^0.18 --locked" vscode
+# Install rust version that uOS uses
+# This is used during CI to ensure that the code also compiles with the same version as in production
+RUN rustup toolchain install ${U_OS_RUST_VERSION}
+RUN rustup component add --toolchain ${U_OS_RUST_VERSION} clippy
+
+# Install targets for cross compiling
+RUN rustup target add armv7-unknown-linux-gnueabihf aarch64-unknown-linux-gnu x86_64-unknown-linux-gnu
+RUN rustup target add armv7-unknown-linux-gnueabihf aarch64-unknown-linux-gnu x86_64-unknown-linux-gnu --toolchain ${U_OS_RUST_VERSION}
+
+# Download and install cargo-audit 
+RUN <<-EOT
+    VER="0.21.2"
+    DIR="/usr/local/cargo/bin"
+    mkdir -p $DIR
+    curl -L -o $DIR/archive.tar.gz https://github.com/rustsec/rustsec/releases/download/cargo-audit%2Fv${VER}/cargo-audit-x86_64-unknown-linux-musl-v${VER}.tgz
+    tar -xzvf $DIR/archive.tar.gz --strip-components=1 -C $DIR
+    rm $DIR/archive.tar.gz
+EOT
 
 WORKDIR ${HOME}
 

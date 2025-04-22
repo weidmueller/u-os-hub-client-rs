@@ -47,9 +47,9 @@ impl OAuth2Credentials {
 
         let response_text = http_response.text().await?;
         let json_body = serde_json::from_str(&response_text).map_err(|e| {
-            anyhow::anyhow!(
+            anyhow::anyhow!(format!(
                 "Failed to convert response body to json: {e} (Response was: {response_text}"
-            )
+            ))
         })?;
 
         Ok(json_body)

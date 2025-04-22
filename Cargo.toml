@@ -3,31 +3,35 @@ name = "u-os-hub-client"
 description = "u-OS Data Hub Client"
 version = "0.1.0"
 edition = "2021"
+rust-version = "1.75"
 
 [dependencies]
-anyhow = "1"
+anyhow = "1.0"
 async-nats = "0.37"
-async-trait = "0"
-base64 = "0"
-bytes = "1"
-const_format = "0.2"
-flatbuffers = { version="23", features = ["serde", "serialize"]}
-futures = "0"
-futures-util = "0"
-hyper = "1"
-reqwest = { version = "0", features = ["json", "rustls-tls"], default-features = false  }
-regex = "1"
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-tokio = { version = "1", features = ["rt-multi-thread"] }
-tracing = "0"
-thiserror = "1"
-urlencoding = "2"
+async-trait = "0.1.80"
+base64 = "0.22"
+bytes = "1.10"
+const_format = "0.2.20"
+flatbuffers = { version="23.0", features = ["serde", "serialize"]}
+futures = "0.3.28"
+futures-util = "0.3"
+hyper = "1.6"
+reqwest = { version = "0.12", features = ["json", "rustls-tls"], default-features = false  }
+regex = "1.11"
+serde = { version = "1.0.184", features = ["derive"] }
+serde_json = "1.0.104"
+tokio = { version = "1.44", features = ["rt-multi-thread"] }
+tracing = { version = "0.1.30" }
+thiserror = "1.0"
+urlencoding = "2.1"
 rustc-hash = "2.1"
-time = { version = "0" }
+time = { version = "0.3.38" }
+
+#must force at least this ring version due to cross compile errors for older versions
+ring = "0.17.8"
 
 [dev-dependencies]
-serial_test = "3"
-rstest = "0"
-tracing-subscriber = { version = "0.3", features = ["fmt"] }
-clap = { version = "4", features = ["derive"] }
+serial_test = "3.2"
+rstest = "0.25"
+tracing-subscriber = { version = "0.3.15", features = ["fmt"] }
+clap = { version = "4.5", features = ["derive"] }
