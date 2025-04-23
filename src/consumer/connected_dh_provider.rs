@@ -26,6 +26,7 @@ use super::{
 
 /// Error type for the connected data hub provider.
 #[derive(Error, Debug)]
+#[allow(missing_docs)]
 pub enum Error {
     #[error("{0}")]
     Consumer(#[from] dh_consumer::Error),

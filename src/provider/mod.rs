@@ -49,6 +49,7 @@ pub(crate) enum ProviderCommand {
 
 /// Error that can occur when adding a variable
 #[derive(Error, Debug)]
+#[allow(missing_docs)]
 pub enum AddVariablesError {
     #[error("The background thread crashed. You need to recreate the provider.")]
     ProviderThreadCrashed,
@@ -64,6 +65,7 @@ pub enum AddVariablesError {
 
 /// Error that can occur when removing a variable
 #[derive(Error, Debug)]
+#[allow(missing_docs)]
 pub enum RemoveVariablesError {
     #[error("The background thread crashed. You need to recreate the provider.")]
     ProviderThreadCrashed,
@@ -75,6 +77,7 @@ pub enum RemoveVariablesError {
 
 /// Error that can occur when updating a variable value
 #[derive(Error, Debug)]
+#[allow(missing_docs)]
 pub enum UpdateVariableValuesError {
     #[error("The background thread crashed. You need to recreate the provider.")]
     ProviderThreadCrashed,
@@ -88,6 +91,7 @@ pub enum UpdateVariableValuesError {
 
 /// Error that can occur when subscribing to a write command
 #[derive(Error, Debug)]
+#[allow(missing_docs)]
 pub enum SubscribeToWriteCommandError {
     #[error("The background thread crashed. You need to recreate the provider.")]
     ProviderThreadCrashed,

@@ -1,3 +1,5 @@
+//! This module contains the validation logic for provider definitions.
+
 use std::collections::HashSet;
 
 use crate::generated::weidmueller::ucontrol::hub::{ProviderDefinitionState, ProviderDefinitionT};
@@ -123,6 +125,7 @@ impl ProviderDefinitionT {
 pub struct ValidProviderDefinition(pub ProviderDefinitionT);
 
 impl ValidProviderDefinition {
+    /// Constructs a valid provider definition by validating the given provider definition and setting the state to OK.
     pub fn new(
         mut provider_definition: ProviderDefinitionT,
     ) -> Result<ValidProviderDefinition, InvalidProviderDefinitionError> {

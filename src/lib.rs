@@ -12,13 +12,18 @@
 /// Contains the generated flatbuffers.
 pub mod generated;
 
+// Note: We force documentation for public items for some select modules.
+#[warn(missing_docs)]
 pub mod authenticated_nats_con;
+#[warn(missing_docs)]
 pub mod consumer;
 pub mod env_file_parser;
 pub mod nats_subjects;
 pub mod oauth2;
 pub mod payload_builders;
+#[warn(missing_docs)]
 pub mod provider;
+#[warn(missing_docs)]
 pub mod variable;
 pub mod variable_definition_serde_extension;
 pub mod variable_value_type_serde_extension;

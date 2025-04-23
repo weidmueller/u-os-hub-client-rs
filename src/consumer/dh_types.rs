@@ -17,6 +17,7 @@ use super::connected_nats_provider::VariableID;
 
 /// Errors for data hub type conversions
 #[derive(Error, Debug)]
+#[allow(missing_docs)]
 pub enum Error {
     #[error("Failed to convert low level flatbuffer value")]
     FlatbufferDataTypeConversionFailure,
@@ -25,8 +26,11 @@ pub enum Error {
 /// The state of the Data Hub registry
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum DhRegistryState {
+    /// Registry is running
     Running,
+    /// Registry is stopping
     Stopping,
+    /// Registry state is not specified
     Unspecified,
 }
 
@@ -44,12 +48,19 @@ impl TryFrom<State> for DhRegistryState {
 }
 
 /// The quality of a variable
+///
+/// This is set by the provider and indicates the quality of a variable value.
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum ConsumerVariableQuality {
+    /// Indicates that the value is not usable
     BadOrUndefined,
+    /// Indicates that the value is good and can be used without restrictions
     Good,
+    /// TODO: Clarify this...
     Uncertain,
+    /// TODO: Clarify this...
     UncertainLastUsableValue,
+    /// TODO: Clarify this...
     UncertainInitialValue,
 }
 
@@ -74,6 +85,7 @@ impl TryFrom<VariableQuality> for ConsumerVariableQuality {
 
 /// The type of the variable
 #[derive(Debug, Clone, Eq, PartialEq)]
+#[allow(missing_docs)]
 pub enum ConsumerVariableType {
     Float64,
     Int64,
@@ -102,10 +114,15 @@ impl TryFrom<VariableDataType> for ConsumerVariableType {
 /// The definition of a variable
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct ConsumerVariableDefinition {
+    /// The unique id of the variable
     pub id: VariableID,
+    /// The variable key used to access the variable via the high level API
     pub key: String,
+    /// Data type of the variable
     pub data_type: ConsumerVariableType,
+    /// Whether the variable is read-only or not
     pub read_only: bool,
+    /// Experimantal variables are hidden in the data hub GUI
     pub experimental: bool,
 }
 
@@ -128,8 +145,13 @@ impl TryFrom<VariableDefinitionT> for ConsumerVariableDefinition {
 /// The state of a variable
 #[derive(Debug, Clone, PartialEq)]
 pub struct ConsumerVariableState {
+    /// The modification timestamp of the variable.
+    ///
+    /// Variables can have their own timestamp or inherit the variable list timestamp.
     pub timestamp: DhTimestamp,
+    /// Current value of the variable
     pub value: variable::value::Value,
+    /// The quality of the variable
     pub quality: ConsumerVariableQuality,
 }
 
