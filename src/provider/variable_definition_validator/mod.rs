@@ -1,3 +1,5 @@
+//! This module contains the validation logic for variable definitions.
+
 use regex::Regex;
 use thiserror::Error;
 
@@ -29,6 +31,9 @@ pub enum InvalidVariableDefinitionError {
 }
 
 impl VariableDefinitionT {
+    /// Checks if the variable definition is valid.
+    ///
+    /// Checks if the key adheres to the naming schema and if access_type and data_type are set properly.
     pub fn validate(&self) -> Result<(), InvalidVariableDefinitionError> {
         if self.key.is_empty() {
             return Err(InvalidVariableDefinitionError::UnnamedVariable);
@@ -62,7 +67,7 @@ impl VariableDefinitionT {
     }
 }
 
-pub fn adheres_to_name_schema(txt: &str) -> bool {
+fn adheres_to_name_schema(txt: &str) -> bool {
     // Only a-z,A-Z,0-9,_,. are allowed
     // The original pattern checking the length
     // ^(?=.{1,1023}$)[a-z]([a-z0-9-]{0,61}[a-z0-9])?(\/[a-z]([a-z0-9-]{0,61}[a-z0-9])?)*$

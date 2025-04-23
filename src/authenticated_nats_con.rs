@@ -17,12 +17,16 @@ pub const DEFAULT_U_OS_NATS_ADDRESS: &str = "nats://127.0.0.1:49360";
 /// Internally gets converted to Oauth2 scopes.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum NatsPermission {
+    /// Read-only access to the variable hub for consumers.
     VariableHubRead,
+    /// Read and write access to the variable hub for consumers.
     VariableHubReadWrite,
+    /// Provide access to the variable hub for providers.
     VariableHubProvide,
 }
 
 impl NatsPermission {
+    /// Converts the NatsPermission to a str that can be used as an Oauth2 scope.
     pub fn as_str(&self) -> &'static str {
         match self {
             NatsPermission::VariableHubRead => "hub.variables.readonly",
@@ -32,14 +36,15 @@ impl NatsPermission {
     }
 }
 
+/// A set of NATS permissions.
 pub type NatsPermissionList = HashSet<String>;
 
 /// Determines how the connection authenticates to the NATS server.
 #[derive(Clone, Debug)]
 pub struct AuthenticationSettings {
-    pub permissions: NatsPermissionList,
-    pub oauth2_endpoint: String,
-    pub creds: Option<OAuth2Credentials>,
+    permissions: NatsPermissionList,
+    oauth2_endpoint: String,
+    creds: Option<OAuth2Credentials>,
 }
 
 /// Helper struct to build the authentication settings.
@@ -50,6 +55,7 @@ pub struct AuthenticationSettingsBuilder {
 }
 
 impl AuthenticationSettingsBuilder {
+    /// Creates a new authentication settings builder.
     pub fn new(permission: NatsPermission) -> Self {
         Self {
             settings: AuthenticationSettings {
@@ -102,7 +108,9 @@ pub enum NatsAuthenticationMethod {
     Unauthenticated,
 
     /// User and password authentication.
+    #[allow(missing_docs)]
     UsernameAndPassword { username: String, password: String },
+
     /// You should use OAuth2Client instead to refresh the token one connect retry.
     Token(String),
 

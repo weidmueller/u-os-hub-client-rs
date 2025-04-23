@@ -21,6 +21,7 @@ use super::{
 
 /// Error type for the connected nats provider
 #[derive(Error, Debug)]
+#[allow(missing_docs)]
 pub enum Error {
     #[error("NATS Flush Error: {0}")]
     NatsFlush(#[from] async_nats::client::FlushError),

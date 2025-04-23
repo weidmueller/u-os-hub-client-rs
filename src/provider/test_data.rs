@@ -1,5 +1,8 @@
+//! Contains test data for unit and integration tests.
+//! Only needed for development and testing.
+
 // For integration test code, these lints are explicitly allowed.
-#![allow(clippy::unwrap_used, clippy::expect_used)]
+#![allow(clippy::unwrap_used, clippy::expect_used, missing_docs)]
 
 use crate::generated::weidmueller::ucontrol::hub::{
     ProviderDefinitionState, ProviderDefinitionT, VariableAccessType, VariableDataType,

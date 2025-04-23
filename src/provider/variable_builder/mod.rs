@@ -89,6 +89,7 @@ impl VariableBuilder {
 /// The error indicating what part of the variable building process failed
 /// will only contain the first error encountered
 #[derive(Error, Debug, PartialEq)]
+#[allow(missing_docs)]
 pub enum VariableBuildError {
     #[error("Invalid variable name `{0}`")]
     InvalidVariableName(String),

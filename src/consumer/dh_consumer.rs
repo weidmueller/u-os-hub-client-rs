@@ -12,6 +12,7 @@ use super::nats_consumer::{self, NatsConsumer};
 
 /// Error type for the data hub consumer
 #[derive(Error, Debug)]
+#[allow(missing_docs)]
 pub enum Error {
     #[error("{0}")]
     NatsConnection(#[from] async_nats::Error),

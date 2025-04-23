@@ -55,6 +55,7 @@ impl From<DhTimestamp> for TimestampT {
 // TODO: We could try to use generics. The datatype shoudn't be changeable so we could move this check to compile time.
 /// The value of a variable.
 #[derive(Clone, Debug, PartialEq)]
+#[allow(missing_docs)]
 pub enum Value {
     Int(i64),
     Boolean(bool),

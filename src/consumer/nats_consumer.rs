@@ -21,6 +21,7 @@ use super::connected_nats_provider::{self, ConnectedNatsProvider};
 
 /// Error type for the NATS consumer
 #[derive(Error, Debug)]
+#[allow(missing_docs)]
 pub enum Error {
     #[error("NATS Request Error: {0}")]
     NatsRequest(#[from] async_nats::RequestError),
