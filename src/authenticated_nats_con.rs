@@ -10,6 +10,9 @@ use crate::oauth2::OAuth2Credentials;
 
 type Result<T> = core::result::Result<T, async_nats::Error>;
 
+/// The default NATS server address for uOS.
+pub const DEFAULT_U_OS_NATS_ADDRESS: &str = "nats://127.0.0.1:49360";
+
 /// Access permissions for the NATS connection.
 /// Internally gets converted to Oauth2 scopes.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
