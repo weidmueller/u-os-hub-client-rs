@@ -8,7 +8,8 @@ use thiserror::Error;
 use tracing::{debug, error};
 
 use crate::{
-    authenticated_nats_con::AuthenticatedNatsConnection, provider::worker::ProviderWorker,
+    authenticated_nats_con::{AuthenticatedNatsConnection, AuthenticationSettings},
+    provider::worker::ProviderWorker,
     variable::Variable,
 };
 
@@ -47,8 +48,24 @@ impl ProviderOptions {
         Ok(self)
     }
 
-    /// Registers the provider on the registry.
+    /// Registers the provider on the registry, using the provided nats server address and authentication settings.
+    ///
+    /// This will create a new [`AuthenticatedNatsConnection`] internally and use it to register the provider.
     pub async fn register(
+        self,
+        nats_server_address: impl Into<String>,
+        auth_settings: &AuthenticationSettings,
+    ) -> Result<Provider, ConnectError> {
+        let auth_nats_con =
+            Arc::new(AuthenticatedNatsConnection::new(nats_server_address, auth_settings).await?);
+
+        self.register_with_existing_connection(auth_nats_con).await
+    }
+
+    /// Registers the provider on the registry using an existing nats connection.
+    ///
+    /// This is useful if you want to use the same [`AuthenticatedNatsConnection`] for multiple clients.
+    pub async fn register_with_existing_connection(
         self,
         nats_con: Arc<AuthenticatedNatsConnection>,
     ) -> Result<Provider, ConnectError> {
@@ -109,7 +126,7 @@ pub enum AddVariablesError {
 pub enum ConnectError {
     /// Indicates an error with the nats connection
     #[error("Nats error: `{0}`")]
-    Nats(async_nats::Error),
+    Nats(#[from] async_nats::Error),
     /// Indicates an error with the OAuth2 token request
     #[error("Oauth2 error: `{0}`")]
     OAuth(String),
