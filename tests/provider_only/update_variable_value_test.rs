@@ -35,7 +35,7 @@ async fn test_update_variable_value() {
     let provider = provider_builder
         .add_variables(vec![var1.clone(), var2.clone()])
         .expect("Variables should be added")
-        .register(auth_nats_con)
+        .register_with_existing_connection(auth_nats_con)
         .await
         .expect("provider should register");
 
@@ -87,7 +87,7 @@ async fn test_update_variable_fingerprint() {
     let provider = provider_builder
         .add_variables(vec![var1.clone(), var2.clone()])
         .expect("Variables should be added")
-        .register(auth_nats_con)
+        .register_with_existing_connection(auth_nats_con)
         .await
         .expect("provider should register");
 

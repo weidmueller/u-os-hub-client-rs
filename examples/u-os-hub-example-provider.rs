@@ -1,7 +1,7 @@
 //! This example shows how to provide variables to the data hub.
 
 use clap::Parser;
-use std::{sync::Arc, time::Duration};
+use std::time::Duration;
 use tracing::error;
 
 use tokio::{select, task, time::sleep};
@@ -23,19 +23,14 @@ async fn main() -> anyhow::Result<()> {
     let conf = utils::Config::parse();
     let auth_settings = utils::build_auth_settings_from_conf(&conf, true).await?;
 
-    println!("Connecting to nats server ...");
-    let auth_nats_con = Arc::new(
-        AuthenticatedNatsConnection::new(
+    println!("Connecting to nats server & registering provider ...");
+    let builder = ProviderOptions::new();
+    let hub_provider = builder
+        .register(
             format!("nats://{}:{}", &conf.nats_ip, &conf.nats_port),
             &auth_settings,
         )
-        .await
-        .map_err(|e| anyhow::anyhow!(format!("Failed to connect to NATS server: {e}")))?,
-    );
-
-    println!("Registering provider ...");
-    let builder = ProviderOptions::new();
-    let hub_provider = builder.register(auth_nats_con).await?;
+        .await?;
 
     println!("Serving variables ...");
 

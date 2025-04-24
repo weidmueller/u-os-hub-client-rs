@@ -70,7 +70,10 @@ impl DummyProvider {
                 tokio::time::sleep(registration_delay).await;
             }
 
-            let provider = provider_opts.register(auth_nats_con).await.unwrap();
+            let provider = provider_opts
+                .register_with_existing_connection(auth_nats_con)
+                .await
+                .unwrap();
 
             //Register write handler for RW vars
             let mut subscribtion_to_write_cmd = provider

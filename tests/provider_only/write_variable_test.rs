@@ -38,7 +38,7 @@ async fn test_write_variable_command() {
     let provider = provider_builder
         .add_variables(vec![var1.clone()])
         .expect("Variables should be added")
-        .register(auth_nats_con)
+        .register_with_existing_connection(auth_nats_con)
         .await
         .expect("provider should register");
 
