@@ -155,7 +155,7 @@ async fn test_update_variable_fingerprint() {
             .value(123)
             .build()
             .unwrap();
-        provider.add_variables(&[new_var.clone()]).await.unwrap();
+        provider.add_variables(vec![new_var.clone()]).await.unwrap();
 
         var2.value = VariableValue::String("Test_String1234".to_string());
         provider

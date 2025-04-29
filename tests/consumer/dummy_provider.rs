@@ -77,7 +77,7 @@ impl DummyProvider {
 
             //Register write handler for RW vars
             let mut subscribtion_to_write_cmd = provider
-                .subscribe_to_write_command(&[rw_string.clone(), rw_int.clone()])
+                .subscribe_to_write_command(vec![rw_string.clone(), rw_int.clone()])
                 .await
                 .unwrap();
 
@@ -131,7 +131,7 @@ impl DummyProvider {
                                 .build().unwrap(),
                         ];
 
-                        provider.add_variables(&new_vars).await.unwrap();
+                        provider.add_variables(new_vars.clone()).await.unwrap();
                         cur_vars = new_vars;
                         ro_float = new_ro_float;
                         ro_int = new_ro_int;

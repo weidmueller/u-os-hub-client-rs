@@ -57,7 +57,7 @@ async fn example_service_1(hub_provider: Provider) -> anyhow::Result<()> {
         .build()?;
 
     hub_provider
-        .add_variables(&[data1.clone(), folder_version.clone()])
+        .add_variables(vec![data1.clone(), folder_version])
         .await?;
 
     let mut counter = 0;
@@ -117,14 +117,14 @@ async fn example_service_2(hub_provider: Provider) -> anyhow::Result<()> {
         .value("1.0.0")
         .build()?;
 
-    let mut all_vars = vec![data1.clone(), folder_version.clone()];
+    let mut all_vars = vec![data1.clone(), folder_version];
     all_vars.append(&mut writable_vars.clone());
-    hub_provider.add_variables(&all_vars).await?;
+    hub_provider.add_variables(all_vars).await?;
 
     let mut interval = tokio::time::interval(Duration::from_secs(1));
 
     let mut rw_subscribtion = hub_provider
-        .subscribe_to_write_command(&writable_vars)
+        .subscribe_to_write_command(writable_vars)
         .await?;
 
     let mut float_counter = 0.0;

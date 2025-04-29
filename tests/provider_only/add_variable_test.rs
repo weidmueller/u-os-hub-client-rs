@@ -56,7 +56,7 @@ async fn test_add_variables() {
         .expect("variable should build");
 
     provider
-        .add_variables(&[var3.clone()])
+        .add_variables(vec![var3.clone()])
         .await
         .expect("should add a new variable");
 
@@ -133,14 +133,18 @@ async fn test_add_variables_fail_on_duplicates() {
         .value(true)
         .build()
         .expect("variable should build");
-    let result_duplicated_id = provider.add_variables(&[var_duplicated_id.clone()]).await;
+    let result_duplicated_id = provider
+        .add_variables(vec![var_duplicated_id.clone()])
+        .await;
 
     // Variable with duplicated key
     let var_duplicated_key = VariableBuilder::new(2, "my_folder.my_variable_2")
         .value(true)
         .build()
         .expect("variable should build");
-    let result_duplicated_key = provider.add_variables(&[var_duplicated_key.clone()]).await;
+    let result_duplicated_key = provider
+        .add_variables(vec![var_duplicated_key.clone()])
+        .await;
 
     // assert
     if let Err(AddVariablesError::DuplicatedId(id)) = result_duplicated_id {
