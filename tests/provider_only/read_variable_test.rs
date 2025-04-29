@@ -21,12 +21,12 @@ async fn test_read_all_variables() {
 
     let provider_builder = ProviderBuilder::new();
     let var1 = VariableBuilder::new(0, "my_folder.my_variable_1")
-        .value(VariableValue::Boolean(true))
+        .value(true)
         .build()
         .expect("variable should build");
 
     let var2 = VariableBuilder::new(1, "my_folder.my_variable_2")
-        .value(VariableValue::String("Test_String123".to_string()))
+        .value("Test_String123")
         .build()
         .expect("variable should build");
 
@@ -107,12 +107,12 @@ async fn test_read_one_variable() {
 
     let provider_builder = ProviderBuilder::new();
     let var1 = VariableBuilder::new(0, "my_folder.my_variable_1")
-        .value(VariableValue::Boolean(true))
+        .value(true)
         .build()
         .expect("variable should build");
 
     let var2 = VariableBuilder::new(1, "my_folder.my_variable_2")
-        .value(VariableValue::String("Test_String123".to_string()))
+        .value("Test_String123")
         .build()
         .expect("variable should build");
 

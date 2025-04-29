@@ -39,7 +39,7 @@ fn test_missing_value_error() {
 )]
 fn test_key_validation(#[case] key: String, #[case] valid: bool) {
     // Prepare
-    let my_var = VariableBuilder::new(0, &key).value(VariableValue::Boolean(true));
+    let my_var = VariableBuilder::new(0, &key).value(true);
 
     // Act
     let result = my_var.build();

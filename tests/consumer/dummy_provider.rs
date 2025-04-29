@@ -41,7 +41,7 @@ impl DummyProvider {
 
         let rw_string = VariableBuilder::new(200, "my_folder.rw_string")
             .read_write()
-            .value(VariableValue::String("write me!".to_string()))
+            .value("write me!")
             .build()?;
 
         let rw_int = VariableBuilder::new(300, "my_folder.rw_int")
@@ -119,7 +119,7 @@ impl DummyProvider {
                             new_ro_float.clone(),
                             VariableBuilder::new(20, "my_folder.rw_string")
                                 .read_write()
-                                .value(VariableValue::String("new string value".to_string()))
+                                .value("new string value")
                                 .build().unwrap(),
                             VariableBuilder::new(30, "my_folder.rw_int2")
                                 .read_write()

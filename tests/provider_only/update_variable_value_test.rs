@@ -23,12 +23,12 @@ async fn test_update_variable_value() {
 
     let provider_builder = ProviderBuilder::new();
     let var1 = VariableBuilder::new(0, "my_folder.my_variable_1")
-        .value(VariableValue::Boolean(true))
+        .value(true)
         .build()
         .expect("variable should build");
 
     let mut var2 = VariableBuilder::new(1, "my_folder.my_variable_2")
-        .value(VariableValue::String("Test_it".to_string()))
+        .value("Test_it")
         .build()
         .expect("variable should build");
 
@@ -41,7 +41,7 @@ async fn test_update_variable_value() {
 
     // act
 
-    var2.value = VariableValue::String("Test_String123".to_string());
+    var2.value = "Test_String123".into();
     provider
         .update_variable_values(vec![var2.clone()])
         .await
@@ -75,7 +75,7 @@ async fn test_update_variable_fingerprint() {
 
     let provider_builder = ProviderBuilder::new();
     let mut var1 = VariableBuilder::new(0, "my_folder.my_variable_1")
-        .value(VariableValue::Boolean(true))
+        .value(true)
         .build()
         .expect("variable should build");
 
@@ -152,7 +152,7 @@ async fn test_update_variable_fingerprint() {
     //change vars - fingerprint should change
     {
         let new_var = VariableBuilder::new(2, "my_folder.my_variable_3")
-            .value(123.into())
+            .value(123)
             .build()
             .unwrap();
         provider.add_variables(&[new_var.clone()]).await.unwrap();

@@ -48,12 +48,12 @@ async fn main() -> anyhow::Result<()> {
 }
 
 async fn example_service_1(hub_provider: Provider) -> anyhow::Result<()> {
-    let dat1_builder = VariableBuilder::new(0, "folder1.int_counter").value(VariableValue::Int(0));
+    let dat1_builder = VariableBuilder::new(0, "folder1.int_counter").value(0);
 
     let mut data1 = dat1_builder.build()?;
 
     let folder_version = VariableBuilder::new(1, "folder1.version")
-        .value(VariableValue::String("1.0.0".to_string()))
+        .value("1.0.0")
         .build()?;
 
     hub_provider
@@ -75,38 +75,37 @@ async fn example_service_1(hub_provider: Provider) -> anyhow::Result<()> {
 }
 
 async fn example_service_2(hub_provider: Provider) -> anyhow::Result<()> {
-    let dat1_builder =
-        VariableBuilder::new(3, "folder2.float_counter").value(VariableValue::Float64(0.0));
+    let dat1_builder = VariableBuilder::new(3, "folder2.float_counter").value(0.0);
 
     //Make sure that there is one writable variable for each type so we can test read/write of all types
     //Make some experimental
     let writable_vars = vec![
         VariableBuilder::new(4, "folder2.writable_string")
-            .value(VariableValue::String("Write me!".to_owned()))
+            .value("Write me!")
             .read_write()
             .build()?,
         VariableBuilder::new(5, "folder2.writable_int")
-            .value(VariableValue::Int(1337))
+            .value(1337)
             .read_write()
             .build()?,
         VariableBuilder::new(6, "folder2.writable_bool")
-            .value(VariableValue::Boolean(true))
+            .value(true)
             .read_write()
             .build()?,
         VariableBuilder::new(7, "folder2.writable_float")
-            .value(VariableValue::Float64(1122.3344))
+            .value(1122.3344)
             .read_write()
             .build()?,
         VariableBuilder::new(8, "folder2.writable_timestamp")
-            .value(VariableValue::Timestamp(TimestampValue::now()))
+            .value(TimestampValue::now())
             .read_write()
             .build()?,
         VariableBuilder::new(9, "folder2.writable_duration")
-            .value(VariableValue::Duration(DurationValue::new(123, 456)))
+            .value(DurationValue::new(123, 456))
             .read_write()
             .build()?,
         VariableBuilder::new(10, "folder2.experimental_string")
-            .value("experimental_value".into())
+            .value("experimental_value")
             .experimental()
             .read_write()
             .build()?,
@@ -115,7 +114,7 @@ async fn example_service_2(hub_provider: Provider) -> anyhow::Result<()> {
     let mut data1 = dat1_builder.build()?;
 
     let folder_version = VariableBuilder::new(11, "folder2.version")
-        .value("1.0.0".into())
+        .value("1.0.0")
         .build()?;
 
     let mut all_vars = vec![data1.clone(), folder_version.clone()];
