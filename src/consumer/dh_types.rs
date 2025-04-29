@@ -5,11 +5,12 @@ use thiserror::Error;
 
 use crate::{
     generated::weidmueller::ucontrol::hub::{
-        State, VariableAccessType, VariableDataType, VariableDefinitionT, VariableQuality,
-        VariableT,
+        State, VariableAccessType, VariableDataType, VariableDefinitionT, VariableT,
     },
-    variable::{self, value::DhTimestamp},
+    variable::{self, value::TimestampValue},
 };
+
+use crate::generated::weidmueller::ucontrol::hub::VariableQuality as FbVariableQuality;
 
 /// Represents a variable ID on the hub.
 pub type VariableID = u32;
@@ -26,7 +27,7 @@ pub enum Error {
 
 /// The state of the Data Hub registry
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum DhRegistryState {
+pub enum RegistryState {
     /// Registry is running
     Running,
     /// Registry is stopping
@@ -35,14 +36,14 @@ pub enum DhRegistryState {
     Unspecified,
 }
 
-impl TryFrom<State> for DhRegistryState {
+impl TryFrom<State> for RegistryState {
     type Error = Error;
 
     fn try_from(value: State) -> std::result::Result<Self, Self::Error> {
         match value {
-            State::RUNNING => Ok(DhRegistryState::Running),
-            State::STOPPING => Ok(DhRegistryState::Stopping),
-            State::UNSPECIFIED => Ok(DhRegistryState::Unspecified),
+            State::RUNNING => Ok(RegistryState::Running),
+            State::STOPPING => Ok(RegistryState::Stopping),
+            State::UNSPECIFIED => Ok(RegistryState::Unspecified),
             _ => Err(Error::FlatbufferDataTypeConversionFailure),
         }
     }
@@ -52,7 +53,7 @@ impl TryFrom<State> for DhRegistryState {
 ///
 /// This is set by the provider and indicates the quality of a variable value.
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
-pub enum ConsumerVariableQuality {
+pub enum VariableQuality {
     /// Indicates that the value is not usable
     BadOrUndefined,
     /// Indicates that the value is good and can be used without restrictions
@@ -65,19 +66,19 @@ pub enum ConsumerVariableQuality {
     UncertainInitialValue,
 }
 
-impl TryFrom<VariableQuality> for ConsumerVariableQuality {
+impl TryFrom<FbVariableQuality> for VariableQuality {
     type Error = Error;
 
-    fn try_from(value: VariableQuality) -> Result<Self, Self::Error> {
+    fn try_from(value: FbVariableQuality) -> Result<Self, Self::Error> {
         match value {
-            VariableQuality::BAD => Ok(ConsumerVariableQuality::BadOrUndefined),
-            VariableQuality::GOOD => Ok(ConsumerVariableQuality::Good),
-            VariableQuality::UNCERTAIN => Ok(ConsumerVariableQuality::Uncertain),
-            VariableQuality::UNCERTAIN_LAST_USABLE_VALUE => {
-                Ok(ConsumerVariableQuality::UncertainLastUsableValue)
+            FbVariableQuality::BAD => Ok(VariableQuality::BadOrUndefined),
+            FbVariableQuality::GOOD => Ok(VariableQuality::Good),
+            FbVariableQuality::UNCERTAIN => Ok(VariableQuality::Uncertain),
+            FbVariableQuality::UNCERTAIN_LAST_USABLE_VALUE => {
+                Ok(VariableQuality::UncertainLastUsableValue)
             }
-            VariableQuality::UNCERTAIN_INITIAL_VALUE => {
-                Ok(ConsumerVariableQuality::UncertainInitialValue)
+            FbVariableQuality::UNCERTAIN_INITIAL_VALUE => {
+                Ok(VariableQuality::UncertainInitialValue)
             }
             _ => Err(Error::FlatbufferDataTypeConversionFailure),
         }
@@ -87,7 +88,7 @@ impl TryFrom<VariableQuality> for ConsumerVariableQuality {
 /// The type of the variable
 #[derive(Debug, Clone, Eq, PartialEq)]
 #[allow(missing_docs)]
-pub enum ConsumerVariableType {
+pub enum VariableType {
     Float64,
     Int64,
     String,
@@ -96,17 +97,17 @@ pub enum ConsumerVariableType {
     Boolean,
 }
 
-impl TryFrom<VariableDataType> for ConsumerVariableType {
+impl TryFrom<VariableDataType> for VariableType {
     type Error = Error;
 
     fn try_from(value: VariableDataType) -> Result<Self, Self::Error> {
         match value {
-            VariableDataType::FLOAT64 => Ok(ConsumerVariableType::Float64),
-            VariableDataType::INT64 => Ok(ConsumerVariableType::Int64),
-            VariableDataType::STRING => Ok(ConsumerVariableType::String),
-            VariableDataType::TIMESTAMP => Ok(ConsumerVariableType::Timestamp),
-            VariableDataType::DURATION => Ok(ConsumerVariableType::Duration),
-            VariableDataType::BOOLEAN => Ok(ConsumerVariableType::Boolean),
+            VariableDataType::FLOAT64 => Ok(VariableType::Float64),
+            VariableDataType::INT64 => Ok(VariableType::Int64),
+            VariableDataType::STRING => Ok(VariableType::String),
+            VariableDataType::TIMESTAMP => Ok(VariableType::Timestamp),
+            VariableDataType::DURATION => Ok(VariableType::Duration),
+            VariableDataType::BOOLEAN => Ok(VariableType::Boolean),
             _ => Err(Error::FlatbufferDataTypeConversionFailure),
         }
     }
@@ -114,26 +115,26 @@ impl TryFrom<VariableDataType> for ConsumerVariableType {
 
 /// The definition of a variable
 #[derive(Debug, Clone, Eq, PartialEq)]
-pub struct ConsumerVariableDefinition {
+pub struct VariableDefinition {
     /// The unique id of the variable
     pub id: VariableID,
     /// The variable key used to access the variable via the high level API
     pub key: String,
     /// Data type of the variable
-    pub data_type: ConsumerVariableType,
+    pub data_type: VariableType,
     /// Whether the variable is read-only or not
     pub read_only: bool,
     /// Experimantal variables are hidden in the data hub GUI
     pub experimental: bool,
 }
 
-impl TryFrom<VariableDefinitionT> for ConsumerVariableDefinition {
+impl TryFrom<VariableDefinitionT> for VariableDefinition {
     type Error = Error;
 
     fn try_from(ll_var_def: VariableDefinitionT) -> Result<Self, Self::Error> {
         let mapped_data_type = ll_var_def.data_type.try_into()?;
 
-        Ok(ConsumerVariableDefinition {
+        Ok(VariableDefinition {
             id: ll_var_def.id,
             key: ll_var_def.key,
             data_type: mapped_data_type,
@@ -145,32 +146,35 @@ impl TryFrom<VariableDefinitionT> for ConsumerVariableDefinition {
 
 /// The state of a variable
 #[derive(Debug, Clone, PartialEq)]
-pub struct ConsumerVariableState {
+pub struct VariableState {
     /// The modification timestamp of the variable.
     ///
     /// Variables can have their own timestamp or inherit the variable list timestamp.
-    pub timestamp: DhTimestamp,
+    pub timestamp: TimestampValue,
     /// Current value of the variable
-    pub value: variable::value::Value,
+    pub value: variable::value::VariableValue,
     /// The quality of the variable
-    pub quality: ConsumerVariableQuality,
+    pub quality: VariableQuality,
 }
 
-impl ConsumerVariableState {
+impl VariableState {
     /// Creates a new variable state from a low level variable and a fallback timestamp.
     ///
     /// If the low level variable has a timestamp, it will be used. Otherwise, `fallback_timestamp` will be used.
-    pub(super) fn new(ll_var: VariableT, fallback_timestamp: DhTimestamp) -> Result<Self, Error> {
+    pub(super) fn new(
+        ll_var: VariableT,
+        fallback_timestamp: TimestampValue,
+    ) -> Result<Self, Error> {
         let mapped_ts = if let Some(ts) = ll_var.timestamp {
             ts.into()
         } else {
             fallback_timestamp
         };
 
-        let mapped_value = Option::<variable::value::Value>::from(ll_var.value)
+        let mapped_value = Option::<variable::value::VariableValue>::from(ll_var.value)
             .ok_or(Error::FlatbufferDataTypeConversionFailure)?;
 
-        Ok(ConsumerVariableState {
+        Ok(VariableState {
             timestamp: mapped_ts,
             value: mapped_value,
             quality: ll_var.quality.try_into()?,

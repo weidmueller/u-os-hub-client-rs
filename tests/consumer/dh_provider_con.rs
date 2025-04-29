@@ -8,17 +8,14 @@ use u_os_hub_client::{
         AuthenticationSettings, AuthenticationSettingsBuilder, NatsPermission,
     },
     consumer::{
-        connected_dh_provider::{self, ConnectedDataHubProvider, ProviderEvent},
+        connected_dh_provider::{self, DataHubProviderConnection, ProviderEvent},
         connected_nats_provider::{self},
         dh_consumer::DataHubConsumer,
-        dh_types::{
-            ConsumerVariableDefinition, ConsumerVariableQuality, ConsumerVariableState,
-            ConsumerVariableType, VariableID,
-        },
+        dh_types::{VariableDefinition, VariableID, VariableQuality, VariableState, VariableType},
         variable_key::VariableKey,
     },
     oauth2::OAuth2Credentials,
-    variable::value::Value,
+    variable::value::VariableValue,
 };
 
 use crate::{
@@ -64,13 +61,13 @@ async fn registry_offline() {
         );
 
         //Should not be able to connect to a provider
-        let con_result = ConnectedDataHubProvider::new(consumer.clone(), PROVIDER_ID, false).await;
+        let con_result = DataHubProviderConnection::new(consumer.clone(), PROVIDER_ID, false).await;
         assert!(con_result.is_err());
 
         //Should start waiting if flag is enabled
         let timeout_res = timeout(
             Duration::from_millis(100),
-            ConnectedDataHubProvider::new(consumer.clone(), PROVIDER_ID, true),
+            DataHubProviderConnection::new(consumer.clone(), PROVIDER_ID, true),
         )
         .await;
         assert!(timeout_res.is_err());
@@ -96,11 +93,11 @@ async fn provider_offline() {
             .unwrap();
 
         //Should not be able to connect to a provider if wait is set to false
-        let con_result = ConnectedDataHubProvider::new(consumer.clone(), PROVIDER_ID, false).await;
+        let con_result = DataHubProviderConnection::new(consumer.clone(), PROVIDER_ID, false).await;
         assert!(con_result.is_err());
 
         //this should work, but block until the provider appears
-        let dh_provider_con = ConnectedDataHubProvider::new(consumer.clone(), PROVIDER_ID, true)
+        let dh_provider_con = DataHubProviderConnection::new(consumer.clone(), PROVIDER_ID, true)
             .await
             .unwrap();
 
@@ -131,7 +128,7 @@ async fn wait_for_variable_keys() {
         );
 
         let _dummy_provider = DummyProvider::new().await.unwrap();
-        let dh_provider_con = ConnectedDataHubProvider::new(consumer.clone(), PROVIDER_ID, true)
+        let dh_provider_con = DataHubProviderConnection::new(consumer.clone(), PROVIDER_ID, true)
             .await
             .unwrap();
 
@@ -183,7 +180,7 @@ async fn read_var_defs() {
         );
 
         let _dummy_provider = DummyProvider::new().await.unwrap();
-        let dh_provider_con = ConnectedDataHubProvider::new(consumer.clone(), PROVIDER_ID, true)
+        let dh_provider_con = DataHubProviderConnection::new(consumer.clone(), PROVIDER_ID, true)
             .await
             .unwrap();
 
@@ -202,48 +199,48 @@ async fn read_var_defs() {
         let ro_float_def = dh_provider_con.get_variable_definition(&ro_float).unwrap();
         assert_eq!(
             ro_float_def,
-            ConsumerVariableDefinition {
+            VariableDefinition {
                 id: 100,
                 key: "my_folder.ro_float".to_string(),
                 read_only: true,
                 experimental: true,
-                data_type: ConsumerVariableType::Float64,
+                data_type: VariableType::Float64,
             }
         );
         let rw_string = dh_provider_con.variable_key_from_id(200).unwrap();
         let rw_string_def = dh_provider_con.get_variable_definition(&rw_string).unwrap();
         assert_eq!(
             rw_string_def,
-            ConsumerVariableDefinition {
+            VariableDefinition {
                 id: 200,
                 key: "my_folder.rw_string".to_string(),
                 read_only: false,
                 experimental: false,
-                data_type: ConsumerVariableType::String,
+                data_type: VariableType::String,
             }
         );
         let rw_int = dh_provider_con.variable_key_from_id(300).unwrap();
         let rw_int_def = dh_provider_con.get_variable_definition(&rw_int).unwrap();
         assert_eq!(
             rw_int_def,
-            ConsumerVariableDefinition {
+            VariableDefinition {
                 id: 300,
                 key: "my_folder.rw_int".to_string(),
                 read_only: false,
                 experimental: false,
-                data_type: ConsumerVariableType::Int64,
+                data_type: VariableType::Int64,
             }
         );
         let ro_int = dh_provider_con.variable_key_from_id(400).unwrap();
         let ro_int_def = dh_provider_con.get_variable_definition(&ro_int).unwrap();
         assert_eq!(
             ro_int_def,
-            ConsumerVariableDefinition {
+            VariableDefinition {
                 id: 400,
                 key: "my_folder.ro_int".to_string(),
                 read_only: true,
                 experimental: false,
-                data_type: ConsumerVariableType::Int64,
+                data_type: VariableType::Int64,
             }
         );
 
@@ -251,33 +248,33 @@ async fn read_var_defs() {
         let var_defs = dh_provider_con.get_all_variable_definitions().unwrap();
         assert_eq!(var_defs.len(), 4);
 
-        assert!(var_defs.contains(&ConsumerVariableDefinition {
+        assert!(var_defs.contains(&VariableDefinition {
             id: 100,
             key: "my_folder.ro_float".to_string(),
             read_only: true,
             experimental: true,
-            data_type: ConsumerVariableType::Float64,
+            data_type: VariableType::Float64,
         }));
-        assert!(var_defs.contains(&ConsumerVariableDefinition {
+        assert!(var_defs.contains(&VariableDefinition {
             id: 200,
             key: "my_folder.rw_string".to_string(),
             read_only: false,
             experimental: false,
-            data_type: ConsumerVariableType::String,
+            data_type: VariableType::String,
         }));
-        assert!(var_defs.contains(&ConsumerVariableDefinition {
+        assert!(var_defs.contains(&VariableDefinition {
             id: 300,
             key: "my_folder.rw_int".to_string(),
             read_only: false,
             experimental: false,
-            data_type: ConsumerVariableType::Int64,
+            data_type: VariableType::Int64,
         }));
-        assert!(var_defs.contains(&ConsumerVariableDefinition {
+        assert!(var_defs.contains(&VariableDefinition {
             id: 400,
             key: "my_folder.ro_int".to_string(),
             read_only: true,
             experimental: false,
-            data_type: ConsumerVariableType::Int64,
+            data_type: VariableType::Int64,
         }));
     })
     .await;
@@ -297,7 +294,7 @@ async fn read_var_state() {
         );
 
         let _dummy_provider = DummyProvider::new().await.unwrap();
-        let dh_provider_con = ConnectedDataHubProvider::new(consumer.clone(), PROVIDER_ID, true)
+        let dh_provider_con = DataHubProviderConnection::new(consumer.clone(), PROVIDER_ID, true)
             .await
             .unwrap();
 
@@ -324,24 +321,23 @@ async fn read_var_state() {
             .variable_id_from_key("my_folder.rw_int")
             .unwrap();
 
-        let var_states: HashMap<VariableID, ConsumerVariableState> =
-            var_states.into_iter().collect();
+        let var_states: HashMap<VariableID, VariableState> = var_states.into_iter().collect();
 
         let state = var_states.get(&ro_float_id).unwrap();
-        assert_eq!(state.value, Value::Float64(123.0));
-        assert_eq!(state.quality, ConsumerVariableQuality::Good);
+        assert_eq!(state.value, VariableValue::Float64(123.0));
+        assert_eq!(state.quality, VariableQuality::Good);
 
         let state = var_states.get(&ro_int_id).unwrap();
-        assert_eq!(state.value, Value::Int(0));
-        assert_eq!(state.quality, ConsumerVariableQuality::Good);
+        assert_eq!(state.value, VariableValue::Int(0));
+        assert_eq!(state.quality, VariableQuality::Good);
 
         let state = var_states.get(&rw_string_id).unwrap();
-        assert_eq!(state.value, Value::String("write me!".to_owned()));
-        assert_eq!(state.quality, ConsumerVariableQuality::Good);
+        assert_eq!(state.value, VariableValue::String("write me!".to_owned()));
+        assert_eq!(state.quality, VariableQuality::Good);
 
         let state = var_states.get(&rw_int_id).unwrap();
-        assert_eq!(state.value, Value::Int(1000));
-        assert_eq!(state.quality, ConsumerVariableQuality::Good);
+        assert_eq!(state.value, VariableValue::Int(1000));
+        assert_eq!(state.quality, VariableQuality::Good);
 
         //read one by one via keys
         for def in dh_provider_con.get_all_variable_definitions().unwrap() {
@@ -350,20 +346,20 @@ async fn read_var_state() {
 
             match var_key {
                 "my_folder.ro_float" => {
-                    assert_eq!(state.value, Value::Float64(123.0));
-                    assert_eq!(state.quality, ConsumerVariableQuality::Good);
+                    assert_eq!(state.value, VariableValue::Float64(123.0));
+                    assert_eq!(state.quality, VariableQuality::Good);
                 }
                 "my_folder.ro_int" => {
-                    assert_eq!(state.value, Value::Int(0));
-                    assert_eq!(state.quality, ConsumerVariableQuality::Good);
+                    assert_eq!(state.value, VariableValue::Int(0));
+                    assert_eq!(state.quality, VariableQuality::Good);
                 }
                 "my_folder.rw_string" => {
-                    assert_eq!(state.value, Value::String("write me!".to_owned()));
-                    assert_eq!(state.quality, ConsumerVariableQuality::Good);
+                    assert_eq!(state.value, VariableValue::String("write me!".to_owned()));
+                    assert_eq!(state.quality, VariableQuality::Good);
                 }
                 "my_folder.rw_int" => {
-                    assert_eq!(state.value, Value::Int(1000));
-                    assert_eq!(state.quality, ConsumerVariableQuality::Good);
+                    assert_eq!(state.value, VariableValue::Int(1000));
+                    assert_eq!(state.quality, VariableQuality::Good);
                 }
                 _ => panic!("Unexpected variable key: {var_key}"),
             }
@@ -386,7 +382,7 @@ async fn subscribe_variables() {
         );
 
         let dummy_provider = DummyProvider::new().await.unwrap();
-        let dh_provider_con = ConnectedDataHubProvider::new(consumer.clone(), PROVIDER_ID, true)
+        let dh_provider_con = DataHubProviderConnection::new(consumer.clone(), PROVIDER_ID, true)
             .await
             .unwrap();
 
@@ -401,13 +397,13 @@ async fn subscribe_variables() {
         assert_eq!(change_evt.len(), 1);
         let changed_var = &change_evt.first().unwrap().1;
         assert_eq!(changed_var.value, 0.0.into());
-        assert_eq!(changed_var.quality, ConsumerVariableQuality::Good);
+        assert_eq!(changed_var.quality, VariableQuality::Good);
 
         let change_evt = change_stream.next().await.unwrap();
         assert_eq!(change_evt.len(), 1);
         let changed_var = &change_evt.first().unwrap().1;
         assert_eq!(changed_var.value, 123.0.into());
-        assert_eq!(changed_var.quality, ConsumerVariableQuality::Good);
+        assert_eq!(changed_var.quality, VariableQuality::Good);
 
         //this will register a new variable and change IDs of existing vars
         dummy_provider.change_variables();
@@ -434,7 +430,7 @@ async fn write_variables() {
         );
 
         let _dummy_provider = DummyProvider::new().await.unwrap();
-        let dh_provider_con = ConnectedDataHubProvider::new(consumer.clone(), PROVIDER_ID, true)
+        let dh_provider_con = DataHubProviderConnection::new(consumer.clone(), PROVIDER_ID, true)
             .await
             .unwrap();
 
@@ -458,7 +454,7 @@ async fn write_variables() {
 
         //Try to write non existant variable
         assert!(dh_provider_con
-            .write_single_variable("doesntexist", Value::String("wtf?".to_owned()))
+            .write_single_variable("doesntexist", VariableValue::String("wtf?".to_owned()))
             .await
             .is_err());
 
@@ -503,7 +499,7 @@ async fn write_with_insufficient_nats_permissions() {
         );
 
         let _dummy_provider = DummyProvider::new().await.unwrap();
-        let dh_provider_con = ConnectedDataHubProvider::new(consumer.clone(), PROVIDER_ID, true)
+        let dh_provider_con = DataHubProviderConnection::new(consumer.clone(), PROVIDER_ID, true)
             .await
             .unwrap();
 
@@ -530,7 +526,7 @@ async fn change_var_defs() {
         );
 
         let dummy_provider = DummyProvider::new().await.unwrap();
-        let dh_provider_con = ConnectedDataHubProvider::new(consumer.clone(), PROVIDER_ID, true)
+        let dh_provider_con = DataHubProviderConnection::new(consumer.clone(), PROVIDER_ID, true)
             .await
             .unwrap();
 
@@ -606,12 +602,12 @@ async fn change_var_defs() {
         let rw_int3_def = dh_provider_con.get_variable_definition(&rw_int3).unwrap();
         assert_eq!(
             rw_int3_def,
-            ConsumerVariableDefinition {
+            VariableDefinition {
                 id: 50,
                 key: "my_folder.rw_int3".to_string(),
                 read_only: false,
                 experimental: false,
-                data_type: ConsumerVariableType::Int64,
+                data_type: VariableType::Int64,
             }
         );
 
@@ -640,7 +636,7 @@ async fn provider_goes_offline() {
         );
 
         let dummy_provider = DummyProvider::new().await.unwrap();
-        let dh_provider_con = ConnectedDataHubProvider::new(consumer.clone(), PROVIDER_ID, true)
+        let dh_provider_con = DataHubProviderConnection::new(consumer.clone(), PROVIDER_ID, true)
             .await
             .unwrap();
 

@@ -18,19 +18,19 @@ use super::Provider;
 #[cfg(test)]
 mod provider_options_test;
 
-/// The ProviderOptions is used to create a Provider
+/// The ProviderBuilder is used to create a Provider
 #[derive(Debug, Clone)]
-pub struct ProviderOptions {
+pub struct ProviderBuilder {
     variables: BTreeMap<u32, Variable>,
 }
 
-impl Default for ProviderOptions {
+impl Default for ProviderBuilder {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl ProviderOptions {
+impl ProviderBuilder {
     /// Create a new provider builder
     pub fn new() -> Self {
         Self {

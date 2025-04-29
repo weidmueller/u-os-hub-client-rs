@@ -2,8 +2,8 @@ use std::{sync::Arc, time::Duration};
 
 use tokio::sync::Notify;
 use u_os_hub_client::{
-    provider::{ProviderOptions, VariableBuilder},
-    variable::value::Value,
+    provider::{ProviderBuilder, VariableBuilder},
+    variable::value::VariableValue,
 };
 
 use crate::utils::create_auth_con;
@@ -31,26 +31,26 @@ impl DummyProvider {
         //Create connection for dummy provider
         let auth_nats_con = create_auth_con(PROVIDER_ID).await;
 
-        let provider_builder = ProviderOptions::new();
+        let provider_builder = ProviderBuilder::new();
 
         //add two readonly and two RW variables
         let mut ro_float = VariableBuilder::new(100, "my_folder.ro_float")
-            .value(Value::Float64(123.0))
+            .value(VariableValue::Float64(123.0))
             .experimental()
             .build()?;
 
         let rw_string = VariableBuilder::new(200, "my_folder.rw_string")
             .read_write()
-            .value(Value::String("write me!".to_string()))
+            .value(VariableValue::String("write me!".to_string()))
             .build()?;
 
         let rw_int = VariableBuilder::new(300, "my_folder.rw_int")
             .read_write()
-            .value(Value::Int(1000))
+            .value(VariableValue::Int(1000))
             .build()?;
 
         let mut ro_int = VariableBuilder::new(400, "my_folder.ro_int")
-            .value(Value::Int(0))
+            .value(VariableValue::Int(0))
             .build()?;
 
         let mut cur_vars = vec![
@@ -91,8 +91,8 @@ impl DummyProvider {
                 tokio::select! {
                     //wait for timer
                     _ = var_write_timer.tick() => {
-                        ro_float.value = Value::Float64(cur_float_val);
-                        ro_int.value = Value::Int(cur_int_val);
+                        ro_float.value = VariableValue::Float64(cur_float_val);
+                        ro_int.value = VariableValue::Int(cur_int_val);
 
                         let updated_vars = vec![ro_float.clone(), ro_int.clone()];
                         provider.update_variable_values(updated_vars).await.unwrap();
@@ -106,11 +106,11 @@ impl DummyProvider {
                         provider.remove_variables(cur_vars.clone()).await.unwrap();
 
                         let new_ro_float = VariableBuilder::new(10, "my_folder.ro_float")
-                            .value(Value::Float64(255.0))
+                            .value(VariableValue::Float64(255.0))
                             .build().unwrap();
 
                         let new_ro_int = VariableBuilder::new(40, "my_folder.ro_int2")
-                            .value(Value::Int(0))
+                            .value(VariableValue::Int(0))
                             .build().unwrap();
 
                         //change variable defs
@@ -119,15 +119,15 @@ impl DummyProvider {
                             new_ro_float.clone(),
                             VariableBuilder::new(20, "my_folder.rw_string")
                                 .read_write()
-                                .value(Value::String("new string value".to_string()))
+                                .value(VariableValue::String("new string value".to_string()))
                                 .build().unwrap(),
                             VariableBuilder::new(30, "my_folder.rw_int2")
                                 .read_write()
-                                .value(Value::Int(-1000))
+                                .value(VariableValue::Int(-1000))
                                 .build().unwrap(),
                             VariableBuilder::new(50, "my_folder.rw_int3")
                                 .read_write()
-                                .value(Value::Int(-500))
+                                .value(VariableValue::Int(-500))
                                 .build().unwrap(),
                         ];
 

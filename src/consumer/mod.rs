@@ -21,11 +21,11 @@
 //!#         AuthenticationSettingsBuilder, NatsPermission, DEFAULT_U_OS_NATS_ADDRESS,
 //!#     },
 //!#     consumer::{
-//!#         connected_dh_provider::ConnectedDataHubProvider, dh_consumer::DataHubConsumer,
+//!#         connected_dh_provider::DataHubProviderConnection, dh_consumer::DataHubConsumer,
 //!#         variable_key::VariableKey,
 //!#     },
 //!#     oauth2::OAuth2Credentials,
-//!#     variable::value::Value,
+//!#     variable::value::VariableValue,
 //!# };
 //!#
 //! #[tokio::main]
@@ -50,7 +50,7 @@
 //!
 //!     //Connect to a provider
 //!     println!("Trying to connect to provider {provider_id:?} ...");
-//!     let dh_provider_con = ConnectedDataHubProvider::new(dh_consumer, provider_id, true).await?;
+//!     let dh_provider_con = DataHubProviderConnection::new(dh_consumer, provider_id, true).await?;
 //!
 //!     //Print all variable ids, their definition and their values
 //!     println!("Variable overview:");
@@ -68,7 +68,7 @@
 //!
 //!     //write multiple variables at once
 //!     let var_changes = [
-//!         (written_var_handle1, Value::from("Multi write!!!")),
+//!         (written_var_handle1, VariableValue::from("Multi write!!!")),
 //!         //DataHub types usually implement the From trait,
 //!         //so you can use .into() for values and keys
 //!         ("folder2.writable_int".into(), 123.into()),

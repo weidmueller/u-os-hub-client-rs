@@ -5,16 +5,16 @@ use crate::generated::weidmueller::ucontrol::hub::{
 };
 
 /// User friendly duration type that abstracts the low level flatbuffer value
-pub type DhDuration = time::Duration;
+pub type DurationValue = time::Duration;
 
-impl From<DurationT> for DhDuration {
+impl From<DurationT> for DurationValue {
     fn from(value: DurationT) -> Self {
-        DhDuration::new(value.seconds, value.nanos)
+        DurationValue::new(value.seconds, value.nanos)
     }
 }
 
-impl From<DhDuration> for DurationT {
-    fn from(value: DhDuration) -> Self {
+impl From<DurationValue> for DurationT {
+    fn from(value: DurationValue) -> Self {
         Self {
             seconds: value.whole_seconds(),
             nanos: value.subsec_nanoseconds(),
@@ -23,17 +23,17 @@ impl From<DhDuration> for DurationT {
 }
 
 /// User friendly timestamp type that abstracts the low level flatbuffer value
-pub type DhTimestamp = time::UtcDateTime;
+pub type TimestampValue = time::UtcDateTime;
 
-impl From<TimestampT> for DhTimestamp {
+impl From<TimestampT> for TimestampValue {
     fn from(value: TimestampT) -> Self {
-        DhTimestamp::UNIX_EPOCH + DhDuration::new(value.seconds, value.nanos)
+        TimestampValue::UNIX_EPOCH + DurationValue::new(value.seconds, value.nanos)
     }
 }
 
-impl From<DhTimestamp> for TimestampT {
-    fn from(value: DhTimestamp) -> Self {
-        let duration_since_epoch = value - DhTimestamp::UNIX_EPOCH;
+impl From<TimestampValue> for TimestampT {
+    fn from(value: TimestampValue) -> Self {
+        let duration_since_epoch = value - TimestampValue::UNIX_EPOCH;
 
         let mut seconds = duration_since_epoch.whole_seconds();
         let mut nanos = duration_since_epoch.subsec_nanoseconds();
@@ -56,106 +56,106 @@ impl From<DhTimestamp> for TimestampT {
 /// The value of a variable.
 #[derive(Clone, Debug, PartialEq)]
 #[allow(missing_docs)]
-pub enum Value {
+pub enum VariableValue {
     Int(i64),
     Boolean(bool),
     String(String),
     Float64(f64),
-    Duration(DhDuration),
-    Timestamp(DhTimestamp),
+    Duration(DurationValue),
+    Timestamp(TimestampValue),
 }
 
-impl From<i64> for Value {
+impl From<i64> for VariableValue {
     fn from(value: i64) -> Self {
-        Value::Int(value)
+        VariableValue::Int(value)
     }
 }
 
-impl From<bool> for Value {
+impl From<bool> for VariableValue {
     fn from(value: bool) -> Self {
-        Value::Boolean(value)
+        VariableValue::Boolean(value)
     }
 }
 
-impl From<&str> for Value {
+impl From<&str> for VariableValue {
     fn from(value: &str) -> Self {
-        Value::String(value.to_string())
+        VariableValue::String(value.to_string())
     }
 }
 
-impl From<String> for Value {
+impl From<String> for VariableValue {
     fn from(value: String) -> Self {
-        Value::String(value)
+        VariableValue::String(value)
     }
 }
 
-impl From<f64> for Value {
+impl From<f64> for VariableValue {
     fn from(value: f64) -> Self {
-        Value::Float64(value)
+        VariableValue::Float64(value)
     }
 }
 
-impl From<DhDuration> for Value {
-    fn from(value: DhDuration) -> Self {
-        Value::Duration(value)
+impl From<DurationValue> for VariableValue {
+    fn from(value: DurationValue) -> Self {
+        VariableValue::Duration(value)
     }
 }
 
-impl From<DhTimestamp> for Value {
-    fn from(value: DhTimestamp) -> Self {
-        Value::Timestamp(value)
+impl From<TimestampValue> for VariableValue {
+    fn from(value: TimestampValue) -> Self {
+        VariableValue::Timestamp(value)
     }
 }
 
-impl From<VariableValueT> for Option<Value> {
+impl From<VariableValueT> for Option<VariableValue> {
     fn from(value: VariableValueT) -> Self {
         Some(match value {
             VariableValueT::NONE => None?,
-            VariableValueT::Boolean(v) => Value::Boolean(v.value),
+            VariableValueT::Boolean(v) => VariableValue::Boolean(v.value),
             VariableValueT::Duration(v) => {
                 let value = v.value?;
-                Value::Duration(value.into())
+                VariableValue::Duration(value.into())
             }
-            VariableValueT::Float64(v) => Value::Float64(v.value),
-            VariableValueT::Int64(v) => Value::Int(v.value),
-            VariableValueT::String(v) => Value::String(v.value?),
+            VariableValueT::Float64(v) => VariableValue::Float64(v.value),
+            VariableValueT::Int64(v) => VariableValue::Int(v.value),
+            VariableValueT::String(v) => VariableValue::String(v.value?),
             VariableValueT::Timestamp(v) => {
                 let value: TimestampT = v.value?;
-                Value::Timestamp(value.into())
+                VariableValue::Timestamp(value.into())
             }
         })
     }
 }
 
-impl From<&Value> for VariableValueT {
-    fn from(value: &Value) -> VariableValueT {
+impl From<&VariableValue> for VariableValueT {
+    fn from(value: &VariableValue) -> VariableValueT {
         match value {
-            Value::Int(val) => {
+            VariableValue::Int(val) => {
                 let val_t = VariableValueInt64T { value: *val };
                 VariableValueT::Int64(Box::new(val_t))
             }
-            Value::Boolean(val) => {
+            VariableValue::Boolean(val) => {
                 let val_t = VariableValueBooleanT { value: *val };
                 VariableValueT::Boolean(Box::new(val_t))
             }
-            Value::String(val) => {
+            VariableValue::String(val) => {
                 let val_t = VariableValueStringT {
                     value: Some(val.to_string()),
                 };
                 VariableValueT::String(Box::new(val_t))
             }
-            Value::Float64(val) => {
+            VariableValue::Float64(val) => {
                 let val_t = VariableValueFloat64T { value: *val };
                 VariableValueT::Float64(Box::new(val_t))
             }
-            Value::Duration(val) => {
+            VariableValue::Duration(val) => {
                 let val_t = VariableValueDurationT {
                     value: Some((*val).into()),
                 };
 
                 VariableValueT::Duration(Box::new(val_t))
             }
-            Value::Timestamp(val) => {
+            VariableValue::Timestamp(val) => {
                 let val_t = VariableValueTimestampT {
                     value: Some((*val).into()),
                 };
@@ -183,12 +183,12 @@ mod test {
         #[case] expected_fb_timestamp: TimestampT,
     ) {
         let dh_timestamp =
-            DhTimestamp::UNIX_EPOCH + DhDuration::new(seconds_since_epoch, nanos_since_epoch);
+            TimestampValue::UNIX_EPOCH + DurationValue::new(seconds_since_epoch, nanos_since_epoch);
 
         let flatbuffer_timestamp: TimestampT = dh_timestamp.into();
         assert_eq!(flatbuffer_timestamp, expected_fb_timestamp);
 
-        let dh_timestamp_converted: DhTimestamp = flatbuffer_timestamp.into();
+        let dh_timestamp_converted: TimestampValue = flatbuffer_timestamp.into();
         assert_eq!(dh_timestamp_converted, dh_timestamp);
     }
 }

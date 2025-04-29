@@ -6,8 +6,8 @@ use tokio::time::timeout;
 use u_os_hub_client::{
     authenticated_nats_con::NatsPermission,
     consumer::{connected_nats_provider::ConnectedNatsProvider, nats_consumer::NatsConsumer},
-    provider::{ProviderOptions, UpdateVariableValuesError, VariableBuilder},
-    variable::value::Value,
+    provider::{ProviderBuilder, UpdateVariableValuesError, VariableBuilder},
+    variable::value::VariableValue,
 };
 
 use crate::utils::{self, fake_registry::FakeRegistry};
@@ -21,14 +21,14 @@ async fn test_update_variable_value() {
     let _fake_registry = FakeRegistry::new().await;
     let auth_nats_con = utils::create_auth_con(PROVIDER_ID).await;
 
-    let provider_builder = ProviderOptions::new();
+    let provider_builder = ProviderBuilder::new();
     let var1 = VariableBuilder::new(0, "my_folder.my_variable_1")
-        .value(Value::Boolean(true))
+        .value(VariableValue::Boolean(true))
         .build()
         .expect("variable should build");
 
     let mut var2 = VariableBuilder::new(1, "my_folder.my_variable_2")
-        .value(Value::String("Test_it".to_string()))
+        .value(VariableValue::String("Test_it".to_string()))
         .build()
         .expect("variable should build");
 
@@ -41,13 +41,13 @@ async fn test_update_variable_value() {
 
     // act
 
-    var2.value = Value::String("Test_String123".to_string());
+    var2.value = VariableValue::String("Test_String123".to_string());
     provider
         .update_variable_values(vec![var2.clone()])
         .await
         .expect("writing a variable with the same type should work");
 
-    var2.value = Value::Int(2);
+    var2.value = VariableValue::Int(2);
     let result = provider.update_variable_values(vec![var2]).await;
 
     // assert
@@ -73,14 +73,14 @@ async fn test_update_variable_fingerprint() {
             .expect("consumer should be created"),
     );
 
-    let provider_builder = ProviderOptions::new();
+    let provider_builder = ProviderBuilder::new();
     let mut var1 = VariableBuilder::new(0, "my_folder.my_variable_1")
-        .value(Value::Boolean(true))
+        .value(VariableValue::Boolean(true))
         .build()
         .expect("variable should build");
 
     let mut var2 = VariableBuilder::new(1, "my_folder.my_variable_2")
-        .value(Value::String("Test_it".to_string()))
+        .value(VariableValue::String("Test_it".to_string()))
         .build()
         .expect("variable should build");
 
@@ -108,8 +108,8 @@ async fn test_update_variable_fingerprint() {
 
     //update all vars - fingerprint should match initial fingerprint
     {
-        var1.value = Value::Boolean(false);
-        var2.value = Value::String("Test_String123".to_string());
+        var1.value = VariableValue::Boolean(false);
+        var2.value = VariableValue::String("Test_String123".to_string());
         provider
             .update_variable_values(vec![var1.clone(), var2.clone()])
             .await
@@ -130,7 +130,7 @@ async fn test_update_variable_fingerprint() {
 
     //update single var - fingerprint should match initial fingerprint
     {
-        var2.value = Value::String("Test_String123".to_string());
+        var2.value = VariableValue::String("Test_String123".to_string());
         provider
             .update_variable_values(vec![var2.clone()])
             .await
@@ -157,7 +157,7 @@ async fn test_update_variable_fingerprint() {
             .unwrap();
         provider.add_variables(&[new_var.clone()]).await.unwrap();
 
-        var2.value = Value::String("Test_String1234".to_string());
+        var2.value = VariableValue::String("Test_String1234".to_string());
         provider
             .update_variable_values(vec![var2.clone()])
             .await

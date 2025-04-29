@@ -5,7 +5,7 @@ use regex::Regex;
 use thiserror::Error;
 
 use crate::variable::{
-    value::{DhTimestamp, Value},
+    value::{TimestampValue, VariableValue},
     Variable,
 };
 
@@ -19,7 +19,7 @@ pub struct VariableBuilder {
     key: String,
     id: u32,
     read_only: bool,
-    value: Option<Value>,
+    value: Option<VariableValue>,
     experimental: bool,
 }
 
@@ -50,7 +50,7 @@ impl VariableBuilder {
     }
 
     /// Sets the initial value of the variable
-    pub fn value(mut self, _value: Value) -> Self {
+    pub fn value(mut self, _value: VariableValue) -> Self {
         self.value = Some(_value);
         self
     }
@@ -78,7 +78,7 @@ impl VariableBuilder {
                 key: self.key,
                 id: self.id,
                 experimental: self.experimental,
-                last_value_change: DhTimestamp::now(),
+                last_value_change: TimestampValue::now(),
             })
         } else {
             Err(VariableBuildError::MissingValue)

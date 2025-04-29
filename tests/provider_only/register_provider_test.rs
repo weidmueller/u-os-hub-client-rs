@@ -9,8 +9,8 @@ use u_os_hub_client::{
     },
     nats_subjects,
     payload_builders::build_state_changed_event_payload,
-    provider::{ProviderOptions, VariableBuilder},
-    variable::value::Value,
+    provider::{ProviderBuilder, VariableBuilder},
+    variable::value::VariableValue,
 };
 
 use crate::utils::{self, fake_registry::FakeRegistry};
@@ -33,14 +33,14 @@ async fn test_register_provider_with_variables() {
         .expect("should subscribe to def changed event from registry");
 
     // act
-    let provider_builder = ProviderOptions::new();
+    let provider_builder = ProviderBuilder::new();
     let var1 = VariableBuilder::new(0, "my_folder.my_variable_1")
-        .value(Value::Boolean(true))
+        .value(VariableValue::Boolean(true))
         .build()
         .expect("variable should build");
 
     let var2 = VariableBuilder::new(1, "my_folder.my_variable_2")
-        .value(Value::Boolean(true))
+        .value(VariableValue::Boolean(true))
         .build()
         .expect("variable should build");
 
@@ -101,14 +101,14 @@ async fn test_resend_provider_definition_on_registry_up_event() {
         .unwrap();
 
     // act
-    let provider_builder = ProviderOptions::new();
+    let provider_builder = ProviderBuilder::new();
     let var1 = VariableBuilder::new(0, "my_folder.my_variable_1")
-        .value(Value::Boolean(true))
+        .value(VariableValue::Boolean(true))
         .build()
         .expect("variable should build");
 
     let var2 = VariableBuilder::new(1, "my_folder.my_variable_2")
-        .value(Value::Boolean(true))
+        .value(VariableValue::Boolean(true))
         .build()
         .expect("variable should build");
 

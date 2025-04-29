@@ -38,7 +38,7 @@ use crate::{
     variable::calc_variables_hash,
 };
 
-use crate::variable::{value::Value, Variable};
+use crate::variable::{value::VariableValue, Variable};
 
 use super::{
     provider_options::{check_for_duplicates, ConnectError, UpdateProviderDefinitionError},
@@ -468,7 +468,7 @@ impl ProviderWorker {
                     }
                     // TODO: Could we do this without cloning?
                     let mut variable_to_pass = current_variable.clone();
-                    let new_value = <Option<Value>>::from(to_conv.value)?;
+                    let new_value = <Option<VariableValue>>::from(to_conv.value)?;
                     variable_to_pass.value = new_value.clone();
                     Some(variable_to_pass)
                 } else {
