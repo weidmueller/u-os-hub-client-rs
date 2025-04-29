@@ -36,9 +36,9 @@ pipeline {
                     sh './tools/build-for-target.sh dev x86_64-unknown-linux-gnu ${U_OS_RUST_VERSION}'
                     sh './tools/build-for-target.sh dev armv7-unknown-linux-gnueabihf ${U_OS_RUST_VERSION}'
                     sh './tools/build-for-target.sh dev aarch64-unknown-linux-gnu ${U_OS_RUST_VERSION}'
-                    sh 'cargo +${U_OS_RUST_VERSION} clippy --all-targets -- -D warnings'
+                    sh 'cargo +${U_OS_RUST_VERSION} clippy --all-features --all-targets -- -D warnings'
                     sh 'RUSTDOCFLAGS="-D warnings" cargo +${U_OS_RUST_VERSION} doc --no-deps'
-                    sh 'cargo +${U_OS_RUST_VERSION} test --target x86_64-unknown-linux-gnu'
+                    sh 'cargo +${U_OS_RUST_VERSION} test --all-features --target x86_64-unknown-linux-gnu'
                 }
             }
         } 
@@ -48,11 +48,15 @@ pipeline {
                     sh 'rm -f Cargo.lock'
                     sh 'cargo clean'
                     sh './tools/build-for-target.sh dev x86_64-unknown-linux-gnu'
+                    //high level code and lib crate must also build without LL api feature flag
+                    sh 'cargo build'
+                    sh 'cargo build --example u-os-hub-example-provider'
+                    sh 'cargo build --example u-os-hub-example-consumer'
                     sh './tools/build-for-target.sh dev armv7-unknown-linux-gnueabihf'
                     sh './tools/build-for-target.sh dev aarch64-unknown-linux-gnu'
-                    sh 'cargo clippy --all-targets -- -D warnings'
+                    sh 'cargo clippy --all-features --all-targets -- -D warnings'
                     sh 'RUSTDOCFLAGS="-D warnings" cargo doc --no-deps'
-                    sh 'cargo test --target x86_64-unknown-linux-gnu'
+                    sh 'cargo test --all-features --target x86_64-unknown-linux-gnu'
                 }
             }
         }    

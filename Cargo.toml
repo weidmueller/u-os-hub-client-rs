@@ -44,3 +44,8 @@ unwrap_used = "warn"
 expect_used = "warn"
 panic = "warn"
 indexing_slicing = "warn"
+
+[features]
+# If enabled, the crate will export the consumer low level API and generated flatbuffer types to the user
+# Only needs to be enabled if the user wants to use the low level API
+export-low-level-api = []

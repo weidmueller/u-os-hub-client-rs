@@ -15,6 +15,7 @@ use crate::{
 };
 
 use super::{
+    dh_types::VariableID,
     nats_consumer::NatsConsumer,
     variable_key::{VariableKey, VariableKeyHash},
 };
@@ -57,9 +58,6 @@ pub(super) type SharedState = Arc<RwLock<ConnectedNatsProviderState>>;
 
 /// Result type for the connected nats provider.
 pub type Result<T> = std::result::Result<T, Error>;
-
-/// Represents a variable ID on the hub.
-pub type VariableID = u32;
 
 /// Internal state of the provider connection.
 ///

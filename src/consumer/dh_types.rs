@@ -11,7 +11,8 @@ use crate::{
     variable::{self, value::DhTimestamp},
 };
 
-use super::connected_nats_provider::VariableID;
+/// Represents a variable ID on the hub.
+pub type VariableID = u32;
 
 //TODO: how to handle type conversion errors? should that really cause an error, or do we want to have placeholder values?
 

@@ -4,12 +4,21 @@
 //!
 //! As a starting point, please take a look at the [provider] and [consumer] module documentation.
 //! They provide example code and a detailed description of the available APIs.
+//!
+//! # Features
+//!
+//! * `export-low-level-api` - Exports low level features as public API. See [consumer] module documentation for details about the low level api. (Default: `false`)
 
+// Contains the generated flatbuffers.
 // The module comment/description is located here to not change the generated files.
 // Because of the same reason the "dead_code", "unused_imports" and "clippy::all" is allowed for the generated module.
+#[cfg(not(feature = "export-low-level-api"))]
 #[allow(dead_code, unused_imports, clippy::all, clippy::unwrap_used, clippy::expect_used)]
 #[rustfmt::skip]
-/// Contains the generated flatbuffers.
+mod generated;
+#[cfg(feature = "export-low-level-api")]
+#[allow(dead_code, unused_imports, clippy::all, clippy::unwrap_used, clippy::expect_used)]
+#[rustfmt::skip]
 pub mod generated;
 
 // Note: We force documentation for public items for some select modules.
@@ -27,38 +36,3 @@ pub mod provider;
 pub mod variable;
 pub mod variable_definition_serde_extension;
 pub mod variable_value_type_serde_extension;
-
-/// Commonly used imports for the u-OS Data Hub client library.
-pub mod prelude {
-    /// Common imports for data hub consumers.
-    pub mod consumer {
-        pub use crate::authenticated_nats_con::{
-            AuthenticatedNatsConnection, AuthenticationSettings, AuthenticationSettingsBuilder,
-            NatsPermission, DEFAULT_U_OS_NATS_ADDRESS,
-        };
-        pub use crate::consumer::connected_dh_provider::{
-            ConnectedDataHubProvider, ProviderEvent, VariableKeyLike,
-        };
-        pub use crate::consumer::connected_nats_provider::VariableID;
-        pub use crate::consumer::dh_consumer::DataHubConsumer;
-        pub use crate::consumer::dh_types::{
-            ConsumerVariableDefinition, ConsumerVariableQuality, ConsumerVariableState,
-            ConsumerVariableType, DhRegistryState,
-        };
-        pub use crate::consumer::variable_key::VariableKey;
-        pub use crate::oauth2::OAuth2Credentials;
-        pub use crate::variable::value::Value as ConsumerVariableValue;
-        pub use crate::variable::value::{DhDuration, DhTimestamp};
-    }
-
-    /// Common imports for data hub providers.
-    pub mod provider {
-        pub use crate::authenticated_nats_con::{
-            AuthenticatedNatsConnection, AuthenticationSettings, AuthenticationSettingsBuilder,
-            NatsPermission, DEFAULT_U_OS_NATS_ADDRESS,
-        };
-        pub use crate::oauth2::OAuth2Credentials;
-        pub use crate::provider::{Provider, ProviderOptions, VariableBuilder};
-        pub use crate::variable::value::{DhDuration, DhTimestamp};
-    }
-}

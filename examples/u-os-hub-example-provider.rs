@@ -7,8 +7,8 @@ use tracing::error;
 use tokio::{select, task, time::sleep};
 
 use u_os_hub_client::{
-    prelude::provider::*,
-    variable::value::{DhTimestamp, Value},
+    provider::{Provider, ProviderOptions, VariableBuilder},
+    variable::value::{DhDuration, DhTimestamp, Value},
 };
 
 mod utils;
