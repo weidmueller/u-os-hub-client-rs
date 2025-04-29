@@ -7,7 +7,6 @@ use u_os_hub_client::{
     authenticated_nats_con::{
         AuthenticationSettings, AuthenticationSettingsBuilder, NatsPermission,
     },
-    env_file_parser::read_and_parse_env_file,
     oauth2::OAuth2Credentials,
 };
 
@@ -45,19 +44,9 @@ pub async fn build_auth_settings_from_conf(
         NatsPermission::VariableHubReadWrite
     });
 
-    let env_vars = read_and_parse_env_file(&conf.cred_file).await?;
-
-    builder = builder.with_credentials(OAuth2Credentials {
-        client_name: conf.client_name.clone(),
-        client_id: env_vars
-            .get("CLIENT_ID")
-            .ok_or(anyhow::anyhow!("Can't get CLIENT_ID"))?
-            .clone(),
-        client_secret: env_vars
-            .get("CLIENT_SECRET")
-            .ok_or(anyhow::anyhow!("Can't get CLIENT_SECRET"))?
-            .clone(),
-    });
+    builder = builder.with_credentials(
+        OAuth2Credentials::from_env_file(&conf.client_name, &conf.cred_file).await?,
+    );
 
     //Add the token endpoint if it is provided, otherwise use default
     builder = if let Some(token_endpoint) = &conf.oauth_token_endpoint {

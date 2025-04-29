@@ -1,10 +1,10 @@
 //! Parser for environment files.
 use anyhow::Result;
-use std::{collections::HashMap, path::PathBuf};
+use std::{collections::HashMap, path::Path};
 use tokio::fs;
 
 /// Read an env file and parse it into a HashMap
-pub async fn read_and_parse_env_file(path: &PathBuf) -> Result<HashMap<String, String>> {
+pub async fn read_and_parse_env_file(path: impl AsRef<Path>) -> Result<HashMap<String, String>> {
     let file_content = fs::read_to_string(path).await?;
     Ok(parse_env_file(&file_content))
 }

@@ -2,7 +2,9 @@
 use base64::{prelude::BASE64_STANDARD, Engine};
 use hyper::header::AUTHORIZATION;
 use serde::Deserialize;
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, path::Path};
+
+use crate::env_file_parser::read_and_parse_env_file;
 
 /// Contains OAuth2 client credentials
 #[derive(Clone, Debug)]
@@ -13,6 +15,32 @@ pub struct OAuth2Credentials {
 }
 
 impl OAuth2Credentials {
+    /// Creates new [OAuth2Credentials] from the provided client name and credentials file.
+    ///
+    /// The file must be a key=value INI like file, with the keys being `CLIENT_ID` and `CLIENT_SECRET`.
+    pub async fn from_env_file(
+        client_name: impl Into<String>,
+        credentials_file: impl AsRef<Path>,
+    ) -> anyhow::Result<Self> {
+        let env_vars = read_and_parse_env_file(credentials_file).await?;
+
+        let client_name = client_name.into();
+        let client_id = env_vars
+            .get("CLIENT_ID")
+            .ok_or(anyhow::anyhow!("Can't get CLIENT_ID"))?
+            .clone();
+        let client_secret = env_vars
+            .get("CLIENT_SECRET")
+            .ok_or(anyhow::anyhow!("Can't get CLIENT_SECRET"))?
+            .clone();
+
+        Ok(Self {
+            client_name,
+            client_id,
+            client_secret,
+        })
+    }
+
     /// Executes the oauth2 client credentials flow to request an access token
     pub async fn request_token<T: AsRef<str>, T2: AsRef<str>>(
         &self,
