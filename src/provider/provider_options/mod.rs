@@ -43,8 +43,10 @@ impl ProviderBuilder {
         check_for_duplicates(&self.variables, &vars)?;
 
         let new_variables: BTreeMap<u32, Variable> =
-            vars.iter().map(|var| (var.id, var.clone())).collect();
+            vars.into_iter().map(|var| (var.id, var)).collect();
+
         self.variables.extend(new_variables);
+
         Ok(self)
     }
 

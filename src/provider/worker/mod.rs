@@ -531,16 +531,18 @@ impl ProviderWorker {
             }
         }
 
+        let updated_ids: Vec<u32> = vars.iter().map(|x| x.id).collect();
+
         // Update the values internal
-        vars.iter().for_each(|update_variable| {
+        vars.into_iter().for_each(|update_variable| {
             if let Some(current_variable) = self.variables.get_mut(&update_variable.id) {
-                current_variable.value = update_variable.value.clone();
+                current_variable.value = update_variable.value;
                 current_variable.last_value_change = update_variable.last_value_change;
             }
         });
 
         // Publish the changes to nats
-        self.publish_updates(Some(vars.iter().map(|x| x.id.to_owned()).collect()))
+        self.publish_updates(Some(updated_ids))
             .await
             .map_err(|e| UpdateVariableValuesError::NatsError(Box::new(e)))
     }
@@ -575,15 +577,19 @@ impl ProviderWorker {
             }
         })?;
 
+        let var_ids: Vec<u32> = vars.iter().map(|x| x.id).collect();
+
         self.variables
-            .extend(vars.iter().map(|variable| (variable.id, variable.clone())));
+            .extend(vars.into_iter().map(|variable| (variable.id, variable)));
+
         self.update_definition(wait_for_success)
             .await
             .map_err(AddVariablesError::UpdateProviderDefinition)?;
 
-        self.publish_updates(Some(vars.iter().map(|x| x.id.to_owned()).collect()))
+        self.publish_updates(Some(var_ids))
             .await
             .map_err(|e| AddVariablesError::NatsError(Box::new(e)))?;
+
         Ok(())
     }
 
@@ -614,20 +620,21 @@ impl ProviderWorker {
         &mut self,
         changed: Option<Vec<u32>>,
     ) -> Result<(), async_nats::error::Error<async_nats::client::PublishErrorKind>> {
+        let mut filtered = BTreeMap::new();
+
         let to_publish = match changed {
             Some(changed) => {
-                let mut filtered = BTreeMap::new();
                 for changed_id in changed {
                     if let Some(variable) = self.variables.get(&changed_id) {
                         filtered.insert(changed_id, variable.clone());
                     }
                 }
-                filtered
+                &filtered
             }
-            None => self.variables.clone(),
+            None => &self.variables,
         };
 
-        let payload = build_variables_changed_event(&to_publish, self.current_fingerprint);
+        let payload = build_variables_changed_event(to_publish, self.current_fingerprint);
 
         self.get_nats_client()
             .publish(

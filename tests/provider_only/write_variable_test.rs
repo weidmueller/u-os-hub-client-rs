@@ -43,7 +43,7 @@ async fn test_write_variable_command() {
         .expect("provider should register");
 
     let mut subscribtion_to_write_cmd = provider
-        .subscribe_to_write_command(&[var1.clone()])
+        .subscribe_to_write_command(vec![var1.clone()])
         .await
         .expect("should work");
 

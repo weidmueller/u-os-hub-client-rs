@@ -119,10 +119,10 @@ impl Provider {
     }
 
     /// Adds variables to the provider
-    pub async fn add_variables(&self, variables: &[Variable]) -> Result<(), AddVariablesError> {
+    pub async fn add_variables(&self, variables: Vec<Variable>) -> Result<(), AddVariablesError> {
         let (tx, rx) = oneshot::channel();
         self.command_channel
-            .send(ProviderCommand::AddVariables(variables.to_vec(), tx))
+            .send(ProviderCommand::AddVariables(variables, tx))
             .await
             .map_err(|_| AddVariablesError::ProviderThreadCrashed)?;
 
@@ -140,7 +140,7 @@ impl Provider {
         let (tx, rx) = oneshot::channel();
 
         self.command_channel
-            .send(ProviderCommand::RemoveVariables(variables.to_vec(), tx))
+            .send(ProviderCommand::RemoveVariables(variables, tx))
             .await
             .map_err(|_| RemoveVariablesError::ProviderThreadCrashed)?;
 
@@ -173,11 +173,11 @@ impl Provider {
     /// You can only open one subscriber per variable to avoid conflicts.
     pub async fn subscribe_to_write_command(
         &self,
-        _variables: &[Variable],
+        variables: Vec<Variable>,
     ) -> Result<Receiver<Vec<Variable>>, SubscribeToWriteCommandError> {
         let (tx, rx) = oneshot::channel();
         self.command_channel
-            .send(ProviderCommand::Subscribe(_variables.to_vec(), tx))
+            .send(ProviderCommand::Subscribe(variables, tx))
             .await
             .map_err(|_| SubscribeToWriteCommandError::ProviderThreadCrashed)?;
 
