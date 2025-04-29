@@ -3,8 +3,8 @@ use u_os_hub_client::{
     generated::weidmueller::ucontrol::hub::root_as_read_variables_query_response,
     nats_subjects,
     payload_builders::build_read_variables_query_request,
-    provider::{ProviderOptions, VariableBuilder},
-    variable::value::Value,
+    provider::{ProviderBuilder, VariableBuilder},
+    variable::value::VariableValue,
 };
 
 use crate::utils::{self, fake_registry::FakeRegistry};
@@ -19,14 +19,14 @@ async fn test_read_all_variables() {
     let auth_nats_con = utils::create_auth_con(PROVIDER_ID).await;
     let test_nats_client = auth_nats_con.get_client().clone();
 
-    let provider_builder = ProviderOptions::new();
+    let provider_builder = ProviderBuilder::new();
     let var1 = VariableBuilder::new(0, "my_folder.my_variable_1")
-        .value(Value::Boolean(true))
+        .value(VariableValue::Boolean(true))
         .build()
         .expect("variable should build");
 
     let var2 = VariableBuilder::new(1, "my_folder.my_variable_2")
-        .value(Value::String("Test_String123".to_string()))
+        .value(VariableValue::String("Test_String123".to_string()))
         .build()
         .expect("variable should build");
 
@@ -61,7 +61,7 @@ async fn test_read_all_variables() {
     for variable in &variables {
         match variable.id {
             0 => {
-                if let Value::Boolean(value) = var1.value {
+                if let VariableValue::Boolean(value) = var1.value {
                     assert_eq!(
                         variable
                             .value
@@ -75,7 +75,7 @@ async fn test_read_all_variables() {
                 }
             }
             1 => {
-                if let Value::String(value) = var2.value.clone() {
+                if let VariableValue::String(value) = var2.value.clone() {
                     assert_eq!(
                         variable
                             .value
@@ -105,14 +105,14 @@ async fn test_read_one_variable() {
     let auth_nats_con = utils::create_auth_con(PROVIDER_ID).await;
     let test_nats_client = auth_nats_con.get_client().clone();
 
-    let provider_builder = ProviderOptions::new();
+    let provider_builder = ProviderBuilder::new();
     let var1 = VariableBuilder::new(0, "my_folder.my_variable_1")
-        .value(Value::Boolean(true))
+        .value(VariableValue::Boolean(true))
         .build()
         .expect("variable should build");
 
     let var2 = VariableBuilder::new(1, "my_folder.my_variable_2")
-        .value(Value::String("Test_String123".to_string()))
+        .value(VariableValue::String("Test_String123".to_string()))
         .build()
         .expect("variable should build");
 
@@ -147,7 +147,7 @@ async fn test_read_one_variable() {
     for variable in &variables {
         match variable.id {
             1 => {
-                if let Value::String(value) = var2.value.clone() {
+                if let VariableValue::String(value) = var2.value.clone() {
                     assert_eq!(
                         variable
                             .value

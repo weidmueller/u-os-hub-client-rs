@@ -6,7 +6,7 @@ use futures::StreamExt;
 use std::{sync::Arc, time::Duration};
 use tokio::task::JoinSet;
 use u_os_hub_client::consumer::{
-    connected_dh_provider::ConnectedDataHubProvider, dh_consumer::DataHubConsumer,
+    connected_dh_provider::DataHubProviderConnection, dh_consumer::DataHubConsumer,
     variable_key::VariableKey,
 };
 
@@ -49,7 +49,7 @@ async fn main() -> anyhow::Result<()> {
     //Connect to a provider
     println!("Trying to connect to provider {provider_id:?} ...");
     let dh_provider_con =
-        Arc::new(ConnectedDataHubProvider::new(dh_consumer, provider_id, true).await?);
+        Arc::new(DataHubProviderConnection::new(dh_consumer, provider_id, true).await?);
 
     //Wait until the test provider has registered all its services
     //This is a special case because the test provider changes its variables after registration

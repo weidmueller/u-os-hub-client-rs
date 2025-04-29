@@ -9,7 +9,7 @@ pub mod variable_builder;
 pub mod variable_definition_validator;
 mod worker;
 
-pub use provider_options::ProviderOptions;
+pub use provider_options::ProviderBuilder;
 use provider_options::UpdateProviderDefinitionError;
 use thiserror::Error;
 pub use variable_builder::{VariableBuildError, VariableBuilder};
@@ -106,7 +106,7 @@ pub enum SubscribeToWriteCommandError {
 /// Manages the provider.
 /// It sends commands to an internal worker task
 /// so it can be copied for usage in multiple parts of your application.
-/// It is created by the [`ProviderOptions`].
+/// It is created by the [`ProviderBuilder`].
 #[derive(Clone)]
 pub struct Provider {
     command_channel: Sender<ProviderCommand>,

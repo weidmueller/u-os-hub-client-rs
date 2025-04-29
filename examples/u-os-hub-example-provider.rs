@@ -7,8 +7,8 @@ use tracing::error;
 use tokio::{select, task, time::sleep};
 
 use u_os_hub_client::{
-    provider::{Provider, ProviderOptions, VariableBuilder},
-    variable::value::{DhDuration, DhTimestamp, Value},
+    provider::{Provider, ProviderBuilder, VariableBuilder},
+    variable::value::{DurationValue, TimestampValue, VariableValue},
 };
 
 mod utils;
@@ -24,7 +24,7 @@ async fn main() -> anyhow::Result<()> {
     let auth_settings = utils::build_auth_settings_from_conf(&conf, true).await?;
 
     println!("Connecting to nats server & registering provider ...");
-    let builder = ProviderOptions::new();
+    let builder = ProviderBuilder::new();
     let hub_provider = builder
         .register(
             format!("nats://{}:{}", &conf.nats_ip, &conf.nats_port),
@@ -48,12 +48,12 @@ async fn main() -> anyhow::Result<()> {
 }
 
 async fn example_service_1(hub_provider: Provider) -> anyhow::Result<()> {
-    let dat1_builder = VariableBuilder::new(0, "folder1.int_counter").value(Value::Int(0));
+    let dat1_builder = VariableBuilder::new(0, "folder1.int_counter").value(VariableValue::Int(0));
 
     let mut data1 = dat1_builder.build()?;
 
     let folder_version = VariableBuilder::new(1, "folder1.version")
-        .value(Value::String("1.0.0".to_string()))
+        .value(VariableValue::String("1.0.0".to_string()))
         .build()?;
 
     hub_provider
@@ -62,8 +62,8 @@ async fn example_service_1(hub_provider: Provider) -> anyhow::Result<()> {
 
     let mut counter = 0;
     loop {
-        data1.value = Value::Int(counter);
-        data1.last_value_change = DhTimestamp::now();
+        data1.value = VariableValue::Int(counter);
+        data1.last_value_change = TimestampValue::now();
         counter += 1;
 
         hub_provider
@@ -75,33 +75,34 @@ async fn example_service_1(hub_provider: Provider) -> anyhow::Result<()> {
 }
 
 async fn example_service_2(hub_provider: Provider) -> anyhow::Result<()> {
-    let dat1_builder = VariableBuilder::new(3, "folder2.float_counter").value(Value::Float64(0.0));
+    let dat1_builder =
+        VariableBuilder::new(3, "folder2.float_counter").value(VariableValue::Float64(0.0));
 
     //Make sure that there is one writable variable for each type so we can test read/write of all types
     //Make some experimental
     let writable_vars = vec![
         VariableBuilder::new(4, "folder2.writable_string")
-            .value(Value::String("Write me!".to_owned()))
+            .value(VariableValue::String("Write me!".to_owned()))
             .read_write()
             .build()?,
         VariableBuilder::new(5, "folder2.writable_int")
-            .value(Value::Int(1337))
+            .value(VariableValue::Int(1337))
             .read_write()
             .build()?,
         VariableBuilder::new(6, "folder2.writable_bool")
-            .value(Value::Boolean(true))
+            .value(VariableValue::Boolean(true))
             .read_write()
             .build()?,
         VariableBuilder::new(7, "folder2.writable_float")
-            .value(Value::Float64(1122.3344))
+            .value(VariableValue::Float64(1122.3344))
             .read_write()
             .build()?,
         VariableBuilder::new(8, "folder2.writable_timestamp")
-            .value(Value::Timestamp(DhTimestamp::now()))
+            .value(VariableValue::Timestamp(TimestampValue::now()))
             .read_write()
             .build()?,
         VariableBuilder::new(9, "folder2.writable_duration")
-            .value(Value::Duration(DhDuration::new(123, 456)))
+            .value(VariableValue::Duration(DurationValue::new(123, 456)))
             .read_write()
             .build()?,
         VariableBuilder::new(10, "folder2.experimental_string")
@@ -131,8 +132,8 @@ async fn example_service_2(hub_provider: Provider) -> anyhow::Result<()> {
     loop {
         select! {
             _ = interval.tick() => {
-                data1.value = Value::Float64(float_counter);
-                data1.last_value_change = DhTimestamp::now();
+                data1.value = VariableValue::Float64(float_counter);
+                data1.last_value_change = TimestampValue::now();
 
                 float_counter += 1.23;
 
@@ -142,7 +143,7 @@ async fn example_service_2(hub_provider: Provider) -> anyhow::Result<()> {
             Some(mut vars) = rw_subscribtion.recv() => {
                 // Just accept all and update the values and timestamps
                 for var in &mut vars {
-                    var.last_value_change = DhTimestamp::now();
+                    var.last_value_change = TimestampValue::now();
                 }
                 hub_provider.update_variable_values(vars).await?;
             }

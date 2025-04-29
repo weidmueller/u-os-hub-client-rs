@@ -9,15 +9,15 @@ use crate::generated::weidmueller::ucontrol::hub::{
 };
 
 pub mod value;
-use value::{DhTimestamp, Value};
+use value::{TimestampValue, VariableValue};
 
 /// Holds information about a variable (definition and value).
 /// Warning: If you initialise this struct directly, there is no validation.
 /// Instead you should use the [`crate::provider::VariableBuilder`].
 #[derive(Clone, Debug, PartialEq)]
 pub struct Variable {
-    /// Value of a variable. You should only change the value and not the enum discriminant.
-    pub value: Value,
+    /// VariableValue of a variable. You should only change the value and not the enum discriminant.
+    pub value: VariableValue,
     /// Variable access type. True = Readonly, False = ReadWrite
     pub read_only: bool,
     /// Key of the variable.
@@ -27,7 +27,7 @@ pub struct Variable {
     /// Experimental marker
     pub experimental: bool,
     /// Latest value change (will be returned on variable read request).
-    pub last_value_change: DhTimestamp,
+    pub last_value_change: TimestampValue,
 }
 
 impl From<&Variable> for VariableT {
@@ -48,22 +48,22 @@ impl From<&Variable> for VariableDefinitionT {
             key: variable.key.clone(),
             id: variable.id,
             data_type: match variable.value {
-                Value::Int(_) => {
+                VariableValue::Int(_) => {
                     crate::generated::weidmueller::ucontrol::hub::VariableDataType::INT64
                 }
-                Value::Boolean(_) => {
+                VariableValue::Boolean(_) => {
                     crate::generated::weidmueller::ucontrol::hub::VariableDataType::BOOLEAN
                 }
-                Value::String(_) => {
+                VariableValue::String(_) => {
                     crate::generated::weidmueller::ucontrol::hub::VariableDataType::STRING
                 }
-                Value::Float64(_) => {
+                VariableValue::Float64(_) => {
                     crate::generated::weidmueller::ucontrol::hub::VariableDataType::FLOAT64
                 }
-                Value::Duration(_) => {
+                VariableValue::Duration(_) => {
                     crate::generated::weidmueller::ucontrol::hub::VariableDataType::DURATION
                 }
-                Value::Timestamp(_) => {
+                VariableValue::Timestamp(_) => {
                     crate::generated::weidmueller::ucontrol::hub::VariableDataType::TIMESTAMP
                 }
             },

@@ -6,8 +6,8 @@ use tokio::time::timeout;
 use u_os_hub_client::{
     generated::weidmueller::ucontrol::hub::root_as_read_provider_definition_query_response,
     nats_subjects::{self, get_provider_name_from_subject},
-    provider::{ProviderOptions, VariableBuilder},
-    variable::value::Value,
+    provider::{ProviderBuilder, VariableBuilder},
+    variable::value::VariableValue,
 };
 
 use crate::utils::{self, fake_registry::FakeRegistry};
@@ -27,14 +27,14 @@ async fn test_remove_variables() {
         .await
         .unwrap();
 
-    let provider_builder = ProviderOptions::new();
+    let provider_builder = ProviderBuilder::new();
     let var1 = VariableBuilder::new(0, "my_folder.my_variable_1")
-        .value(Value::Boolean(true))
+        .value(VariableValue::Boolean(true))
         .build()
         .expect("variable should build");
 
     let var2 = VariableBuilder::new(1, "my_folder.my_variable_2")
-        .value(Value::Boolean(true))
+        .value(VariableValue::Boolean(true))
         .build()
         .expect("variable should build");
 

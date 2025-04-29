@@ -18,7 +18,7 @@ use crate::{
 use super::{
     connected_nats_provider::{self, ConnectedNatsProvider, ConnectedNatsProviderState},
     dh_consumer::{self, DataHubConsumer},
-    dh_types::{self, ConsumerVariableDefinition, ConsumerVariableState, VariableID},
+    dh_types::{self, VariableDefinition, VariableID, VariableState},
     variable_key::VariableKey,
 };
 
@@ -52,7 +52,7 @@ impl<'a> VariableKeyLike<'a> for &'a String {}
 /// Represents a change in the provider state.
 pub enum ProviderEvent {
     /// The provider has changed and has a new, valid definiton.
-    DefinitionChanged(Vec<ConsumerVariableDefinition>),
+    DefinitionChanged(Vec<VariableDefinition>),
     /// The provider is offline.
     Offline,
     /// The provider is online but has an invalid definition.
@@ -72,11 +72,11 @@ pub enum ProviderEvent {
 /// This allows you to use strings or other types that implement the [`VariableKeyLike`] trait.
 /// However, for maximum performance it is recommended to always create a variable key once and then reuse it for multiple calls.
 /// See documentation of [`VariableKey`] for more details.
-pub struct ConnectedDataHubProvider {
+pub struct DataHubProviderConnection {
     connected_provider: ConnectedNatsProvider,
 }
 
-impl ConnectedDataHubProvider {
+impl DataHubProviderConnection {
     /// Tries to connect to the specified provider.
     ///
     /// If `wait_for_provider` is set to true, the function will wait until the provider is available,
@@ -222,7 +222,7 @@ impl ConnectedDataHubProvider {
     /// Returns a cached list of all variable definitions for this provider.
     ///
     /// The cached value will be updated internally once the provider definition changes.
-    pub fn get_all_variable_definitions(&self) -> Result<Vec<ConsumerVariableDefinition>> {
+    pub fn get_all_variable_definitions(&self) -> Result<Vec<VariableDefinition>> {
         let var_defs = self.connected_provider.get_all_variable_definitions();
 
         let result = var_defs
@@ -240,7 +240,7 @@ impl ConnectedDataHubProvider {
     pub fn get_variable_definition<'a>(
         &self,
         var: impl VariableKeyLike<'a>,
-    ) -> Result<ConsumerVariableDefinition> {
+    ) -> Result<VariableDefinition> {
         let id = self.variable_id_from_key(var)?;
 
         let var_def = self.connected_provider.get_variable_definition(id)?;
@@ -256,7 +256,7 @@ impl ConnectedDataHubProvider {
     pub async fn read_single_variable<'a>(
         &self,
         var: impl VariableKeyLike<'a>,
-    ) -> Result<ConsumerVariableState> {
+    ) -> Result<VariableState> {
         let key = var.into();
         let response_variable_list = self.read_variables(Some(&[key])).await?;
 
@@ -280,7 +280,7 @@ impl ConnectedDataHubProvider {
     pub async fn read_variables<'a>(
         &self,
         filter: Option<&[impl VariableKeyLike<'a>]>,
-    ) -> Result<Vec<(VariableID, ConsumerVariableState)>> {
+    ) -> Result<Vec<(VariableID, VariableState)>> {
         self.connected_provider.check_online()?;
 
         //Build ll api read request
@@ -314,11 +314,8 @@ impl ConnectedDataHubProvider {
             .items
             .unwrap_or_default()
             .into_iter()
-            .filter_map(|ll_var| -> Option<(u32, ConsumerVariableState)> {
-                let map_entry = (
-                    ll_var.id,
-                    ConsumerVariableState::new(ll_var, base_timestamp).ok()?,
-                );
+            .filter_map(|ll_var| -> Option<(u32, VariableState)> {
+                let map_entry = (ll_var.id, VariableState::new(ll_var, base_timestamp).ok()?);
 
                 Some(map_entry)
             })
@@ -331,7 +328,7 @@ impl ConnectedDataHubProvider {
     pub async fn subscribe_single_variable<'a>(
         &self,
         var: impl VariableKeyLike<'a>,
-    ) -> Result<impl Stream<Item = ConsumerVariableState>> {
+    ) -> Result<impl Stream<Item = VariableState>> {
         let mapped_stream = self
             .subscribe_variables_with_filter(Some(vec![var]))
             .await?
@@ -361,7 +358,7 @@ impl ConnectedDataHubProvider {
     pub async fn subscribe_variables_with_filter<'a>(
         &self,
         filter_list: Option<Vec<impl VariableKeyLike<'a>>>,
-    ) -> Result<impl Stream<Item = Vec<(VariableID, ConsumerVariableState)>>> {
+    ) -> Result<impl Stream<Item = Vec<(VariableID, VariableState)>>> {
         let mut last_fp = self.connected_provider.get_fingerprint();
         let state_clone = self.connected_provider.get_state().clone();
 
@@ -415,7 +412,7 @@ impl ConnectedDataHubProvider {
     pub async fn write_single_variable<'a>(
         &self,
         var: impl VariableKeyLike<'a>,
-        new_value: impl Into<variable::value::Value>,
+        new_value: impl Into<variable::value::VariableValue>,
     ) -> Result<()> {
         self.write_variables(&[(var, new_value.into())]).await
     }
@@ -425,7 +422,7 @@ impl ConnectedDataHubProvider {
     /// This is more efficient than calling [`Self::write_single_variable`] multiple times.
     pub async fn write_variables<'a>(
         &self,
-        new_values: &[(impl VariableKeyLike<'a>, variable::value::Value)],
+        new_values: &[(impl VariableKeyLike<'a>, variable::value::VariableValue)],
     ) -> Result<()> {
         let provider_definition_fingerprint =
             self.connected_provider.get_fingerprint().ok_or_else(|| {
@@ -495,7 +492,7 @@ impl ConnectedDataHubProvider {
     fn process_var_changed_evt(
         filter_set: &Option<HashSet<u32>>,
         var_changed_evt: connected_nats_provider::Result<VariablesChangedEventT>,
-    ) -> Option<Vec<(VariableID, ConsumerVariableState)>> {
+    ) -> Option<Vec<(VariableID, VariableState)>> {
         let Ok(var_changed_evt) = var_changed_evt else {
             //Low level error while receiving event
             return None;
@@ -504,23 +501,20 @@ impl ConnectedDataHubProvider {
         let base_timestamp = var_changed_evt.changed_variables.base_timestamp.into();
 
         //Convert the list of all received variables to a user
-        //friendly hashmap of ids -> ConsumerVariableState
+        //friendly hashmap of ids -> VariableState
         let received_filtered_vars = var_changed_evt
             .changed_variables
             .items
             .unwrap_or_default()
             .into_iter()
-            .filter_map(|ll_var| -> Option<(VariableID, ConsumerVariableState)> {
+            .filter_map(|ll_var| -> Option<(VariableID, VariableState)> {
                 if let Some(filter_set) = &filter_set {
                     if !filter_set.contains(&ll_var.id) {
                         return None;
                     }
                 }
 
-                let map_entry = (
-                    ll_var.id,
-                    ConsumerVariableState::new(ll_var, base_timestamp).ok()?,
-                );
+                let map_entry = (ll_var.id, VariableState::new(ll_var, base_timestamp).ok()?);
 
                 Some(map_entry)
             })

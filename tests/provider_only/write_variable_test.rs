@@ -7,8 +7,8 @@ use u_os_hub_client::{
     generated::weidmueller::ucontrol::hub::root_as_read_provider_definition_query_response,
     nats_subjects,
     payload_builders::build_write_variables_command,
-    provider::{ProviderOptions, VariableBuilder},
-    variable::value::Value,
+    provider::{ProviderBuilder, VariableBuilder},
+    variable::value::VariableValue,
 };
 
 use crate::utils::{self, fake_registry::FakeRegistry};
@@ -28,10 +28,10 @@ async fn test_write_variable_command() {
         .await
         .unwrap();
 
-    let provider_builder = ProviderOptions::new();
+    let provider_builder = ProviderBuilder::new();
     let var1 = VariableBuilder::new(0, "my_folder.my_variable_1_rw")
         .read_write()
-        .value(Value::Boolean(true))
+        .value(VariableValue::Boolean(true))
         .build()
         .expect("variable should build");
 
@@ -63,7 +63,7 @@ async fn test_write_variable_command() {
 
     // act
     let mut var1 = var1.clone();
-    var1.value = Value::Boolean(false);
+    var1.value = VariableValue::Boolean(false);
     let write_cmd_payload = build_write_variables_command(vec![var1.clone().into()], fingerprint);
 
     test_nats_client
