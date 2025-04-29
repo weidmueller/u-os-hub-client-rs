@@ -33,8 +33,6 @@ impl DataHubConsumer {
     /// Tries to connect and authenticate to the provided NATS address and initializes the consumer.
     ///
     /// See documentation of [`AuthenticatedNatsConnection`] for more details on the connection process.
-    ///
-    /// See documentation of [`NatsConsumer`] for more details for possible errors during the creation of the consumer.
     pub async fn connect(
         nats_server_addr: impl Into<String>,
         auth_settings: &AuthenticationSettings,
@@ -48,8 +46,6 @@ impl DataHubConsumer {
     /// Creates a new data hub consumer from an existing nats connection.
     ///
     /// This is useful if you want to use the same connection for multiple clients.
-    ///
-    /// See documentation of [`NatsConsumer`] for more details for possible errors during the creation of the consumer.
     pub async fn from_existing_connection(
         nats_con: Arc<AuthenticatedNatsConnection>,
     ) -> Result<Self> {

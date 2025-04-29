@@ -5,7 +5,10 @@ use clap::Parser;
 use futures::StreamExt;
 use std::{sync::Arc, time::Duration};
 use tokio::task::JoinSet;
-use u_os_hub_client::prelude::consumer::*;
+use u_os_hub_client::consumer::{
+    connected_dh_provider::ConnectedDataHubProvider, dh_consumer::DataHubConsumer,
+    variable_key::VariableKey,
+};
 
 mod utils;
 

@@ -12,7 +12,7 @@ script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 source $script_dir/configure-cross-env.sh $TARGET
 
 if [ -z "$TOOLCHAIN" ]; then
-    cargo build --all-targets --profile=$BUILD_MODE --target=$TARGET
+    cargo build --all-features --all-targets --profile=$BUILD_MODE --target=$TARGET
 else
-    cargo +$TOOLCHAIN build --all-targets --profile=$BUILD_MODE --target=$TARGET
+    cargo +$TOOLCHAIN build --all-features --all-targets --profile=$BUILD_MODE --target=$TARGET
 fi

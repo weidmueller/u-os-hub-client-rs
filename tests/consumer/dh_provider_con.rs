@@ -11,10 +11,13 @@ use u_os_hub_client::{
         connected_dh_provider::{self, ConnectedDataHubProvider, ProviderEvent},
         connected_nats_provider::{self},
         dh_consumer::DataHubConsumer,
-        dh_types::{ConsumerVariableDefinition, ConsumerVariableQuality, ConsumerVariableType},
+        dh_types::{
+            ConsumerVariableDefinition, ConsumerVariableQuality, ConsumerVariableState,
+            ConsumerVariableType, VariableID,
+        },
+        variable_key::VariableKey,
     },
     oauth2::OAuth2Credentials,
-    prelude::consumer::{ConsumerVariableState, VariableID, VariableKey},
     variable::value::Value,
 };
 

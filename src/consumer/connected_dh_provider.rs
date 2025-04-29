@@ -16,11 +16,9 @@ use crate::{
 };
 
 use super::{
-    connected_nats_provider::{
-        self, ConnectedNatsProvider, ConnectedNatsProviderState, VariableID,
-    },
+    connected_nats_provider::{self, ConnectedNatsProvider, ConnectedNatsProviderState},
     dh_consumer::{self, DataHubConsumer},
-    dh_types::{self, ConsumerVariableDefinition, ConsumerVariableState},
+    dh_types::{self, ConsumerVariableDefinition, ConsumerVariableState, VariableID},
     variable_key::VariableKey,
 };
 

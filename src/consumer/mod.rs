@@ -15,36 +15,42 @@
 //!
 //! ```no_run
 //!# use std::sync::Arc;
-//! //The prelude contains all required imports for the consumer API
-//! use u_os_hub_client::prelude::consumer::*;
-//!
+//!#
+//!# use u_os_hub_client::{
+//!#     authenticated_nats_con::{
+//!#         AuthenticationSettingsBuilder, NatsPermission, DEFAULT_U_OS_NATS_ADDRESS,
+//!#     },
+//!#     consumer::{
+//!#         connected_dh_provider::ConnectedDataHubProvider, dh_consumer::DataHubConsumer,
+//!#         variable_key::VariableKey,
+//!#     },
+//!#     oauth2::OAuth2Credentials,
+//!#     variable::value::Value,
+//!# };
+//!#
 //! #[tokio::main]
 //! async fn main() -> anyhow::Result<()> {
 //!     //The provider id to connect to
 //!     let provider_id = "test-provider";
-//!     
+//!
 //!     //Configure your nats server authentication
-//!     let auth_settings =
-//!         AuthenticationSettingsBuilder::new(NatsPermission::VariableHubReadWrite)
-//!            .with_credentials(OAuth2Credentials {
-//!                //NATS client name of the consumer
-//!                client_name: "test-consumer".to_string(),
-//!                //Obtained by the uOS Identity&Access Client GUI
-//!                client_id: "<your_oauth_client_id>".to_string(),
-//!                client_secret: "<your_oauth_client_secret>".to_string(),
-//!            })
-//!            .build();
+//!     let auth_settings = AuthenticationSettingsBuilder::new(NatsPermission::VariableHubReadWrite)
+//!         .with_credentials(OAuth2Credentials {
+//!             //NATS client name of the consumer
+//!             client_name: "test-consumer".to_string(),
+//!             //Obtained by the uOS Identity&Access Client GUI
+//!             client_id: "<your_oauth_client_id>".to_string(),
+//!             client_secret: "<your_oauth_client_secret>".to_string(),
+//!         })
+//!         .build();
 //!
 //!     //Create consumer
-//!     let dh_consumer = Arc::new(
-//!         DataHubConsumer::connect(DEFAULT_U_OS_NATS_ADDRESS, &auth_settings)
-//!         .await?,
-//!     );
+//!     let dh_consumer =
+//!         Arc::new(DataHubConsumer::connect(DEFAULT_U_OS_NATS_ADDRESS, &auth_settings).await?);
 //!
 //!     //Connect to a provider
 //!     println!("Trying to connect to provider {provider_id:?} ...");
-//!     let dh_provider_con = ConnectedDataHubProvider::new(dh_consumer, provider_id,
-//!         true).await?;
+//!     let dh_provider_con = ConnectedDataHubProvider::new(dh_consumer, provider_id, true).await?;
 //!
 //!     //Print all variable ids, their definition and their values
 //!     println!("Variable overview:");
@@ -62,7 +68,7 @@
 //!
 //!     //write multiple variables at once
 //!     let var_changes = [
-//!         (written_var_handle1, ConsumerVariableValue::from("Multi write!!!")),
+//!         (written_var_handle1, Value::from("Multi write!!!")),
 //!         //DataHub types usually implement the From trait,
 //!         //so you can use .into() for values and keys
 //!         ("folder2.writable_int".into(), 123.into()),
@@ -71,12 +77,18 @@
 //!
 //!     Ok(())
 //! }
-//!
 //! ```
 
 pub mod connected_dh_provider;
-pub mod connected_nats_provider;
 pub mod dh_consumer;
 pub mod dh_types;
-pub mod nats_consumer;
 pub mod variable_key;
+
+#[cfg(feature = "export-low-level-api")]
+pub mod connected_nats_provider;
+#[cfg(not(feature = "export-low-level-api"))]
+mod connected_nats_provider;
+#[cfg(feature = "export-low-level-api")]
+pub mod nats_consumer;
+#[cfg(not(feature = "export-low-level-api"))]
+mod nats_consumer;
