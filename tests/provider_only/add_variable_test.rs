@@ -7,7 +7,6 @@ use u_os_hub_client::{
     generated::weidmueller::ucontrol::hub::root_as_read_provider_definition_query_response,
     nats_subjects::{self, get_provider_name_from_subject},
     provider::{AddVariablesError, ProviderBuilder, VariableBuilder},
-    variable::value::VariableValue,
 };
 
 use crate::utils::{self, fake_registry::FakeRegistry};
@@ -29,12 +28,12 @@ async fn test_add_variables() {
 
     let provider_builder = ProviderBuilder::new();
     let var1 = VariableBuilder::new(0, "my_folder.my_variable_1")
-        .value(VariableValue::Boolean(true))
+        .value(true)
         .build()
         .expect("variable should build");
 
     let var2 = VariableBuilder::new(1, "my_folder.my_variable_2")
-        .value(VariableValue::Boolean(true))
+        .value(true)
         .build()
         .expect("variable should build");
 
@@ -52,7 +51,7 @@ async fn test_add_variables() {
 
     // act
     let var3 = VariableBuilder::new(2, "my_folder.my_variable_3")
-        .value(VariableValue::Boolean(true))
+        .value(true)
         .build()
         .expect("variable should build");
 
@@ -107,12 +106,12 @@ async fn test_add_variables_fail_on_duplicates() {
 
     let provider_builder = ProviderBuilder::new();
     let var1 = VariableBuilder::new(0, "my_folder.my_variable_1")
-        .value(VariableValue::Boolean(true))
+        .value(true)
         .build()
         .expect("variable should build");
 
     let var2 = VariableBuilder::new(1, "my_folder.my_variable_2")
-        .value(VariableValue::Boolean(true))
+        .value(true)
         .build()
         .expect("variable should build");
 
@@ -131,14 +130,14 @@ async fn test_add_variables_fail_on_duplicates() {
     // act
     // Variable with duplicated id
     let var_duplicated_id = VariableBuilder::new(1, "my_folder.my_variable_3")
-        .value(VariableValue::Boolean(true))
+        .value(true)
         .build()
         .expect("variable should build");
     let result_duplicated_id = provider.add_variables(&[var_duplicated_id.clone()]).await;
 
     // Variable with duplicated key
     let var_duplicated_key = VariableBuilder::new(2, "my_folder.my_variable_2")
-        .value(VariableValue::Boolean(true))
+        .value(true)
         .build()
         .expect("variable should build");
     let result_duplicated_key = provider.add_variables(&[var_duplicated_key.clone()]).await;

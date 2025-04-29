@@ -1,7 +1,4 @@
-use crate::{
-    provider::{provider_options::AddVariablesError, VariableBuilder},
-    variable::value::VariableValue,
-};
+use crate::provider::{provider_options::AddVariablesError, VariableBuilder};
 
 use super::ProviderBuilder;
 
@@ -11,12 +8,12 @@ fn test_add_variables() {
     let provider = ProviderBuilder::new();
 
     let var1 = VariableBuilder::new(0, "test_var_1")
-        .value(VariableValue::Boolean(true))
+        .value(true)
         .build()
         .expect("the variable should build");
 
     let var2 = VariableBuilder::new(1, "test_var_2")
-        .value(VariableValue::Boolean(true))
+        .value(true)
         .build()
         .expect("the variable should build");
 
@@ -34,12 +31,12 @@ fn test_duplicated_variable_ids_1() {
     let provider = ProviderBuilder::new();
 
     let var1 = VariableBuilder::new(var_id, "test_var_1")
-        .value(VariableValue::Boolean(true))
+        .value(true)
         .build()
         .expect("the variable should build");
 
     let var2 = VariableBuilder::new(var_id, "test_var_2")
-        .value(VariableValue::Boolean(true))
+        .value(true)
         .build()
         .expect("the variable should build");
 
@@ -57,12 +54,12 @@ fn test_duplicated_variable_ids_2() {
     let provider = ProviderBuilder::new();
 
     let var1 = VariableBuilder::new(var_id, "test_var_1")
-        .value(VariableValue::Boolean(true))
+        .value(true)
         .build()
         .expect("the variable should build");
 
     let var2 = VariableBuilder::new(var_id, "test_var_2")
-        .value(VariableValue::Boolean(true))
+        .value(true)
         .build()
         .expect("the variable should build");
 
@@ -84,12 +81,12 @@ fn test_duplicated_variable_names_1() {
     let provider = ProviderBuilder::new();
 
     let var1 = VariableBuilder::new(0, var_name)
-        .value(VariableValue::Boolean(true))
+        .value(true)
         .build()
         .expect("the variable should build");
 
     let var2 = VariableBuilder::new(1, var_name)
-        .value(VariableValue::Boolean(true))
+        .value(true)
         .build()
         .expect("the variable should build");
 
@@ -110,12 +107,12 @@ fn test_duplicated_variable_names_2() {
     let provider = ProviderBuilder::new();
 
     let var1 = VariableBuilder::new(0, var_name)
-        .value(VariableValue::Boolean(true))
+        .value(true)
         .build()
         .expect("the variable should build");
 
     let var2 = VariableBuilder::new(1, var_name)
-        .value(VariableValue::Boolean(true))
+        .value(true)
         .build()
         .expect("the variable should build");
 

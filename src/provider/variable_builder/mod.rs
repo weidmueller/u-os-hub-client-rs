@@ -50,8 +50,8 @@ impl VariableBuilder {
     }
 
     /// Sets the initial value of the variable
-    pub fn value(mut self, _value: VariableValue) -> Self {
-        self.value = Some(_value);
+    pub fn value(mut self, value: impl Into<VariableValue>) -> Self {
+        self.value = Some(value.into());
         self
     }
 

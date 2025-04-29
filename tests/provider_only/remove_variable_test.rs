@@ -7,7 +7,6 @@ use u_os_hub_client::{
     generated::weidmueller::ucontrol::hub::root_as_read_provider_definition_query_response,
     nats_subjects::{self, get_provider_name_from_subject},
     provider::{ProviderBuilder, VariableBuilder},
-    variable::value::VariableValue,
 };
 
 use crate::utils::{self, fake_registry::FakeRegistry};
@@ -29,12 +28,12 @@ async fn test_remove_variables() {
 
     let provider_builder = ProviderBuilder::new();
     let var1 = VariableBuilder::new(0, "my_folder.my_variable_1")
-        .value(VariableValue::Boolean(true))
+        .value(true)
         .build()
         .expect("variable should build");
 
     let var2 = VariableBuilder::new(1, "my_folder.my_variable_2")
-        .value(VariableValue::Boolean(true))
+        .value(true)
         .build()
         .expect("variable should build");
 
