@@ -45,9 +45,12 @@ pub type NatsPermissionList = HashSet<String>;
 /// Determines how the connection authenticates to the NATS server.
 #[derive(Clone, Debug)]
 pub struct AuthenticationSettings {
-    permissions: NatsPermissionList,
-    oauth2_endpoint: String,
-    creds: Option<OAuth2Credentials>,
+    /// A list of oauth2 scopes that are used to authenticate the client.
+    pub permissions: NatsPermissionList,
+    /// Address of the oauth2 endpoint.
+    pub oauth2_endpoint: String,
+    /// OAuth2 credentials used to authenticate the client.
+    pub creds: Option<OAuth2Credentials>,
 }
 
 /// Helper struct to build the authentication settings.
