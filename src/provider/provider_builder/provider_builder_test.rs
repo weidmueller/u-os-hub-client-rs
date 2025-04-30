@@ -1,4 +1,7 @@
-use crate::provider::{provider_builder::AddVariablesError, VariableBuilder};
+use crate::provider::{
+    provider_builder::AddVariablesError,
+    provider_definition_validator::InvalidProviderDefinitionError, VariableBuilder,
+};
 
 use super::ProviderBuilder;
 
@@ -44,7 +47,12 @@ fn test_duplicated_variable_ids_1() {
     let error = provider.add_variables(vec![var1, var2]).unwrap_err();
 
     // Assert
-    assert_eq!(error, AddVariablesError::DuplicatedId(var_id));
+    assert_eq!(
+        error,
+        AddVariablesError::InvalidMergedVariableList(InvalidProviderDefinitionError::DuplicateId(
+            var_id
+        ))
+    );
 }
 
 #[test]
@@ -71,7 +79,12 @@ fn test_duplicated_variable_ids_2() {
         .unwrap_err();
 
     // Assert
-    assert_eq!(error, AddVariablesError::DuplicatedId(var_id));
+    assert_eq!(
+        error,
+        AddVariablesError::InvalidMergedVariableList(InvalidProviderDefinitionError::DuplicateId(
+            var_id
+        ))
+    );
 }
 
 #[test]
@@ -96,7 +109,9 @@ fn test_duplicated_variable_names_1() {
     // Assert
     assert_eq!(
         error,
-        AddVariablesError::DuplicatedKey(var_name.to_string())
+        AddVariablesError::InvalidMergedVariableList(
+            InvalidProviderDefinitionError::DuplicatePath(var_name.to_owned())
+        )
     );
 }
 
@@ -126,6 +141,8 @@ fn test_duplicated_variable_names_2() {
     // Assert
     assert_eq!(
         error,
-        AddVariablesError::DuplicatedKey(var_name.to_string())
+        AddVariablesError::InvalidMergedVariableList(
+            InvalidProviderDefinitionError::DuplicatePath(var_name.to_owned())
+        )
     );
 }

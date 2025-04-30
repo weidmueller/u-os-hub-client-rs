@@ -134,6 +134,7 @@ mod worker;
 
 pub use provider_builder::ProviderBuilder;
 use provider_builder::UpdateProviderDefinitionError;
+use provider_definition_validator::InvalidProviderDefinitionError;
 use provider_types::{VariableState, VariableWriteCommand};
 use thiserror::Error;
 pub use variable_builder::{VariableBuildError, VariableBuilder};
@@ -183,10 +184,8 @@ pub enum AddVariablesError {
     NatsError(async_nats::Error),
     #[error("Error while sending the provider definition: `{0}`")]
     UpdateProviderDefinition(UpdateProviderDefinitionError), // TODO: Should we do this flatten?
-    #[error("Duplicated id `{0}`")]
-    DuplicatedId(u32),
-    #[error("Duplicated key `{0}`")]
-    DuplicatedKey(String),
+    #[error("Invalid merged variable list: `{0}`")]
+    InvalidMergedVariableList(#[from] InvalidProviderDefinitionError),
 }
 
 /// Error that can occur when removing a variable

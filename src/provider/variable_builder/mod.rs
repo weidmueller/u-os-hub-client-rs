@@ -1,7 +1,5 @@
 //! Contains the variable builder. It's a helper to create variables.
 
-use once_cell::sync::Lazy;
-use regex::Regex;
 use thiserror::Error;
 
 use crate::{
@@ -12,6 +10,8 @@ use crate::{
     provider::provider_types::VariableState,
     variable::Variable,
 };
+
+use super::variable_definition_validator::validate_variable_key;
 
 #[cfg(test)]
 mod variable_builder_test;
@@ -99,17 +99,10 @@ impl VariableBuilder {
 
     /// Tries to build the variable.
     ///
-    /// It will return an error if any of the required fields are missing or if the key is invalid:
-    /// Valid keys fit this regex: "^[a-zA-Z_]([a-zA-Z0-9_]{0,62})?(\.[a-zA-Z_]([a-zA-Z0-9_]{0,62})?)*$"
+    /// It will return an error if any of the required fields are missing or if the key is invalid.
+    /// Variable keys are validated using the [`validate_variable_key`] function.
     pub fn build(self) -> Result<Variable, VariableBuildError> {
-        static KEY_PATTERN: Lazy<Regex> = Lazy::new(|| {
-            //Safety: This should actually be a hard error because an invalid regex would be a developer error
-            #[allow(clippy::expect_used)]
-            Regex::new(r"^[a-zA-Z_]([a-zA-Z0-9_]{0,62})?(\.[a-zA-Z_]([a-zA-Z0-9_]{0,62})?)*$")
-                .expect("this regex should be valid")
-        });
-
-        if !KEY_PATTERN.is_match(self.key.as_str()) {
+        if validate_variable_key(&self.key).is_err() {
             return Err(VariableBuildError::InvalidVariableName(self.key));
         }
 

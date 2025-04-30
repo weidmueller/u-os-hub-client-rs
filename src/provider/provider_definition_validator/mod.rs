@@ -39,8 +39,8 @@ impl ProviderDefinitionT {
     /// - all variables are added to a folder and not to another variable
     pub fn validate(&self) -> Result<(), InvalidProviderDefinitionError> {
         if let Some(variable_definitions) = &self.variable_definitions {
-            let mut preverified_paths = HashSet::new();
-            let mut preverified_ids = HashSet::new();
+            let mut preverified_paths = HashSet::with_capacity(variable_definitions.len());
+            let mut preverified_ids = HashSet::with_capacity(variable_definitions.len());
 
             // Validate all variables in one iteration
             for variable in variable_definitions {
@@ -49,11 +49,11 @@ impl ProviderDefinitionT {
                     InvalidProviderDefinitionError::InvalidVariableDefinition(err)
                 })?;
 
-                if Self::is_duplicate_id(&mut preverified_ids, &variable.id) {
+                if Self::is_duplicate_id(&mut preverified_ids, variable.id) {
                     return Err(InvalidProviderDefinitionError::DuplicateId(variable.id));
                 }
 
-                if Self::is_duplicate_variable_id(&mut preverified_paths, variable.key.clone()) {
+                if Self::is_duplicate_variable_id(&mut preverified_paths, &variable.key) {
                     return Err(InvalidProviderDefinitionError::DuplicatePath(
                         variable.key.clone(),
                     ));
@@ -62,7 +62,7 @@ impl ProviderDefinitionT {
 
             // Run after all other checks to find naming collisions regardless of node-order
             for variable in variable_definitions {
-                if Self::is_variable_added_to_leaf_node(&preverified_paths, variable.key.clone()) {
+                if Self::is_variable_added_to_leaf_node(&preverified_paths, &variable.key) {
                     return Err(InvalidProviderDefinitionError::AddToLeafNode(
                         variable.key.clone(),
                     ));
@@ -72,19 +72,22 @@ impl ProviderDefinitionT {
         Ok(())
     }
 
-    fn is_duplicate_id(ids: &mut HashSet<u32>, id: &u32) -> bool {
-        !ids.insert(*id)
+    #[inline(always)]
+    fn is_duplicate_id(ids: &mut HashSet<u32>, id: u32) -> bool {
+        !ids.insert(id)
     }
 
-    fn is_duplicate_variable_id(paths: &mut HashSet<String>, variable_key: String) -> bool {
+    #[inline(always)]
+    fn is_duplicate_variable_id<'a>(paths: &mut HashSet<&'a str>, variable_key: &'a str) -> bool {
         !paths.insert(variable_key)
     }
 
-    fn is_variable_added_to_leaf_node(paths: &HashSet<String>, variable_key: String) -> bool {
-        let parent_paths = Self::get_all_parent_paths(&variable_key);
+    #[inline(always)]
+    fn is_variable_added_to_leaf_node(paths: &HashSet<&str>, variable_key: &str) -> bool {
+        let parent_paths = Self::get_all_parent_paths(variable_key);
         parent_paths
             .iter()
-            .any(|parent_path| paths.contains(parent_path))
+            .any(|parent_path| paths.contains(parent_path.as_str()))
     }
 
     /// Turns a path into a vector of all parent paths.

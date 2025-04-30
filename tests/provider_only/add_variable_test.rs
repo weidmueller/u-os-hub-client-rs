@@ -6,7 +6,10 @@ use tokio::time::timeout;
 use u_os_hub_client::{
     generated::weidmueller::ucontrol::hub::root_as_read_provider_definition_query_response,
     nats_subjects::{self, get_provider_name_from_subject},
-    provider::{AddVariablesError, ProviderBuilder, VariableBuilder},
+    provider::{
+        provider_definition_validator::InvalidProviderDefinitionError, AddVariablesError,
+        ProviderBuilder, VariableBuilder,
+    },
 };
 
 use crate::utils::{self, fake_registry::FakeRegistry};
@@ -147,13 +150,19 @@ async fn test_add_variables_fail_on_duplicates() {
         .await;
 
     // assert
-    if let Err(AddVariablesError::DuplicatedId(id)) = result_duplicated_id {
+    if let Err(AddVariablesError::InvalidMergedVariableList(
+        InvalidProviderDefinitionError::DuplicateId(id),
+    )) = result_duplicated_id
+    {
         assert_eq!(id, 1);
     } else {
         panic!("Adding variables with duplicated ids should fail")
     }
 
-    if let Err(AddVariablesError::DuplicatedKey(key)) = result_duplicated_key {
+    if let Err(AddVariablesError::InvalidMergedVariableList(
+        InvalidProviderDefinitionError::DuplicatePath(key),
+    )) = result_duplicated_key
+    {
         assert_eq!(key, "my_folder.my_variable_2");
     } else {
         panic!("Adding variables with duplicated keys should fail")

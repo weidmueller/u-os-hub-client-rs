@@ -40,7 +40,7 @@ use crate::{
 };
 
 use super::{
-    provider_builder::{check_for_duplicates, ConnectError, UpdateProviderDefinitionError},
+    provider_builder::{validate_var_list, ConnectError, UpdateProviderDefinitionError},
     provider_types::{VariableState, VariableWriteCommand},
     AddVariablesError, ProviderCommand, RemoveVariablesError, SubscribeToWriteCommandError,
     UpdateVariableValuesError,
@@ -191,12 +191,15 @@ impl ProviderWorker {
             .await
             .map_err(|x| UpdateProviderDefinitionError::Nats(Box::new(x)))?;
 
+        let provider_definition = ProviderDefinitionT {
+            fingerprint: self.current_fingerprint,
+            variable_definitions: Some(self.variables.values().map(|var| var.into()).collect()),
+            state: ProviderDefinitionState::UNSPECIFIED,
+        };
+
         let provider_def_payload =
-            build_provider_definition_changed_event(Some(ProviderDefinitionT {
-                fingerprint: self.current_fingerprint,
-                variable_definitions: Some(self.variables.values().map(|var| var.into()).collect()),
-                state: ProviderDefinitionState::UNSPECIFIED,
-            }));
+            build_provider_definition_changed_event(Some(provider_definition));
+
         self.get_nats_client()
             .publish(
                 nats_subjects::provider_changed_event(self.get_provider_id()),
@@ -572,14 +575,7 @@ impl ProviderWorker {
         vars: Vec<Variable>,
         wait_for_success: bool,
     ) -> Result<(), AddVariablesError> {
-        check_for_duplicates(&self.variables, &vars).map_err(|e| match e {
-            super::provider_builder::AddVariablesError::DuplicatedId(id) => {
-                AddVariablesError::DuplicatedId(id)
-            }
-            super::provider_builder::AddVariablesError::DuplicatedKey(key) => {
-                AddVariablesError::DuplicatedKey(key)
-            }
-        })?;
+        validate_var_list(&self.variables, &vars)?;
 
         let var_ids: Vec<u32> = vars.iter().map(|x| x.definition.id).collect();
 

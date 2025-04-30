@@ -1,8 +1,5 @@
 //! Contains the provider builder which is need to create a provider.
-use std::{
-    collections::{BTreeMap, HashSet},
-    sync::Arc,
-};
+use std::{collections::BTreeMap, sync::Arc};
 
 use thiserror::Error;
 use tracing::{debug, error};
@@ -10,11 +7,12 @@ use tracing::{debug, error};
 use crate::{
     authenticated_nats_con::{AuthenticatedNatsConnection, AuthenticationSettings},
     dh_types::VariableID,
+    generated::weidmueller::ucontrol::hub::ProviderDefinitionT,
     provider::worker::ProviderWorker,
     variable::Variable,
 };
 
-use super::Provider;
+use super::{provider_definition_validator::InvalidProviderDefinitionError, Provider};
 
 #[cfg(test)]
 mod provider_builder_test;
@@ -44,7 +42,7 @@ impl ProviderBuilder {
     /// These variables will be available immediately after the provider is registered.
     /// You can change the variables later by using the [`Provider`] handle after registration.
     pub fn add_variables(mut self, vars: Vec<Variable>) -> Result<Self, AddVariablesError> {
-        check_for_duplicates(&self.variables, &vars)?;
+        validate_var_list(&self.variables, &vars)?;
 
         let new_variables: BTreeMap<VariableID, Variable> = vars
             .into_iter()
@@ -89,50 +87,41 @@ impl ProviderBuilder {
     }
 }
 
-// TODO: Should we move this to a trait?
-/// Checks for duplicates (id and key) before adding new variables to a current list.
-pub fn check_for_duplicates(
-    current_list: &BTreeMap<u32, Variable>,
-    variables_to_add: &[Variable],
-) -> Result<(), AddVariablesError> {
-    let mut new_ids = HashSet::new();
-    let mut new_names = HashSet::new();
+/// Checks if a potential merge of [`existing_variables`] and [`new_variables`] would still be a valid provider definition.
+///
+/// Uses the original registry validator to validate the merged variable list.
+pub(crate) fn validate_var_list(
+    existing_variables: &BTreeMap<u32, Variable>,
+    new_variables: &[Variable],
+) -> Result<(), InvalidProviderDefinitionError> {
+    let merged_var_list = [
+        new_variables
+            .iter()
+            .map(|var| var.into())
+            .collect::<Vec<_>>()
+            .as_slice(),
+        existing_variables
+            .values()
+            .map(|dh_var| dh_var.into())
+            .collect::<Vec<_>>()
+            .as_slice(),
+    ]
+    .concat();
 
-    // Check new variables
-    for new_variable in variables_to_add {
-        if !new_ids.insert(new_variable.definition.id) {
-            return Err(AddVariablesError::DuplicatedId(new_variable.definition.id));
-        }
-        if !new_names.insert(new_variable.definition.key.clone()) {
-            return Err(AddVariablesError::DuplicatedKey(
-                new_variable.definition.key.clone(),
-            ));
-        }
-    }
+    let tmp_provider_def = ProviderDefinitionT {
+        variable_definitions: Some(merged_var_list),
+        ..Default::default() //Other fields are irrelevant for validation
+    };
 
-    // Check merged variables
-    for (id, variable) in current_list {
-        if new_ids.contains(id) {
-            return Err(AddVariablesError::DuplicatedId(variable.definition.id));
-        }
-        if new_names.contains(&variable.definition.key) {
-            return Err(AddVariablesError::DuplicatedKey(
-                variable.definition.key.clone(),
-            ));
-        }
-    }
-    Ok(())
+    tmp_provider_def.validate()
 }
 
 /// Error that can occur when adding a variable.
 #[derive(Error, Debug, PartialEq)]
 pub enum AddVariablesError {
-    /// Indicates a duplicated id
-    #[error("Duplicated id `{0}`")]
-    DuplicatedId(u32),
-    /// Indicates a duplicated key
-    #[error("Duplicated key `{0}`")]
-    DuplicatedKey(String),
+    /// Something went wrong while validating the merged variable list
+    #[error("Invalid merged variable list: `{0}`")]
+    InvalidMergedVariableList(#[from] InvalidProviderDefinitionError),
 }
 
 /// Error that can occur when connecting the provider
