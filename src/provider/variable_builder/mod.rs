@@ -12,9 +12,9 @@ use crate::variable::{
 #[cfg(test)]
 mod variable_builder_test;
 
-/// Builder for creating a variable.
+/// Builder for creating a [`Variable`] in a safe and idiomatic way.
 ///
-/// You could use the [`Variable`] struct direct but then you have no validation checks.
+/// You may create the [`Variable`] struct directly but then you have no validation checks.
 pub struct VariableBuilder {
     key: String,
     id: u32,

@@ -1,4 +1,4 @@
-use crate::provider::{provider_options::AddVariablesError, VariableBuilder};
+use crate::provider::{provider_builder::AddVariablesError, VariableBuilder};
 
 use super::ProviderBuilder;
 

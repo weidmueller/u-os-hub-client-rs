@@ -16,9 +16,9 @@ use crate::{
 use super::Provider;
 
 #[cfg(test)]
-mod provider_options_test;
+mod provider_builder_test;
 
-/// The ProviderBuilder is used to create a Provider
+/// Used to create a [`Provider`] instance.
 #[derive(Debug, Clone)]
 pub struct ProviderBuilder {
     variables: BTreeMap<u32, Variable>,
@@ -31,14 +31,17 @@ impl Default for ProviderBuilder {
 }
 
 impl ProviderBuilder {
-    /// Create a new provider builder
+    /// Creates a new instance with an empty list of variables.
     pub fn new() -> Self {
         Self {
             variables: BTreeMap::new(),
         }
     }
 
-    /// Add multiple variable. They will be registerd on [`Self::register()`].
+    /// Adds multiple variables to the provider builder.
+    ///
+    /// These variables will be available immediately after the provider is registered.
+    /// You can change the variables later by using the [`Provider`] handle after registration.
     pub fn add_variables(mut self, vars: Vec<Variable>) -> Result<Self, AddVariablesError> {
         check_for_duplicates(&self.variables, &vars)?;
 
@@ -52,6 +55,8 @@ impl ProviderBuilder {
 
     /// Registers the provider on the registry, using the provided nats server address and authentication settings.
     ///
+    /// Returns a [`Provider`] handle which can be used to add/remove and modify variables even after the provider has been registered.
+    ///
     /// This will create a new [`AuthenticatedNatsConnection`] internally and use it to register the provider.
     pub async fn register(
         self,
@@ -64,7 +69,7 @@ impl ProviderBuilder {
         self.register_with_existing_connection(auth_nats_con).await
     }
 
-    /// Registers the provider on the registry using an existing nats connection.
+    /// Same as [`Self::register()`], but uses an existing connection.
     ///
     /// This is useful if you want to use the same [`AuthenticatedNatsConnection`] for multiple clients.
     pub async fn register_with_existing_connection(

@@ -41,7 +41,7 @@ use crate::{
 use crate::variable::{value::VariableValue, Variable};
 
 use super::{
-    provider_options::{check_for_duplicates, ConnectError, UpdateProviderDefinitionError},
+    provider_builder::{check_for_duplicates, ConnectError, UpdateProviderDefinitionError},
     AddVariablesError, ProviderCommand, RemoveVariablesError, SubscribeToWriteCommandError,
     UpdateVariableValuesError,
 };
@@ -569,10 +569,10 @@ impl ProviderWorker {
         wait_for_success: bool,
     ) -> Result<(), AddVariablesError> {
         check_for_duplicates(&self.variables, &vars).map_err(|e| match e {
-            super::provider_options::AddVariablesError::DuplicatedId(id) => {
+            super::provider_builder::AddVariablesError::DuplicatedId(id) => {
                 AddVariablesError::DuplicatedId(id)
             }
-            super::provider_options::AddVariablesError::DuplicatedKey(key) => {
+            super::provider_builder::AddVariablesError::DuplicatedKey(key) => {
                 AddVariablesError::DuplicatedKey(key)
             }
         })?;

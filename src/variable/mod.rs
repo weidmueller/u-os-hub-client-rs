@@ -12,11 +12,12 @@ pub mod value;
 use value::{TimestampValue, VariableValue};
 
 /// Holds information about a variable (definition and value).
+///
 /// Warning: If you initialise this struct directly, there is no validation.
-/// Instead you should use the [`crate::provider::VariableBuilder`].
+/// Instead you should use the [`VariableBuilder`](crate::provider::VariableBuilder) struct.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Variable {
-    /// VariableValue of a variable. You should only change the value and not the enum discriminant.
+    /// [`VariableValue`] of a variable. You should only change the value and not the enum discriminant.
     pub value: VariableValue,
     /// Variable access type. True = Readonly, False = ReadWrite
     pub read_only: bool,
