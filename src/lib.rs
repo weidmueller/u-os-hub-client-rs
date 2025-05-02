@@ -26,6 +26,8 @@ pub mod generated;
 pub mod authenticated_nats_con;
 #[warn(missing_docs)]
 pub mod consumer;
+#[warn(missing_docs)]
+pub mod dh_types;
 pub mod env_file_parser;
 pub mod nats_subjects;
 pub mod oauth2;

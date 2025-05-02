@@ -80,8 +80,8 @@
 //! ```
 
 pub mod connected_dh_provider;
+pub mod consumer_types;
 pub mod dh_consumer;
-pub mod dh_types;
 pub mod variable_key;
 
 #[cfg(feature = "export-low-level-api")]

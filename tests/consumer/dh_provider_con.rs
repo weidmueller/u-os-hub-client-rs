@@ -9,11 +9,11 @@ use u_os_hub_client::{
     },
     consumer::{
         connected_dh_provider::{self, DataHubProviderConnection, ProviderEvent},
-        connected_nats_provider::{self},
+        consumer_types::VariableState,
         dh_consumer::DataHubConsumer,
-        dh_types::{VariableDefinition, VariableID, VariableQuality, VariableState, VariableType},
         variable_key::VariableKey,
     },
+    dh_types::{VariableDefinition, VariableID, VariableQuality, VariableType},
     oauth2::OAuth2Credentials,
     variable::value::VariableValue,
 };
@@ -625,6 +625,8 @@ async fn change_var_defs() {
 #[tokio::test]
 #[serial]
 async fn provider_goes_offline() {
+    use u_os_hub_client::consumer::connected_nats_provider;
+
     run_with_timeout(async move {
         let _fake_reg = FakeRegistry::new().await;
 

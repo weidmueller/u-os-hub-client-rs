@@ -11,11 +11,11 @@ use tokio::task::JoinHandle;
 use tracing::{error, warn};
 
 use crate::{
-    authenticated_nats_con::NatsPermission, generated::weidmueller::ucontrol::hub::*, nats_subjects,
+    authenticated_nats_con::NatsPermission, dh_types::VariableID,
+    generated::weidmueller::ucontrol::hub::*, nats_subjects,
 };
 
 use super::{
-    dh_types::VariableID,
     nats_consumer::NatsConsumer,
     variable_key::{VariableKey, VariableKeyHash},
 };

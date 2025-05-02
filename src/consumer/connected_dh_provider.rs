@@ -8,6 +8,7 @@ use thiserror::Error;
 use tracing::error;
 
 use crate::{
+    dh_types::{VariableDefinition, VariableID},
     generated::weidmueller::ucontrol::hub::{
         ProviderDefinitionState, ReadVariablesQueryRequestT, TimestampT, VariableListT,
         VariableQuality, VariableT, VariablesChangedEventT, WriteVariablesCommandT,
@@ -17,8 +18,8 @@ use crate::{
 
 use super::{
     connected_nats_provider::{self, ConnectedNatsProvider, ConnectedNatsProviderState},
+    consumer_types::{self, VariableState},
     dh_consumer::{self, DataHubConsumer},
-    dh_types::{self, VariableDefinition, VariableID, VariableState},
     variable_key::VariableKey,
 };
 
@@ -29,7 +30,7 @@ pub enum Error {
     #[error("{0}")]
     Consumer(#[from] dh_consumer::Error),
     #[error("{0}")]
-    TypeConversion(#[from] dh_types::Error),
+    TypeConversion(#[from] consumer_types::Error),
     #[error("{0}")]
     LowLevelApi(#[from] connected_nats_provider::Error),
 }
