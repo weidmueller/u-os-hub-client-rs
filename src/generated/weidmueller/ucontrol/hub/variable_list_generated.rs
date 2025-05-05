@@ -72,9 +72,12 @@ impl<'a> VariableList<'a> {
     // which contains a valid value in this slot
     unsafe { self._tab.get::<u64>(VariableList::VT_PROVIDER_DEFINITION_FINGERPRINT, Some(0)).unwrap()}
   }
-  /// The base timestamp as fallback for variable timestamps to minimize transfer size.
+  /// The timestamp for all changed variables. The base timestamp is the
+  /// fallback if no explicit was specified for the variable.
   ///
   /// Only set by the provider!
+  /// Consumers can set it to 0s and 0ns. This value is ignored by the 
+  /// provider in a write command.
   #[inline]
   pub fn base_timestamp(&self) -> &'a Timestamp {
     // Safety:

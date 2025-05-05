@@ -25,10 +25,10 @@ pub enum Error {
     FlatbufferDataTypeConversionFailure,
 }
 
-/// The quality of a variable
+/// The quality of a variable.
 ///
 /// This is set by the provider and indicates the quality of a variable value.
-/// The `Uncertain` states are modelled after the OPC UA specification.
+/// Check the documentation of the individual values for more information.
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum VariableQuality {
     /// Indicates that the value is not usable

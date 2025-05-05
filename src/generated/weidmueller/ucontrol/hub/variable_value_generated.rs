@@ -27,7 +27,7 @@ pub const ENUM_VALUES_VARIABLE_VALUE: [VariableValue; 7] = [
   VariableValue::Timestamp,
 ];
 
-/// A value of a variable.
+/// The value of a variable.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 #[repr(transparent)]
 pub struct VariableValue(pub u8);

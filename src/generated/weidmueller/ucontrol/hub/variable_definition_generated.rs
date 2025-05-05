@@ -14,7 +14,7 @@ use super::*;
 pub enum VariableDefinitionOffset {}
 #[derive(Copy, Clone, PartialEq)]
 
-/// A definition of a variable.
+/// The definition of a variable.
 pub struct VariableDefinition<'a> {
   pub _tab: flatbuffers::Table<'a>,
 }
@@ -78,7 +78,7 @@ impl<'a> VariableDefinition<'a> {
     // which contains a valid value in this slot
     unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<&str>>(VariableDefinition::VT_KEY, None).unwrap()}
   }
-  /// The provider's unique ID of the variable.
+  /// The unique ID of the variable. It is only unique via one provider.
   #[inline]
   pub fn id(&self) -> u32 {
     // Safety:

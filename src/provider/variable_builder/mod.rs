@@ -83,7 +83,15 @@ impl VariableBuilder {
 
     /// Sets the initial timestamp of the variable
     ///
-    /// This is optional. By default, the timestamp is set to [`TimestampValue::now()`].
+    /// This is optional. By default, the timestamp is set to [`TimestampValue::now()`] when the variable is built.
+    ///
+    /// If timestamp is set to `None`, the variable will inherit its timestamp from the variable list
+    /// when a consumer receives a variable update or reads the variable list explicitly.
+    /// This can be a useful optimization if you have a very large variable list,
+    /// as this reduces the payload size for the data hub.
+    /// However, be aware that if the variable timestamp is `None`, consumers will always receive the timestamp of
+    /// reading the variable list instead of the timestamp of the last value update, which may not be what the consumer expects, so
+    /// use this optimization with caution.
     pub fn initial_timestamp(mut self, timestamp: Option<TimestampValue>) -> Self {
         self.override_timestamp = Some(timestamp);
         self

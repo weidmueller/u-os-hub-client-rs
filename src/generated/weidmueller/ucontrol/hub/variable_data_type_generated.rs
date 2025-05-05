@@ -27,7 +27,7 @@ pub const ENUM_VALUES_VARIABLE_DATA_TYPE: [VariableDataType; 7] = [
   VariableDataType::TIMESTAMP,
 ];
 
-/// A data type of a variable.
+/// The data type of a variable.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 #[repr(transparent)]
 pub struct VariableDataType(pub i8);

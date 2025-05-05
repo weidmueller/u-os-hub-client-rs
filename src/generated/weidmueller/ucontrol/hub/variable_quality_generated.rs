@@ -25,16 +25,24 @@ pub const ENUM_VALUES_VARIABLE_QUALITY: [VariableQuality; 5] = [
   VariableQuality::GOOD,
 ];
 
-/// A quality of a variable.
+/// The quality of a variable
+///
+/// This is set by the provider and indicates the quality of a variable value.
+/// The `Uncertain` states are modelled after the OPC UA specification.  
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 #[repr(transparent)]
 pub struct VariableQuality(pub u8);
 #[allow(non_upper_case_globals)]
 impl VariableQuality {
+  /// Indicates that the value is not usable
   pub const BAD: Self = Self(0);
+  /// Variable quality is uncertain without any specific reason, but may still be usable e.g. for display or other non critical purposes
   pub const UNCERTAIN: Self = Self(64);
+  /// The variable has stopped updating and contains its last usable value
   pub const UNCERTAIN_LAST_USABLE_VALUE: Self = Self(67);
+  /// Variable has not been written yet and still contains a default initial value
   pub const UNCERTAIN_INITIAL_VALUE: Self = Self(68);
+  /// Indicates that the value is good and can be used without restrictions
   pub const GOOD: Self = Self(192);
 
   pub const ENUM_MIN: u8 = 0;

@@ -23,14 +23,16 @@ pub const ENUM_VALUES_VARIABLE_ACCESS_TYPE: [VariableAccessType; 3] = [
   VariableAccessType::READ_WRITE,
 ];
 
-/// An access type of a variable.
+/// The access type of a variable.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 #[repr(transparent)]
 pub struct VariableAccessType(pub i8);
 #[allow(non_upper_case_globals)]
 impl VariableAccessType {
   pub const UNSPECIFIED: Self = Self(0);
+  /// Consumers can only read the variable.
   pub const READ_ONLY: Self = Self(1);
+  /// Consumers can read and write the variable.
   pub const READ_WRITE: Self = Self(2);
 
   pub const ENUM_MIN: i8 = 0;

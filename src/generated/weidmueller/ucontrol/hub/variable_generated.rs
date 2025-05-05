@@ -126,6 +126,8 @@ impl<'a> Variable<'a> {
   /// The individual timestamp of the variable.
   ///
   /// Only set by the provider!
+  /// Consumers can left this empty. This value is ignored by the provider in 
+  /// a write command.
   #[inline]
   pub fn timestamp(&self) -> Option<&'a Timestamp> {
     // Safety:
@@ -134,6 +136,10 @@ impl<'a> Variable<'a> {
     unsafe { self._tab.get::<Timestamp>(Variable::VT_TIMESTAMP, None)}
   }
   /// The quality of the variable.
+  ///
+  /// Only set by the provider!
+  /// Consumers can set it to BAD. This value is ignored by the provider  
+  /// in a write command.
   #[inline]
   pub fn quality(&self) -> VariableQuality {
     // Safety:

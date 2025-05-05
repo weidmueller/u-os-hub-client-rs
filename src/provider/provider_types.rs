@@ -40,11 +40,18 @@ impl VariableState {
     /// Explicitly sets all properties of the variable state.
     ///
     /// This is useful if you need full control over the variable state or want to calculate the timestamp manually.
-    /// If timestamp is set to `None`, the variable will inherit its timestamp from the variable list.
     ///
     /// Please note that this only changes the variable state in the RAM.
     /// For changes to take effect on the data hub, you still need to call
     /// [`Provider::update_variable_states`](crate::provider::Provider::update_variable_states) afterwards.
+    ///
+    /// If timestamp is set to `None`, the variable will inherit its timestamp from the variable list
+    /// when a consumer receives a variable update or reads the variable list explicitly.
+    /// This can be a useful optimization if you have a very large variable list,
+    /// as this reduces the payload size for the data hub.
+    /// However, be aware that if the variable timestamp is `None`, consumers will always receive the timestamp of
+    /// reading the variable list instead of the timestamp of the last value update, which may not be what the consumer expects, so
+    /// use this optimization with caution.
     #[inline(always)]
     pub fn set_all(
         &mut self,
