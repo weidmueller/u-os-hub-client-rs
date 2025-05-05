@@ -34,12 +34,12 @@ async fn test_register_provider_with_variables() {
     // act
     let provider_builder = ProviderBuilder::new();
     let var1 = VariableBuilder::new(0, "my_folder.my_variable_1")
-        .value(true)
+        .initial_value(true)
         .build()
         .expect("variable should build");
 
     let var2 = VariableBuilder::new(1, "my_folder.my_variable_2")
-        .value(true)
+        .initial_value(true)
         .build()
         .expect("variable should build");
 
@@ -102,12 +102,12 @@ async fn test_resend_provider_definition_on_registry_up_event() {
     // act
     let provider_builder = ProviderBuilder::new();
     let var1 = VariableBuilder::new(0, "my_folder.my_variable_1")
-        .value(true)
+        .initial_value(true)
         .build()
         .expect("variable should build");
 
     let var2 = VariableBuilder::new(1, "my_folder.my_variable_2")
-        .value(true)
+        .initial_value(true)
         .build()
         .expect("variable should build");
 

@@ -13,9 +13,8 @@ use u_os_hub_client::{
         dh_consumer::DataHubConsumer,
         variable_key::VariableKey,
     },
-    dh_types::{VariableDefinition, VariableID, VariableQuality, VariableType},
+    dh_types::{VariableDefinition, VariableID, VariableQuality, VariableType, VariableValue},
     oauth2::OAuth2Credentials,
-    variable::value::VariableValue,
 };
 
 use crate::{

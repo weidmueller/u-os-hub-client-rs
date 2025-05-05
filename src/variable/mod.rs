@@ -4,12 +4,11 @@ use std::{
     hash::{Hash, Hasher},
 };
 
-use crate::generated::weidmueller::ucontrol::hub::{
-    VariableAccessType, VariableDefinitionT, VariableQuality, VariableT,
+use crate::{
+    dh_types::VariableDefinition,
+    generated::weidmueller::ucontrol::hub::{VariableAccessType, VariableDefinitionT, VariableT},
+    provider::provider_types::VariableState,
 };
-
-pub mod value;
-use value::{TimestampValue, VariableValue};
 
 /// Holds information about a variable (definition and value).
 ///
@@ -17,62 +16,57 @@ use value::{TimestampValue, VariableValue};
 /// Instead you should use the [`VariableBuilder`](crate::provider::VariableBuilder) struct.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Variable {
-    /// [`VariableValue`] of a variable. You should only change the value and not the enum discriminant.
-    pub value: VariableValue,
-    /// Variable access type. True = Readonly, False = ReadWrite
-    pub read_only: bool,
-    /// Key of the variable.
-    pub key: String,
-    /// Id for the access without definition.
-    pub id: u32,
-    /// Experimental marker
-    pub experimental: bool,
-    /// Latest value change (will be returned on variable read request).
-    pub last_value_change: TimestampValue,
+    pub(crate) state: VariableState,
+    pub(crate) definition: VariableDefinition,
+}
+
+impl Variable {
+    /// Returns the immutable state of the variable.
+    #[inline(always)]
+    pub fn get_state(&self) -> &VariableState {
+        &self.state
+    }
+
+    /// Returns the mutable state of the variable.
+    ///
+    /// This can be used to change value, quality and timestamp.
+    /// See documentation of [`VariableState`] methods for more details.
+    #[inline(always)]
+    pub fn get_mut_state(&mut self) -> &mut VariableState {
+        &mut self.state
+    }
+
+    /// Returns the definition of the variable.
+    #[inline(always)]
+    pub fn get_definition(&self) -> &VariableDefinition {
+        &self.definition
+    }
 }
 
 impl From<&Variable> for VariableT {
-    fn from(val: &Variable) -> Self {
+    fn from(var: &Variable) -> Self {
         VariableT {
-            quality: VariableQuality::GOOD,
-            id: val.id,
-            value: (&val.value).into(),
-            timestamp: Some(val.last_value_change.into()),
-            ..Default::default()
+            quality: (*var.state.get_quality()).into(),
+            id: var.definition.id,
+            value: var.state.get_value().into(),
+            timestamp: var.state.get_timestamp().map(|ts| ts.into()),
         }
     }
 }
 
 impl From<&Variable> for VariableDefinitionT {
-    fn from(variable: &Variable) -> VariableDefinitionT {
+    fn from(var: &Variable) -> VariableDefinitionT {
+        let var_def = var.get_definition();
+
         VariableDefinitionT {
-            key: variable.key.clone(),
-            id: variable.id,
-            data_type: match variable.value {
-                VariableValue::Int(_) => {
-                    crate::generated::weidmueller::ucontrol::hub::VariableDataType::INT64
-                }
-                VariableValue::Boolean(_) => {
-                    crate::generated::weidmueller::ucontrol::hub::VariableDataType::BOOLEAN
-                }
-                VariableValue::String(_) => {
-                    crate::generated::weidmueller::ucontrol::hub::VariableDataType::STRING
-                }
-                VariableValue::Float64(_) => {
-                    crate::generated::weidmueller::ucontrol::hub::VariableDataType::FLOAT64
-                }
-                VariableValue::Duration(_) => {
-                    crate::generated::weidmueller::ucontrol::hub::VariableDataType::DURATION
-                }
-                VariableValue::Timestamp(_) => {
-                    crate::generated::weidmueller::ucontrol::hub::VariableDataType::TIMESTAMP
-                }
-            },
-            access_type: match variable.read_only {
+            key: var_def.key.clone(),
+            id: var_def.id,
+            data_type: var_def.data_type.into(),
+            access_type: match var_def.read_only {
                 true => VariableAccessType::READ_ONLY,
                 false => VariableAccessType::READ_WRITE,
             },
-            experimental: variable.experimental,
+            experimental: var_def.experimental,
         }
     }
 }
@@ -83,12 +77,17 @@ impl From<&Variable> for VariableDefinitionT {
 /// This can be used as a fingerprint for the provider definition.
 pub fn calc_variables_hash(variables: &BTreeMap<u32, Variable>) -> u64 {
     let mut hasher = DefaultHasher::default();
+
     variables.iter().for_each(|(_, variable)| {
-        variable.key.hash(&mut hasher);
-        variable.read_only.hash(&mut hasher);
-        variable.id.hash(&mut hasher);
-        variable.experimental.hash(&mut hasher);
-        std::mem::discriminant(&variable.value).hash(&mut hasher);
+        let var_def = variable.get_definition();
+
+        var_def.key.hash(&mut hasher);
+        var_def.read_only.hash(&mut hasher);
+        var_def.id.hash(&mut hasher);
+        var_def.experimental.hash(&mut hasher);
+
+        std::mem::discriminant(variable.state.get_value()).hash(&mut hasher);
     });
+
     hasher.finish()
 }

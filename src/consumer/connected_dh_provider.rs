@@ -8,12 +8,11 @@ use thiserror::Error;
 use tracing::error;
 
 use crate::{
-    dh_types::{VariableDefinition, VariableID},
+    dh_types::{VariableDefinition, VariableID, VariableValue},
     generated::weidmueller::ucontrol::hub::{
         ProviderDefinitionState, ReadVariablesQueryRequestT, TimestampT, VariableListT,
         VariableQuality, VariableT, VariablesChangedEventT, WriteVariablesCommandT,
     },
-    variable,
 };
 
 use super::{
@@ -413,7 +412,7 @@ impl DataHubProviderConnection {
     pub async fn write_single_variable<'a>(
         &self,
         var: impl VariableKeyLike<'a>,
-        new_value: impl Into<variable::value::VariableValue>,
+        new_value: impl Into<VariableValue>,
     ) -> Result<()> {
         self.write_variables(&[(var, new_value.into())]).await
     }
@@ -423,7 +422,7 @@ impl DataHubProviderConnection {
     /// This is more efficient than calling [`Self::write_single_variable`] multiple times.
     pub async fn write_variables<'a>(
         &self,
-        new_values: &[(impl VariableKeyLike<'a>, variable::value::VariableValue)],
+        new_values: &[(impl VariableKeyLike<'a>, VariableValue)],
     ) -> Result<()> {
         let provider_definition_fingerprint =
             self.connected_provider.get_fingerprint().ok_or_else(|| {

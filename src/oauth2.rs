@@ -17,7 +17,7 @@ pub struct OAuth2Credentials {
 impl OAuth2Credentials {
     /// Creates new [OAuth2Credentials] from the provided client name and credentials file.
     ///
-    /// The file must be a key=value INI like file, with the keys being `CLIENT_ID` and `CLIENT_SECRET`.
+    /// The file must be a .env file which contains key=value pairs, with the keys being `CLIENT_ID` and `CLIENT_SECRET`.
     pub async fn from_env_file(
         client_name: impl Into<String>,
         credentials_file: impl AsRef<Path>,

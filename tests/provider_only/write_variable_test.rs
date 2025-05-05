@@ -6,9 +6,8 @@ use tokio::time::timeout;
 use u_os_hub_client::{
     generated::weidmueller::ucontrol::hub::root_as_read_provider_definition_query_response,
     nats_subjects,
-    payload_builders::build_write_variables_command,
+    payload_builders::{build_write_variables_command, VariableUpdate},
     provider::{ProviderBuilder, VariableBuilder},
-    variable::value::VariableValue,
 };
 
 use crate::utils::{self, fake_registry::FakeRegistry};
@@ -29,9 +28,9 @@ async fn test_write_variable_command() {
         .unwrap();
 
     let provider_builder = ProviderBuilder::new();
-    let var1 = VariableBuilder::new(0, "my_folder.my_variable_1_rw")
+    let mut var1 = VariableBuilder::new(0, "my_folder.my_variable_1_rw")
         .read_write()
-        .value(true)
+        .initial_value(true)
         .build()
         .expect("variable should build");
 
@@ -62,9 +61,15 @@ async fn test_write_variable_command() {
     };
 
     // act
-    let mut var1 = var1.clone();
-    var1.value = VariableValue::Boolean(false);
-    let write_cmd_payload = build_write_variables_command(vec![var1.clone().into()], fingerprint);
+    let var1_state = var1.get_mut_state();
+    var1_state.set_value(false);
+    let write_cmd_payload = build_write_variables_command(
+        vec![VariableUpdate {
+            id: var1_state.get_id(),
+            value: var1_state.get_value().into(),
+        }],
+        fingerprint,
+    );
 
     test_nats_client
         .publish(
@@ -75,18 +80,16 @@ async fn test_write_variable_command() {
         .expect("should publish write command");
 
     // assert
-    if let Ok(Some(vars)) = timeout(Duration::from_secs(1), subscribtion_to_write_cmd.recv()).await
+    if let Ok(Some(write_commands)) =
+        timeout(Duration::from_secs(1), subscribtion_to_write_cmd.recv()).await
     {
-        let variable = vars
+        let first_write_command = write_commands
             .first()
             .expect("One variable write command should received")
             .clone();
 
-        assert_eq!(variable.id, var1.id);
-        assert_eq!(variable.experimental, var1.experimental);
-        assert_eq!(variable.key, var1.key);
-        assert_eq!(variable.read_only, var1.read_only);
-        assert_eq!(variable.value, var1.value);
+        assert_eq!(first_write_command.id, var1.get_definition().id);
+        assert_eq!(&first_write_command.value, var1.get_state().get_value());
     } else {
         panic!("should received write command")
     }

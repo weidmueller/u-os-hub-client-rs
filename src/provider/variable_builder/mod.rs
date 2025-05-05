@@ -4,9 +4,13 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 use thiserror::Error;
 
-use crate::variable::{
-    value::{TimestampValue, VariableValue},
-    Variable,
+use crate::{
+    dh_types::{
+        TimestampValue, VariableDefinition, VariableID, VariableQuality, VariableType,
+        VariableValue,
+    },
+    provider::provider_types::VariableState,
+    variable::Variable,
 };
 
 #[cfg(test)]
@@ -16,22 +20,30 @@ mod variable_builder_test;
 ///
 /// You may create the [`Variable`] struct directly but then you have no validation checks.
 pub struct VariableBuilder {
+    //definition
     key: String,
     id: u32,
     read_only: bool,
-    value: Option<VariableValue>,
     experimental: bool,
+    //state
+    value: Option<VariableValue>,
+    quality: VariableQuality,
+    //Outer option is used to determine if the value was set in the builder,
+    //if not a new timestamp will be generated when building the variable
+    override_timestamp: Option<Option<TimestampValue>>,
 }
 
 impl VariableBuilder {
     /// Create a new variable builder.
-    pub fn new(id: u32, key: &str) -> Self {
+    pub fn new(id: VariableID, key: impl Into<String>) -> Self {
         VariableBuilder {
-            key: key.to_string(),
-            read_only: true,
-            value: None,
             id,
+            key: key.into(),
+            read_only: true,
             experimental: false,
+            value: None,
+            quality: VariableQuality::Good,
+            override_timestamp: None,
         }
     }
 
@@ -49,9 +61,31 @@ impl VariableBuilder {
         self
     }
 
-    /// Sets the initial value of the variable
-    pub fn value(mut self, value: impl Into<VariableValue>) -> Self {
+    /// Sets the initial value of the variable.
+    ///
+    /// You must set a value before calling [`Self::build`].
+    /// During building, the type of the variable is inferred from the value.
+    ///
+    /// If the initial value is meant to be a temporary placeholder, consider using [`Self::initial_quality`]
+    /// to set the quality to [`VariableQuality::UncertainInitialValue`].
+    pub fn initial_value(mut self, value: impl Into<VariableValue>) -> Self {
         self.value = Some(value.into());
+        self
+    }
+
+    /// Sets the initial quality of the variable
+    ///
+    /// This is optional. By default, the quality is set to [`VariableQuality::Good`].
+    pub fn initial_quality(mut self, quality: VariableQuality) -> Self {
+        self.quality = quality;
+        self
+    }
+
+    /// Sets the initial timestamp of the variable
+    ///
+    /// This is optional. By default, the timestamp is set to [`TimestampValue::now()`].
+    pub fn initial_timestamp(mut self, timestamp: Option<TimestampValue>) -> Self {
+        self.override_timestamp = Some(timestamp);
         self
     }
 
@@ -73,15 +107,37 @@ impl VariableBuilder {
 
         if let Some(value) = self.value {
             Ok(Variable {
-                value,
-                read_only: self.read_only,
-                key: self.key,
-                id: self.id,
-                experimental: self.experimental,
-                last_value_change: TimestampValue::now(),
+                definition: VariableDefinition {
+                    key: self.key,
+                    id: self.id,
+                    data_type: Self::infer_variable_type_from_value(&value),
+                    read_only: self.read_only,
+                    experimental: self.experimental,
+                },
+                state: VariableState {
+                    id: self.id,
+                    value,
+                    quality: self.quality,
+                    timestamp: if let Some(override_timestamp) = self.override_timestamp {
+                        override_timestamp
+                    } else {
+                        Some(TimestampValue::now())
+                    },
+                },
             })
         } else {
             Err(VariableBuildError::MissingValue)
+        }
+    }
+
+    fn infer_variable_type_from_value(value: &VariableValue) -> VariableType {
+        match value {
+            VariableValue::Int(_) => VariableType::Int64,
+            VariableValue::Float64(_) => VariableType::Float64,
+            VariableValue::String(_) => VariableType::String,
+            VariableValue::Boolean(_) => VariableType::Boolean,
+            VariableValue::Timestamp(_) => VariableType::Timestamp,
+            VariableValue::Duration(_) => VariableType::Duration,
         }
     }
 }

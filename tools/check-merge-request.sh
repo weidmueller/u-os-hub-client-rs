@@ -7,7 +7,7 @@ set -eux
 # Check formatting once
 cargo fmt --check
 
-# Build with uOS rust toolchain and oldest possible dependencies
+# Build with u-OS rust toolchain and oldest possible dependencies
 rm -f Cargo.lock
 cargo +nightly -Zminimal-versions update
 "${script_dir}/build-for-target.sh" dev x86_64-unknown-linux-gnu ${U_OS_RUST_VERSION}

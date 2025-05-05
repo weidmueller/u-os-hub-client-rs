@@ -10,8 +10,11 @@ use crate::oauth2::OAuth2Credentials;
 
 type Result<T> = core::result::Result<T, async_nats::Error>;
 
-/// The default NATS server address for uOS.
+/// The default NATS server address for u-OS.
 pub const DEFAULT_U_OS_NATS_ADDRESS: &str = "nats://127.0.0.1:49360";
+
+/// The default OAuth2 endpoint for u-OS.
+pub const DEFAULT_U_OS_OAUTH2_ENDPOINT: &str = "https://127.0.0.1/oauth2/token";
 
 /// Access permissions for the NATS connection.
 /// Internally gets converted to Oauth2 scopes.
@@ -60,7 +63,7 @@ impl AuthenticationSettingsBuilder {
         Self {
             settings: AuthenticationSettings {
                 permissions: NatsPermissionList::from([permission.as_str().to_owned()]),
-                oauth2_endpoint: "https://127.0.0.1/oauth2/token".to_string(),
+                oauth2_endpoint: DEFAULT_U_OS_OAUTH2_ENDPOINT.to_string(),
                 creds: None,
             },
         }
@@ -89,7 +92,7 @@ impl AuthenticationSettingsBuilder {
     /// Allows to specifiy a different oauth2 endpoint address.
     ///
     /// Useful e.g. if the oauth endpoint is on another device.
-    /// If not specified, uses the default localhost endpoint that comes with uOS.
+    /// If not specified, uses the default localhost endpoint that comes with u-OS.
     pub fn with_custom_oauth2_endpoint(mut self, endpoint: impl Into<String>) -> Self {
         self.settings.oauth2_endpoint = endpoint.into();
         self

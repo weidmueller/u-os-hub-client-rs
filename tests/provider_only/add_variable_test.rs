@@ -28,12 +28,12 @@ async fn test_add_variables() {
 
     let provider_builder = ProviderBuilder::new();
     let var1 = VariableBuilder::new(0, "my_folder.my_variable_1")
-        .value(true)
+        .initial_value(true)
         .build()
         .expect("variable should build");
 
     let var2 = VariableBuilder::new(1, "my_folder.my_variable_2")
-        .value(true)
+        .initial_value(true)
         .build()
         .expect("variable should build");
 
@@ -51,7 +51,7 @@ async fn test_add_variables() {
 
     // act
     let var3 = VariableBuilder::new(2, "my_folder.my_variable_3")
-        .value(true)
+        .initial_value(true)
         .build()
         .expect("variable should build");
 
@@ -106,12 +106,12 @@ async fn test_add_variables_fail_on_duplicates() {
 
     let provider_builder = ProviderBuilder::new();
     let var1 = VariableBuilder::new(0, "my_folder.my_variable_1")
-        .value(true)
+        .initial_value(true)
         .build()
         .expect("variable should build");
 
     let var2 = VariableBuilder::new(1, "my_folder.my_variable_2")
-        .value(true)
+        .initial_value(true)
         .build()
         .expect("variable should build");
 
@@ -130,7 +130,7 @@ async fn test_add_variables_fail_on_duplicates() {
     // act
     // Variable with duplicated id
     let var_duplicated_id = VariableBuilder::new(1, "my_folder.my_variable_3")
-        .value(true)
+        .initial_value(true)
         .build()
         .expect("variable should build");
     let result_duplicated_id = provider
@@ -139,7 +139,7 @@ async fn test_add_variables_fail_on_duplicates() {
 
     // Variable with duplicated key
     let var_duplicated_key = VariableBuilder::new(2, "my_folder.my_variable_2")
-        .value(true)
+        .initial_value(true)
         .build()
         .expect("variable should build");
     let result_duplicated_key = provider

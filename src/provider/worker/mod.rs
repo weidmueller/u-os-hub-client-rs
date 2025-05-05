@@ -26,6 +26,7 @@ use tracing::{debug, error, info, trace};
 
 use crate::{
     authenticated_nats_con::AuthenticatedNatsConnection,
+    dh_types::{VariableID, VariableValue},
     generated::weidmueller::ucontrol::hub::{
         ProviderDefinitionChangedEvent, ProviderDefinitionState, ProviderDefinitionT,
         ReadVariablesQueryRequest, WriteVariablesCommand,
@@ -35,13 +36,12 @@ use crate::{
         build_provider_definition_changed_event, build_read_variables_query_response,
         build_variables_changed_event,
     },
-    variable::calc_variables_hash,
+    variable::{calc_variables_hash, Variable},
 };
-
-use crate::variable::{value::VariableValue, Variable};
 
 use super::{
     provider_builder::{check_for_duplicates, ConnectError, UpdateProviderDefinitionError},
+    provider_types::{VariableState, VariableWriteCommand},
     AddVariablesError, ProviderCommand, RemoveVariablesError, SubscribeToWriteCommandError,
     UpdateVariableValuesError,
 };
@@ -63,13 +63,13 @@ pub(super) struct ProviderWorker {
     command_channel: mpsc::Receiver<ProviderCommand>,
     /// Stores the variables with fast access.
     /// A BTreeMap is used instead of a HashMap because it is always deterministic.
-    variables: BTreeMap<u32, Variable>,
+    variables: BTreeMap<VariableID, Variable>,
     /// The current fingerprint of the provider definition.
     current_fingerprint: u64,
     /// Stores the senders for the write commands.
     /// Each sender will be notified about write commands for it's subscribed variable ids.
     /// A variable can't be mapped to multiple senders to avoid conflicts.
-    write_event_notiers: Vec<(HashSet<u32>, mpsc::Sender<Vec<Variable>>)>,
+    write_event_notiers: Vec<(HashSet<VariableID>, mpsc::Sender<Vec<VariableWriteCommand>>)>,
     query_subscription: Subscriber,
     write_subscription: Subscriber,
     registry_up: Subscriber,
@@ -80,7 +80,7 @@ impl ProviderWorker {
     #[allow(clippy::new_ret_no_self)] // we return the control, because this runs in a separate thread
     pub(super) async fn new(
         nats_con: Arc<AuthenticatedNatsConnection>,
-        variables: BTreeMap<u32, Variable>,
+        variables: BTreeMap<VariableID, Variable>,
         wait_for_success: bool,
     ) -> Result<mpsc::Sender<ProviderCommand>, ConnectError> {
         let client = nats_con.get_client();
@@ -370,8 +370,10 @@ impl ProviderWorker {
             ProviderCommand::RemoveVariables(vars, result_tx) => {
                 result_tx.send(self.remove_variables(vars, true).await).ok();
             }
-            ProviderCommand::UpdateValues(vars, result_tx) => {
-                result_tx.send(self.update_variable_values(vars).await).ok();
+            ProviderCommand::UpdateStates(states, result_tx) => {
+                result_tx
+                    .send(self.update_variable_states(states).await)
+                    .ok();
             }
             ProviderCommand::Query(msg) => {
                 self.handle_variable_read_query(msg).await;
@@ -402,25 +404,25 @@ impl ProviderWorker {
     async fn create_write_event_notifier(
         &mut self,
         variables: Vec<Variable>,
-    ) -> Result<mpsc::Receiver<Vec<Variable>>, SubscribeToWriteCommandError> {
+    ) -> Result<mpsc::Receiver<Vec<VariableWriteCommand>>, SubscribeToWriteCommandError> {
         // First remove closed channels
         self.write_event_notiers
             .retain(|(_, sender)| !sender.is_closed());
 
         for variable in &variables {
             // Check if all ids exists
-            if !self.variables.contains_key(&variable.id) {
+            if !self.variables.contains_key(&variable.definition.id) {
                 return Err(super::SubscribeToWriteCommandError::VariableNotFound(
-                    variable.key.to_string(),
+                    variable.definition.key.to_string(),
                 ));
             }
 
             // TODO: Could we move this to compile time?
             // Check if a write event notifier for any variable still exists (avoid conflicts)
             for (ids, _) in &self.write_event_notiers {
-                if ids.contains(&variable.id) {
+                if ids.contains(&variable.definition.id) {
                     return Err(super::SubscribeToWriteCommandError::AlreadySubscribed(
-                        variable.key.to_string(),
+                        variable.definition.key.to_string(),
                     ));
                 }
             }
@@ -428,7 +430,7 @@ impl ProviderWorker {
         // Create the write event notifier
         let (tx, rx) = mpsc::channel(100);
 
-        let variable_ids = variables.iter().map(|v| v.id).collect();
+        let variable_ids = variables.iter().map(|v| v.definition.id).collect();
         self.write_event_notiers.push((variable_ids, tx));
         Ok(rx)
     }
@@ -459,18 +461,20 @@ impl ProviderWorker {
             .filter_map(|to_conv| {
                 if let Some(current_variable) = self.variables.get(&to_conv.id) {
                     // Filter out read only variables
-                    if current_variable.read_only {
+                    if current_variable.definition.read_only {
                         trace!(
                             "Ignore write command on readonly variable with id `{}`",
                             to_conv.id
                         );
                         return None;
                     }
-                    // TODO: Could we do this without cloning?
-                    let mut variable_to_pass = current_variable.clone();
-                    let new_value = <Option<VariableValue>>::from(to_conv.value)?;
-                    variable_to_pass.value = new_value.clone();
-                    Some(variable_to_pass)
+
+                    let write_command = VariableWriteCommand {
+                        id: current_variable.definition.id,
+                        value: Option::<VariableValue>::from(to_conv.value)?,
+                    };
+
+                    Some(write_command)
                 } else {
                     trace!("Ignore non existing id `{}` from write command", to_conv.id);
                     None
@@ -482,9 +486,9 @@ impl ProviderWorker {
         for (index, (ids, tx)) in self.write_event_notiers.iter_mut().enumerate() {
             // Search out the variables for each sender
             // TODO: Could we do this without cloning?
-            let items_for_sender: Vec<Variable> = items
+            let items_for_sender: Vec<VariableWriteCommand> = items
                 .iter()
-                .filter(|var| ids.contains(&var.id))
+                .filter(|write_cmd| ids.contains(&write_cmd.id))
                 .cloned()
                 .collect();
 
@@ -507,37 +511,37 @@ impl ProviderWorker {
     }
 
     /// Update the value of a variable. You are not allowed to change the variable value data type.
-    async fn update_variable_values(
+    async fn update_variable_states(
         &mut self,
-        vars: Vec<Variable>,
+        states: Vec<VariableState>,
     ) -> Result<(), UpdateVariableValuesError> {
         // Check if the variable exists and if the value type is the same.
-        for update_variable in &vars {
+        for updated_state in &states {
             // TODO: Can we move some checks to compile time?
-            if let Some(current_variable) = self.variables.get_mut(&update_variable.id) {
-                if std::mem::discriminant(&update_variable.value)
-                    != std::mem::discriminant(&current_variable.value)
+            if let Some(updated_variable) = self.variables.get_mut(&updated_state.id) {
+                if std::mem::discriminant(&updated_variable.state.value)
+                    != std::mem::discriminant(&updated_state.value)
                 {
                     // Wrong value type
                     return Err(UpdateVariableValuesError::TypeMismatch(
-                        update_variable.key.clone(),
+                        updated_variable.definition.key.clone(),
                     ));
                 }
             } else {
                 // Can't find variable
-                return Err(UpdateVariableValuesError::VariableNotFound(
-                    update_variable.key.clone(),
-                ));
+                return Err(UpdateVariableValuesError::VariableNotFound(format!(
+                    "Variable with ID {}",
+                    updated_state.id
+                )));
             }
         }
 
-        let updated_ids: Vec<u32> = vars.iter().map(|x| x.id).collect();
+        let updated_ids: Vec<u32> = states.iter().map(|x| x.id).collect();
 
-        // Update the values internal
-        vars.into_iter().for_each(|update_variable| {
-            if let Some(current_variable) = self.variables.get_mut(&update_variable.id) {
-                current_variable.value = update_variable.value;
-                current_variable.last_value_change = update_variable.last_value_change;
+        // Update the states
+        states.into_iter().for_each(|updated_state| {
+            if let Some(updated_variable) = self.variables.get_mut(&updated_state.id) {
+                updated_variable.state = updated_state;
             }
         });
 
@@ -554,7 +558,7 @@ impl ProviderWorker {
         wait_for_success: bool,
     ) -> Result<(), RemoveVariablesError> {
         vars.into_iter().for_each(|x| {
-            self.variables.remove(&x.id);
+            self.variables.remove(&x.definition.id);
         });
 
         self.update_definition(wait_for_success)
@@ -577,10 +581,12 @@ impl ProviderWorker {
             }
         })?;
 
-        let var_ids: Vec<u32> = vars.iter().map(|x| x.id).collect();
+        let var_ids: Vec<u32> = vars.iter().map(|x| x.definition.id).collect();
 
-        self.variables
-            .extend(vars.into_iter().map(|variable| (variable.id, variable)));
+        self.variables.extend(
+            vars.into_iter()
+                .map(|variable| (variable.definition.id, variable)),
+        );
 
         self.update_definition(wait_for_success)
             .await
@@ -618,7 +624,7 @@ impl ProviderWorker {
     /// Publish value updates
     async fn publish_updates(
         &mut self,
-        changed: Option<Vec<u32>>,
+        changed: Option<Vec<VariableID>>,
     ) -> Result<(), async_nats::error::Error<async_nats::client::PublishErrorKind>> {
         let mut filtered = BTreeMap::new();
 

@@ -2,9 +2,8 @@
 //! These types abstract the low level flatbuffer types and provide a more user-friendly interface.
 
 use crate::{
-    dh_types::{self, VariableQuality},
+    dh_types::{self, TimestampValue, VariableQuality, VariableValue},
     generated::weidmueller::ucontrol::hub::{State, VariableT},
-    variable::{self, value::TimestampValue},
 };
 
 //TODO: how to handle type conversion errors? should that really cause an error, or do we want to have placeholder values?
@@ -44,7 +43,7 @@ pub struct VariableState {
     /// Variables can have their own timestamp or inherit the variable list timestamp.
     pub timestamp: TimestampValue,
     /// Current value of the variable
-    pub value: variable::value::VariableValue,
+    pub value: VariableValue,
     /// The quality of the variable
     pub quality: VariableQuality,
 }
@@ -63,7 +62,7 @@ impl VariableState {
             fallback_timestamp
         };
 
-        let mapped_value = Option::<variable::value::VariableValue>::from(ll_var.value)
+        let mapped_value = Option::<VariableValue>::from(ll_var.value)
             .ok_or(Error::FlatbufferDataTypeConversionFailure)?;
 
         Ok(VariableState {

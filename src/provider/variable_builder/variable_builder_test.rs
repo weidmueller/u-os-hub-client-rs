@@ -1,6 +1,6 @@
 use rstest::rstest;
 
-use crate::{provider::VariableBuildError, variable::value::VariableValue};
+use crate::provider::VariableBuildError;
 
 use super::VariableBuilder;
 
@@ -39,7 +39,9 @@ fn test_missing_value_error() {
 )]
 fn test_key_validation(#[case] key: String, #[case] valid: bool) {
     // Prepare
-    let my_var = VariableBuilder::new(0, &key).value(true);
+
+    use crate::dh_types::VariableValue;
+    let my_var = VariableBuilder::new(0, &key).initial_value(true);
 
     // Act
     let result = my_var.build();
@@ -48,10 +50,10 @@ fn test_key_validation(#[case] key: String, #[case] valid: bool) {
     match result {
         Ok(var) => {
             assert!(valid, "the variable should be valid");
-            assert_eq!(var.id, 0);
-            assert_eq!(var.key, key);
-            assert!(var.read_only);
-            assert_eq!(var.value, VariableValue::Boolean(true));
+            assert_eq!(var.definition.id, 0);
+            assert_eq!(var.definition.key, key);
+            assert!(var.definition.read_only);
+            assert_eq!(var.state.value, VariableValue::Boolean(true));
         }
         Err(e) => {
             assert!(!valid, "the variable should not be valid");

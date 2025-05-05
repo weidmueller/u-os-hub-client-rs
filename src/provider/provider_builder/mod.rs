@@ -9,6 +9,7 @@ use tracing::{debug, error};
 
 use crate::{
     authenticated_nats_con::{AuthenticatedNatsConnection, AuthenticationSettings},
+    dh_types::VariableID,
     provider::worker::ProviderWorker,
     variable::Variable,
 };
@@ -45,8 +46,10 @@ impl ProviderBuilder {
     pub fn add_variables(mut self, vars: Vec<Variable>) -> Result<Self, AddVariablesError> {
         check_for_duplicates(&self.variables, &vars)?;
 
-        let new_variables: BTreeMap<u32, Variable> =
-            vars.into_iter().map(|var| (var.id, var)).collect();
+        let new_variables: BTreeMap<VariableID, Variable> = vars
+            .into_iter()
+            .map(|var| (var.definition.id, var))
+            .collect();
 
         self.variables.extend(new_variables);
 
@@ -97,21 +100,25 @@ pub fn check_for_duplicates(
 
     // Check new variables
     for new_variable in variables_to_add {
-        if !new_ids.insert(new_variable.id) {
-            return Err(AddVariablesError::DuplicatedId(new_variable.id));
+        if !new_ids.insert(new_variable.definition.id) {
+            return Err(AddVariablesError::DuplicatedId(new_variable.definition.id));
         }
-        if !new_names.insert(new_variable.key.clone()) {
-            return Err(AddVariablesError::DuplicatedKey(new_variable.key.clone()));
+        if !new_names.insert(new_variable.definition.key.clone()) {
+            return Err(AddVariablesError::DuplicatedKey(
+                new_variable.definition.key.clone(),
+            ));
         }
     }
 
     // Check merged variables
     for (id, variable) in current_list {
         if new_ids.contains(id) {
-            return Err(AddVariablesError::DuplicatedId(variable.id));
+            return Err(AddVariablesError::DuplicatedId(variable.definition.id));
         }
-        if new_names.contains(&variable.key) {
-            return Err(AddVariablesError::DuplicatedKey(variable.key.clone()));
+        if new_names.contains(&variable.definition.key) {
+            return Err(AddVariablesError::DuplicatedKey(
+                variable.definition.key.clone(),
+            ));
         }
     }
     Ok(())

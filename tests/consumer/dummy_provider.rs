@@ -2,8 +2,8 @@ use std::{sync::Arc, time::Duration};
 
 use tokio::sync::Notify;
 use u_os_hub_client::{
+    dh_types::VariableValue,
     provider::{ProviderBuilder, VariableBuilder},
-    variable::value::VariableValue,
 };
 
 use crate::utils::create_auth_con;
@@ -35,22 +35,22 @@ impl DummyProvider {
 
         //add two readonly and two RW variables
         let mut ro_float = VariableBuilder::new(100, "my_folder.ro_float")
-            .value(VariableValue::Float64(123.0))
+            .initial_value(VariableValue::Float64(123.0))
             .experimental()
             .build()?;
 
         let rw_string = VariableBuilder::new(200, "my_folder.rw_string")
             .read_write()
-            .value("write me!")
+            .initial_value("write me!")
             .build()?;
 
         let rw_int = VariableBuilder::new(300, "my_folder.rw_int")
             .read_write()
-            .value(VariableValue::Int(1000))
+            .initial_value(VariableValue::Int(1000))
             .build()?;
 
         let mut ro_int = VariableBuilder::new(400, "my_folder.ro_int")
-            .value(VariableValue::Int(0))
+            .initial_value(VariableValue::Int(0))
             .build()?;
 
         let mut cur_vars = vec![
@@ -91,11 +91,14 @@ impl DummyProvider {
                 tokio::select! {
                     //wait for timer
                     _ = var_write_timer.tick() => {
-                        ro_float.value = VariableValue::Float64(cur_float_val);
-                        ro_int.value = VariableValue::Int(cur_int_val);
+                        let ro_float_state = ro_float.get_mut_state();
+                        let ro_int_state = ro_int.get_mut_state();
 
-                        let updated_vars = vec![ro_float.clone(), ro_int.clone()];
-                        provider.update_variable_values(updated_vars).await.unwrap();
+                        ro_float_state.set_value(cur_float_val);
+                        ro_int_state.set_value(cur_int_val);
+
+                        let updated_vars = vec![ro_float_state.clone(), ro_int_state.clone()];
+                        provider.update_variable_states(updated_vars).await.unwrap();
 
                         cur_float_val += 123.0;
                         cur_int_val += 1;
@@ -106,11 +109,11 @@ impl DummyProvider {
                         provider.remove_variables(cur_vars.clone()).await.unwrap();
 
                         let new_ro_float = VariableBuilder::new(10, "my_folder.ro_float")
-                            .value(VariableValue::Float64(255.0))
+                            .initial_value(VariableValue::Float64(255.0))
                             .build().unwrap();
 
                         let new_ro_int = VariableBuilder::new(40, "my_folder.ro_int2")
-                            .value(VariableValue::Int(0))
+                            .initial_value(VariableValue::Int(0))
                             .build().unwrap();
 
                         //change variable defs
@@ -119,15 +122,15 @@ impl DummyProvider {
                             new_ro_float.clone(),
                             VariableBuilder::new(20, "my_folder.rw_string")
                                 .read_write()
-                                .value("new string value")
+                                .initial_value("new string value")
                                 .build().unwrap(),
                             VariableBuilder::new(30, "my_folder.rw_int2")
                                 .read_write()
-                                .value(VariableValue::Int(-1000))
+                                .initial_value(VariableValue::Int(-1000))
                                 .build().unwrap(),
                             VariableBuilder::new(50, "my_folder.rw_int3")
                                 .read_write()
-                                .value(VariableValue::Int(-500))
+                                .initial_value(VariableValue::Int(-500))
                                 .build().unwrap(),
                         ];
 
@@ -137,8 +140,24 @@ impl DummyProvider {
                         ro_int = new_ro_int;
                     }
                     //wait for write command
-                    Some(written_vars) = subscribtion_to_write_cmd.recv() => {
-                        provider.update_variable_values(written_vars).await.unwrap();
+                    Some(write_commands) = subscribtion_to_write_cmd.recv() => {
+                        // Just accept all and update the states
+                        let mut updated_states = Vec::with_capacity(write_commands.len());
+
+                        for write_cmd in write_commands {
+                            //Note: Should use hashmap in production code here, but performance is ok for dummy
+                            let written_var = cur_vars
+                                .iter_mut()
+                                .find(|var| var.get_definition().id == write_cmd.id).ok_or(
+                                    anyhow::anyhow!("Received write command for unknown variable: {}", write_cmd.id)
+                                ).unwrap();
+
+                            let written_var_state = written_var.get_mut_state();
+                            written_var_state.set_value(write_cmd.value);
+                            updated_states.push(written_var_state.clone());
+                        }
+
+                        provider.update_variable_states(updated_states).await.unwrap();
                     }
                 }
             }

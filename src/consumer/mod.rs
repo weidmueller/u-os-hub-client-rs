@@ -8,26 +8,28 @@
 //! The low-level API is designed for advanced users who want to have full control and performance, at the cost of lower usability.
 //! It may change at any time without compatibility guarantees and uses raw NATS and flatbuffer data types without abstraction.
 //!
-//! All modules and structs with "DataHub / dh" in their name are part of the high-level API, while "Nats" indicates the low-level API.
+//! All modules and structs with "DataHub" in their name are part of the high-level API, while "Nats" indicates the low-level API.
 //! Please refer to the module and struct documentation for more details on the available APIs and data types.
 //!
 //! The following example demonstrates how to connect to a provider and read and write variables via the high-level API:
 //!
+//! First include the necessary modules:
+//!
 //! ```no_run
 //!# use std::sync::Arc;
 //!#
-//!# use u_os_hub_client::{
-//!#     authenticated_nats_con::{
-//!#         AuthenticationSettingsBuilder, NatsPermission, DEFAULT_U_OS_NATS_ADDRESS,
-//!#     },
-//!#     consumer::{
-//!#         connected_dh_provider::DataHubProviderConnection, dh_consumer::DataHubConsumer,
-//!#         variable_key::VariableKey,
-//!#     },
-//!#     oauth2::OAuth2Credentials,
-//!#     variable::value::VariableValue,
-//!# };
-//!#
+//! use u_os_hub_client::{
+//!     authenticated_nats_con::{
+//!         AuthenticationSettingsBuilder, NatsPermission, DEFAULT_U_OS_NATS_ADDRESS,
+//!     },
+//!     consumer::{
+//!         connected_dh_provider::DataHubProviderConnection, dh_consumer::DataHubConsumer,
+//!         variable_key::VariableKey,
+//!     },
+//!     oauth2::OAuth2Credentials,
+//!     dh_types::VariableValue
+//! };
+//!
 //! #[tokio::main]
 //! async fn main() -> anyhow::Result<()> {
 //!     //The provider id to connect to
@@ -38,7 +40,7 @@
 //!         .with_credentials(OAuth2Credentials {
 //!             //NATS client name of the consumer
 //!             client_name: "test-consumer".to_string(),
-//!             //Obtained by the uOS Identity&Access Client GUI
+//!             //Obtained by the u-OS Identity&Access Client GUI
 //!             client_id: "<your_oauth_client_id>".to_string(),
 //!             client_secret: "<your_oauth_client_secret>".to_string(),
 //!         })
@@ -49,17 +51,12 @@
 //!         Arc::new(DataHubConsumer::connect(DEFAULT_U_OS_NATS_ADDRESS, &auth_settings).await?);
 //!
 //!     //Connect to a provider
-//!     println!("Trying to connect to provider {provider_id:?} ...");
 //!     let dh_provider_con = DataHubProviderConnection::new(dh_consumer, provider_id, true).await?;
 //!
-//!     //Print all variable ids, their definition and their values
-//!     println!("Variable overview:");
+//!     //Example for accessing all variable ids, their definition and their values
 //!     for def in dh_provider_con.get_all_variable_definitions()? {
 //!         let var_key = &def.key;
 //!         let val = dh_provider_con.read_single_variable(var_key).await?;
-//!         println!("\t{var_key}:");
-//!         println!("\t\tDefinition: {def:?}");
-//!         println!("\t\tValue: {val:?}");
 //!     }
 //!
 //!     //Explicitly creating a variable key once and reusing it

@@ -1,6 +1,6 @@
 //! Welcome to the u-OS Data Hub client library.
 //!
-//! This library allows to interact with the uOS Variable Data Hub as a provider or consumer.
+//! This library allows to interact with the u-OS Variable Data Hub as a provider or consumer.
 //!
 //! As a starting point, please take a look at the [provider] and [consumer] module documentation.
 //! They provide example code and a detailed description of the available APIs.

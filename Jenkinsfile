@@ -13,7 +13,7 @@ pipeline {
     options {
         gitlabBuilds(builds: [
             'u-os-hub-client-rs: Check Code Formatting', 
-            'u-os-hub-client-rs: Build & Test with uOS rust version and oldest possible dependencies', 
+            'u-os-hub-client-rs: Build & Test with u-OS rust version and oldest possible dependencies', 
             'u-os-hub-client-rs: Build & Test with latest rust version and dependencies', 
             'u-os-hub-client-rs: Check for vulnerabilities'
         ])
@@ -27,7 +27,7 @@ pipeline {
                 }
             }
         }
-        stage('u-os-hub-client-rs: Build & Test with uOS rust version and oldest possible dependencies') { 
+        stage('u-os-hub-client-rs: Build & Test with u-OS rust version and oldest possible dependencies') { 
             steps {
                 gitlabCommitStatus(name:"$STAGE_NAME") {
                     sh 'rm -f Cargo.lock'

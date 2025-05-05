@@ -1,10 +1,10 @@
 use serial_test::serial;
 use u_os_hub_client::{
+    dh_types::VariableValue,
     generated::weidmueller::ucontrol::hub::root_as_read_variables_query_response,
     nats_subjects,
     payload_builders::build_read_variables_query_request,
     provider::{ProviderBuilder, VariableBuilder},
-    variable::value::VariableValue,
 };
 
 use crate::utils::{self, fake_registry::FakeRegistry};
@@ -21,12 +21,12 @@ async fn test_read_all_variables() {
 
     let provider_builder = ProviderBuilder::new();
     let var1 = VariableBuilder::new(0, "my_folder.my_variable_1")
-        .value(true)
+        .initial_value(true)
         .build()
         .expect("variable should build");
 
     let var2 = VariableBuilder::new(1, "my_folder.my_variable_2")
-        .value("Test_String123")
+        .initial_value("Test_String123")
         .build()
         .expect("variable should build");
 
@@ -61,9 +61,9 @@ async fn test_read_all_variables() {
     for variable in &variables {
         match variable.id {
             0 => {
-                if let VariableValue::Boolean(value) = var1.value {
+                if let VariableValue::Boolean(value) = var1.get_state().get_value() {
                     assert_eq!(
-                        variable
+                        &variable
                             .value
                             .as_boolean()
                             .expect("this should be a boolean")
@@ -75,14 +75,14 @@ async fn test_read_all_variables() {
                 }
             }
             1 => {
-                if let VariableValue::String(value) = var2.value.clone() {
+                if let VariableValue::String(value) = var2.get_state().get_value() {
                     assert_eq!(
                         variable
                             .value
                             .as_string()
                             .expect("this should be a string")
                             .value
-                            .clone()
+                            .as_ref()
                             .expect("this value should be empty"),
                         value
                     );
@@ -107,12 +107,12 @@ async fn test_read_one_variable() {
 
     let provider_builder = ProviderBuilder::new();
     let var1 = VariableBuilder::new(0, "my_folder.my_variable_1")
-        .value(true)
+        .initial_value(true)
         .build()
         .expect("variable should build");
 
     let var2 = VariableBuilder::new(1, "my_folder.my_variable_2")
-        .value("Test_String123")
+        .initial_value("Test_String123")
         .build()
         .expect("variable should build");
 
@@ -147,14 +147,14 @@ async fn test_read_one_variable() {
     for variable in &variables {
         match variable.id {
             1 => {
-                if let VariableValue::String(value) = var2.value.clone() {
+                if let VariableValue::String(value) = var2.get_state().get_value() {
                     assert_eq!(
                         variable
                             .value
                             .as_string()
                             .expect("this should be a string")
                             .value
-                            .clone()
+                            .as_ref()
                             .expect("this value should be empty"),
                         value
                     );

@@ -6,27 +6,29 @@ use bytes::Bytes;
 use flatbuffers::FlatBufferBuilder;
 
 use crate::{
+    dh_types::{TimestampValue, VariableID},
     generated::weidmueller::ucontrol::hub::{
         ProviderDefinitionChangedEventT, ProviderDefinitionT, ProviderListT, ProviderT,
         ProvidersChangedEventT, ReadProviderDefinitionQueryResponseT, ReadProvidersQueryResponseT,
         ReadVariablesQueryRequestT, ReadVariablesQueryResponseT, State, StateChangedEvent,
-        StateChangedEventArgs, VariableListT, VariableQuality, VariableT, VariableValueT,
-        VariablesChangedEventT, WriteVariablesCommandT,
+        StateChangedEventArgs, TimestampT, VariableListT, VariableQuality, VariableT,
+        VariableValueT, VariablesChangedEventT, WriteVariablesCommandT,
     },
+    provider::provider_types::VariableWriteCommand,
     variable::Variable,
 };
 
 #[derive(Clone, Debug)]
 pub struct VariableUpdate {
-    pub id: u32,
+    pub id: VariableID,
     pub value: VariableValueT,
 }
 
-impl From<Variable> for VariableUpdate {
-    fn from(var: Variable) -> Self {
+impl From<VariableWriteCommand> for VariableUpdate {
+    fn from(cmd: VariableWriteCommand) -> Self {
         VariableUpdate {
-            id: var.id,
-            value: VariableValueT::from(&var.value),
+            id: cmd.id,
+            value: VariableValueT::from(&cmd.value),
         }
     }
 }
@@ -37,6 +39,7 @@ impl From<VariableUpdate> for VariableT {
             id: variable_update.id,
             value: variable_update.value,
             //Write defaults/zeroes for quality and timestamp
+            //TODO: Fix this in the flatbufers spec. Should only allow to write value, not quality or timestamp.
             quality: VariableQuality::BAD,
             timestamp: None,
         }
@@ -62,7 +65,8 @@ pub fn build_write_variables_command(
     let var_list = VariableListT {
         provider_definition_fingerprint: based_on_fingerprint,
         items: Some(variables.into_iter().map(|v| v.into()).collect()),
-        ..Default::default()
+        //We always write a zero timestamp as a consumer, as the timestamp is in the control of the provider
+        base_timestamp: TimestampT::default(),
     };
 
     let content = WriteVariablesCommandT {
@@ -176,8 +180,6 @@ pub fn build_read_variables_query_response(
 ) -> Bytes {
     let mut response = ReadVariablesQueryResponseT::default();
 
-    let mut var_list_flat = VariableListT::default();
-
     let items: Vec<&Variable> = match msg.ids {
         Some(ids) => variables
             .iter()
@@ -189,8 +191,12 @@ pub fn build_read_variables_query_response(
 
     let items = items.into_iter().map(|x| x.into()).collect();
 
-    var_list_flat.items = Some(items);
-    var_list_flat.provider_definition_fingerprint = provider_definition_fingerprint;
+    let var_list_flat = VariableListT {
+        items: Some(items),
+        provider_definition_fingerprint,
+        //Write current timestamp as base timestamp
+        base_timestamp: TimestampValue::now().into(),
+    };
 
     response.variables = Box::new(var_list_flat);
 
@@ -203,6 +209,8 @@ pub fn build_read_variables_query_response(
 }
 
 /// Builds the payload of the variables changed event
+///
+/// The base_timestamp is automatically set to the current time.
 pub fn build_variables_changed_event(
     variables: &BTreeMap<u32, Variable>,
     provider_definition_fingerprint: u64,
@@ -214,7 +222,8 @@ pub fn build_variables_changed_event(
     let var_list_flat = VariableListT {
         items: Some(to_publish),
         provider_definition_fingerprint,
-        ..Default::default()
+        //Write current timestamp as base timestamp
+        base_timestamp: TimestampValue::now().into(),
     };
 
     response.changed_variables = Box::new(var_list_flat);

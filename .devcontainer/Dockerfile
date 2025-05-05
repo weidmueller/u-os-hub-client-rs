@@ -4,7 +4,7 @@ FROM mcr.microsoft.com/vscode/devcontainers/rust:1.0.22-${VARIANT}
 # See here for the contents of the image:
 # https://github.com/devcontainers/images/blob/main/src/rust/history/dev.md#variant-bookworm
 
-# Rust Version that is used by uOS
+# Rust Version that is used by u-OS
 ENV U_OS_RUST_VERSION="1.75.0"
 
 # Adjust the following args to the username and groupname of the base image
@@ -44,7 +44,7 @@ RUN git clone https://github.com/google/flatbuffers.git && cd flatbuffers \
 # Install nightly rust toolchain, needed for cargo -Z flags
 RUN rustup toolchain install nightly
 
-# Install rust version that uOS uses
+# Install rust version that u-OS uses
 # This is used during CI to ensure that the code also compiles with the same version as in production
 RUN rustup toolchain install ${U_OS_RUST_VERSION}
 RUN rustup component add --toolchain ${U_OS_RUST_VERSION} clippy

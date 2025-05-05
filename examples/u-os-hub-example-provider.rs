@@ -1,14 +1,14 @@
 //! This example shows how to provide variables to the data hub.
 
 use clap::Parser;
-use std::time::Duration;
+use std::{collections::HashMap, time::Duration};
 use tracing::error;
 
 use tokio::{select, task, time::sleep};
 
 use u_os_hub_client::{
+    dh_types::{DurationValue, TimestampValue, VariableQuality},
     provider::{Provider, ProviderBuilder, VariableBuilder},
-    variable::value::{DurationValue, TimestampValue, VariableValue},
 };
 
 mod utils;
@@ -48,12 +48,12 @@ async fn main() -> anyhow::Result<()> {
 }
 
 async fn example_service_1(hub_provider: Provider) -> anyhow::Result<()> {
-    let dat1_builder = VariableBuilder::new(0, "folder1.int_counter").value(0);
+    let dat1_builder = VariableBuilder::new(0, "folder1.int_counter").initial_value(0);
 
     let mut data1 = dat1_builder.build()?;
 
     let folder_version = VariableBuilder::new(1, "folder1.version")
-        .value("1.0.0")
+        .initial_value("1.0.0")
         .build()?;
 
     hub_provider
@@ -62,12 +62,12 @@ async fn example_service_1(hub_provider: Provider) -> anyhow::Result<()> {
 
     let mut counter = 0;
     loop {
-        data1.value = VariableValue::Int(counter);
-        data1.last_value_change = TimestampValue::now();
+        let data1_state = data1.get_mut_state();
+        data1_state.set_value(counter);
         counter += 1;
 
         hub_provider
-            .update_variable_values(vec![data1.clone()])
+            .update_variable_states(vec![data1_state.clone()])
             .await
             .ok();
         sleep(Duration::from_secs(1)).await;
@@ -75,37 +75,39 @@ async fn example_service_1(hub_provider: Provider) -> anyhow::Result<()> {
 }
 
 async fn example_service_2(hub_provider: Provider) -> anyhow::Result<()> {
-    let dat1_builder = VariableBuilder::new(3, "folder2.float_counter").value(0.0);
+    let dat1_builder = VariableBuilder::new(3, "folder2.float_counter").initial_value(0.0);
 
     //Make sure that there is one writable variable for each type so we can test read/write of all types
     //Make some experimental
     let writable_vars = vec![
         VariableBuilder::new(4, "folder2.writable_string")
-            .value("Write me!")
+            .initial_value("Write me!")
             .read_write()
             .build()?,
         VariableBuilder::new(5, "folder2.writable_int")
-            .value(1337)
+            .initial_value(1337)
             .read_write()
             .build()?,
         VariableBuilder::new(6, "folder2.writable_bool")
-            .value(true)
+            .initial_value(true)
             .read_write()
             .build()?,
         VariableBuilder::new(7, "folder2.writable_float")
-            .value(1122.3344)
+            .initial_value(1122.3344)
             .read_write()
             .build()?,
         VariableBuilder::new(8, "folder2.writable_timestamp")
-            .value(TimestampValue::now())
+            .initial_value(TimestampValue::now())
             .read_write()
             .build()?,
         VariableBuilder::new(9, "folder2.writable_duration")
-            .value(DurationValue::new(123, 456))
+            .initial_value(DurationValue::new(123, 456))
             .read_write()
             .build()?,
         VariableBuilder::new(10, "folder2.experimental_string")
-            .value("experimental_value")
+            .initial_value("experimental_value")
+            .initial_quality(VariableQuality::Uncertain)
+            .initial_timestamp(None)
             .experimental()
             .read_write()
             .build()?,
@@ -114,7 +116,7 @@ async fn example_service_2(hub_provider: Provider) -> anyhow::Result<()> {
     let mut data1 = dat1_builder.build()?;
 
     let folder_version = VariableBuilder::new(11, "folder2.version")
-        .value("1.0.0")
+        .initial_value("1.0.0")
         .build()?;
 
     let mut all_vars = vec![data1.clone(), folder_version];
@@ -123,28 +125,55 @@ async fn example_service_2(hub_provider: Provider) -> anyhow::Result<()> {
 
     let mut interval = tokio::time::interval(Duration::from_secs(1));
 
-    let mut rw_subscribtion = hub_provider
-        .subscribe_to_write_command(writable_vars)
+    let mut write_command_sub = hub_provider
+        .subscribe_to_write_command(writable_vars.clone())
         .await?;
+
+    //Convert to hashmap for faster ID lookup
+    let mut writable_vars = writable_vars
+        .into_iter()
+        .map(|v| (v.get_definition().id, v))
+        .collect::<HashMap<_, _>>();
 
     let mut float_counter = 0.0;
     loop {
         select! {
+            //Update the value of our read-only variable periodically
             _ = interval.tick() => {
-                data1.value = VariableValue::Float64(float_counter);
-                data1.last_value_change = TimestampValue::now();
+                let data1_state = data1.get_mut_state();
+                data1_state.set_value(float_counter);
 
                 float_counter += 1.23;
 
-                hub_provider.update_variable_values(vec![data1.clone()]).await?;
-            }
-
-            Some(mut vars) = rw_subscribtion.recv() => {
-                // Just accept all and update the values and timestamps
-                for var in &mut vars {
-                    var.last_value_change = TimestampValue::now();
+                // Publish the updated value to the Data Hub
+                if let Err(e) = hub_provider.update_variable_states(vec![data1_state.clone()]).await {
+                    eprintln!("Error updating variable states: {e}");
                 }
-                hub_provider.update_variable_values(vars).await?;
+            }
+            //React to write commands of consumers
+            Some(write_commands) = write_command_sub.recv() => {
+                // The logic here is implementation defined
+                // In this example, we simply accept all write commands and update the states
+                let mut updated_states = Vec::with_capacity(write_commands.len());
+
+                for write_cmd in write_commands {
+                    let written_var = writable_vars.get_mut(&write_cmd.id);
+
+                    if let Some(written_var) = written_var {
+                        // Update the variable state with the new value. This will automatically update the timestamp
+                        let written_var_state = written_var.get_mut_state();
+                        written_var_state.set_value(write_cmd.value);
+                        updated_states.push(written_var_state.clone());
+                    }
+                    else {
+                        eprintln!("Received write command for unknown variable ID: {}", write_cmd.id);
+                    }
+                }
+
+                // Publish the updated states to the Data Hub
+                if let Err(e) = hub_provider.update_variable_states(updated_states).await {
+                    eprintln!("Error updating variable states: {e}");
+                }
             }
         }
     }

@@ -6,9 +6,7 @@
 //! The following example demonstrates how to set up a basic provider that updates a variable periodically and accepts write commands from consumers.
 //!
 //! ```no_run
-//!# use std::time::Duration;
-//!#
-//!# use tokio::{select, task, time::sleep};
+//!# use std::{collections::HashMap, time::Duration};
 //!#
 //! use u_os_hub_client::{
 //!     authenticated_nats_con::{
@@ -16,28 +14,29 @@
 //!     },
 //!     oauth2::OAuth2Credentials,
 //!     provider::{Provider, ProviderBuilder, VariableBuilder},
-//!     variable::value::VariableValue,
+//!     variable::Variable,
 //! };
 //!
-//! async fn provider_example() -> anyhow::Result<()> {
+//! /// Demonstrates how to create a provider that serves variables to the Data Hub.
+//! async fn provider_init() -> anyhow::Result<()> {
 //!     //Configure your nats server authentication
 //!     let auth_settings = AuthenticationSettingsBuilder::new(NatsPermission::VariableHubProvide)
 //!         .with_credentials(OAuth2Credentials {
 //!             //NATS client name of the provider
 //!             client_name: "test-provider".to_string(),
-//!             //Obtained by the uOS Identity&Access Client GUI
+//!             //Obtained by the u-OS Identity&Access Client GUI
 //!             client_id: "<your_oauth_client_id>".to_string(),
 //!             client_secret: "<your_oauth_client_secret>".to_string(),
 //!         })
 //!         .build();
 //!
 //!     // Create some Variables by using a VariableBuilder
-//!     let mut ro_int = VariableBuilder::new(300, "my_folder.ro_int")
-//!         .value(1000)
+//!     let ro_int = VariableBuilder::new(300, "my_folder.ro_int")
+//!         .initial_value(1000)
 //!         .build()?;
 //!
 //!     let rw_string = VariableBuilder::new(200, "my_folder.rw_string")
-//!         .value("write me!")
+//!         .initial_value("write me!")
 //!         .read_write()
 //!         .build()?;
 //!
@@ -51,11 +50,27 @@
 //!         .register(DEFAULT_U_OS_NATS_ADDRESS, &auth_settings)
 //!         .await?;
 //!
-//!     // Simulate the logic of our provider
-//!     // For simplicity, we simply modify one of our variables and accept write commands on the other variable
+//!     //Start endless loop for provider logic
+//!     provider_logic(provider, ro_int, rw_string).await?;
 //!
-//!     // Subscribe to write requests of our RW variable
-//!     let mut write_command_sub = provider.subscribe_to_write_command(vec![rw_string]).await?;
+//!     Ok(())
+//! }
+//!
+//! /// Simulates the logic of our provider.
+//! ///
+//! /// For simplicity, we simply modify one of our variables and accept write commands on the other variable
+//! async fn provider_logic(
+//!     provider: Provider,
+//!     mut ro_int: Variable,
+//!     rw_string: Variable,
+//! ) -> anyhow::Result<()> {
+//!     // Subscribe to write requests of our RW variables
+//!     // We use a hashmap to quickly find the variable by its id later
+//!     let mut writable_vars = HashMap::from([(rw_string.get_definition().id, rw_string)]);
+//!
+//!     let mut write_command_sub = provider
+//!         .subscribe_to_write_command(writable_vars.values().cloned().collect())
+//!         .await?;
 //!
 //!     // Start a periodic timer to update the value of our read-only variable
 //!     let mut var_write_timer = tokio::time::interval(Duration::from_secs(1));
@@ -65,29 +80,51 @@
 //!
 //!     loop {
 //!         tokio::select! {
-//!             //Increment the value of ro_int periodically
+//!             // Increment the value of ro_int periodically
 //!             _ = var_write_timer.tick() => {
-//!                 ro_int.value = VariableValue::Int(cur_int_val);
+//!                 let ro_int_state = ro_int.get_mut_state();
+//!                 ro_int_state.set_value(cur_int_val);
 //!
-//!                 let updated_vars = vec![ro_int.clone()];
-//!                 provider.update_variable_values(updated_vars).await?;
+//!                 let updated_states = vec![ro_int_state.clone()];
+//!                 if let Err(e) = provider.update_variable_states(updated_states).await {
+//!                     eprintln!("Error updating variable states: {e}");
+//!                 }
 //!
 //!                 cur_int_val += 1;
 //!             },
-//!             //For simplicity, simply accept all write commands from consumer clients
-//!             //Real providers would probably check the write commands and only accept some of them
-//!             Some(written_vars) = write_command_sub.recv() => {
-//!                 provider.update_variable_values(written_vars).await?;
+//!             // React to write commands of consumers
+//!             Some(write_commands) = write_command_sub.recv() => {
+//!                 // The logic here is implementation defined
+//!                 // In this example, we simply accept all write commands and update the states
+//!                 let mut updated_states = Vec::with_capacity(write_commands.len());
+//!
+//!                 for write_cmd in write_commands {
+//!                     let written_var = writable_vars.get_mut(&write_cmd.id);
+//!
+//!                     if let Some(written_var) = written_var {
+//!                         // Update the variable state with the new value. This will automatically update the timestamp
+//!                         let written_var_state = written_var.get_mut_state();
+//!                         written_var_state.set_value(write_cmd.value);
+//!                         updated_states.push(written_var_state.clone());
+//!                     }
+//!                     else {
+//!                         eprintln!("Received write command for unknown variable ID: {}", write_cmd.id);
+//!                     }
+//!                 }
+//!
+//!                 // Publish the updated states to the Data Hub
+//!                 if let Err(e) = provider.update_variable_states(updated_states).await {
+//!                     eprintln!("Error updating variable states: {e}");
+//!                 }
 //!             }
 //!         }
 //!     }
-//!
-//!    Ok(())
 //! }
 //! ```
 
 pub mod provider_builder;
 pub mod provider_definition_validator;
+pub mod provider_types;
 
 pub mod test_data;
 
@@ -97,6 +134,7 @@ mod worker;
 
 pub use provider_builder::ProviderBuilder;
 use provider_builder::UpdateProviderDefinitionError;
+use provider_types::{VariableState, VariableWriteCommand};
 use thiserror::Error;
 pub use variable_builder::{VariableBuildError, VariableBuilder};
 
@@ -119,8 +157,8 @@ pub(crate) enum ProviderCommand {
         Vec<Variable>,
         oneshot::Sender<Result<(), RemoveVariablesError>>,
     ),
-    UpdateValues(
-        Vec<Variable>,
+    UpdateStates(
+        Vec<VariableState>,
         oneshot::Sender<Result<(), UpdateVariableValuesError>>,
     ),
     HandleWrite(Message),
@@ -129,7 +167,9 @@ pub(crate) enum ProviderCommand {
     Unregister,
     Subscribe(
         Vec<Variable>,
-        oneshot::Sender<Result<mpsc::Receiver<Vec<Variable>>, SubscribeToWriteCommandError>>,
+        oneshot::Sender<
+            Result<mpsc::Receiver<Vec<VariableWriteCommand>>, SubscribeToWriteCommandError>,
+        >,
     ),
 }
 
@@ -246,17 +286,19 @@ impl Provider {
         }
     }
 
-    /// Updates the values of the variables.
+    /// Allows to updates the states (e.g. value, timestamp, quality) of variables.
     ///
     /// This will fail if a variable does not currently exist on the provider or the value type does not match the variable type.
     /// Will trigger a publish on the NATS layer which notifies all subscribed consumers.
-    pub async fn update_variable_values(
+    ///
+    /// Note that you can not change a variable definition after adding it to the provider. To do so, remove and re-add the variable.
+    pub async fn update_variable_states(
         &self,
-        variables: Vec<Variable>,
+        states: Vec<VariableState>,
     ) -> Result<(), UpdateVariableValuesError> {
         let (tx, rx) = oneshot::channel();
         self.command_channel
-            .send(ProviderCommand::UpdateValues(variables, tx))
+            .send(ProviderCommand::UpdateStates(states, tx))
             .await
             .map_err(|_| UpdateVariableValuesError::ProviderThreadCrashed)?;
 
@@ -273,7 +315,7 @@ impl Provider {
     pub async fn subscribe_to_write_command(
         &self,
         variables: Vec<Variable>,
-    ) -> Result<Receiver<Vec<Variable>>, SubscribeToWriteCommandError> {
+    ) -> Result<Receiver<Vec<VariableWriteCommand>>, SubscribeToWriteCommandError> {
         let (tx, rx) = oneshot::channel();
         self.command_channel
             .send(ProviderCommand::Subscribe(variables, tx))
