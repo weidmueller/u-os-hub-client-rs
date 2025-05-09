@@ -2,7 +2,7 @@
 
 REMOTE_ADDR=$1
 
-set -eu
+set -euo pipefail
 
 REMOTE_DIRECTORY="/usr/bin"
 SYSTEMD_SERVICE_DIRECTORY="/usr/lib/systemd/system"

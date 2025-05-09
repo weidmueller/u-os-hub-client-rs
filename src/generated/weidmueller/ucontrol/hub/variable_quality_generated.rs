@@ -25,10 +25,10 @@ pub const ENUM_VALUES_VARIABLE_QUALITY: [VariableQuality; 5] = [
   VariableQuality::GOOD,
 ];
 
-/// The quality of a variable
+/// The quality of a variable.
 ///
 /// This is set by the provider and indicates the quality of a variable value.
-/// The `Uncertain` states are modelled after the OPC UA specification.  
+/// Check the documentation of the individual values for more information.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 #[repr(transparent)]
 pub struct VariableQuality(pub u8);

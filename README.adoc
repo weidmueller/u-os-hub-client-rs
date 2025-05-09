@@ -3,32 +3,17 @@
 
 == Introduction
 
-This is the u-OS Data Hub client library.
-The focus of this library is high performance.
+Welcome to the u-OS Data Hub client library.
 
-This library primary contains:
-
-- Provider Handling
-- Consumer Handling (currently not implemented)
-- The generated flatbuffers of the Variable-NATS-API
-
-== Maintainers
-
-This project is currently maintained by:
-
-- Etienne Schmidt (w011279)
-- Christian Peters (w011238)
-- Kristina Henning (w011985)
-
-Please contact the persons above for merge requests or any questions regarding this repository.
+This library allows to interact with the u-OS Variable Data Hub as a provider or consumer.
+Please refer to the rustdocs for more information on how to use the library.
 
 == How to add this crate to your cargo project
 
 You just need to add the following to your Cargo.toml and update the hash of the latest commit.
-// TODO: Add github url until it exists
 ```toml
 [dependencies]
-u-os-hub-client = { git = "https://srvde554.weidmueller.com/gitlab/u-control/uc-hub-client-rs.git", rev = "LATEST_HASH" }
+u-os-hub-client = { git = "https://github.com/weidmueller/u-os-hub-client-rs.git", rev = "LATEST_HASH" }
 ```
 
 == Getting started

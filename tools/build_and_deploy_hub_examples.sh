@@ -3,7 +3,7 @@
 REMOTE_ADDR=$1
 TARGET=$2
 
-set -eu
+set -euo pipefail
 
 REMOTE_DIRECTORY="/usr/bin"
 SYSTEMD_SERVICE_DIRECTORY="/usr/lib/systemd/system"
@@ -77,6 +77,8 @@ ssh root@$REMOTE_ADDR "echo 'hub.variables.provide' > $HYDRA_CLIENTS_DIR/u_os_hu
 ssh root@$REMOTE_ADDR "echo 'hub.variables.readwrite' > $HYDRA_CLIENTS_DIR/u_os_hub_example_consumer"
 ssh root@$REMOTE_ADDR "systemctl restart hydra-client-creator"
 
+# Note: This is not recommended for production systems
+# We will rework the example script soon to include a more idiomatic way to upload the services
 echo "--> Mount / as ro"
 ssh root@$REMOTE_ADDR "mount / -o ro,remount"
 

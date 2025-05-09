@@ -1,7 +1,7 @@
 [package]
 name = "u-os-hub-client"
 description = "u-OS Data Hub Client"
-version = "0.1.0"
+version = "0.1.0-next"
 edition = "2021"
 rust-version = "1.75"
 

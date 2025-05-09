@@ -1,8 +1,7 @@
 # For library crates, we always use the most recent stable version of rust
 ARG VARIANT="bookworm"
 FROM mcr.microsoft.com/vscode/devcontainers/rust:1.0.22-${VARIANT}
-# See here for the contents of the image:
-# https://github.com/devcontainers/images/blob/main/src/rust/history/dev.md#variant-bookworm
+# See here for the contents of the image: https://github.com/devcontainers/images/blob/main/src/rust/history
 
 # Rust Version that is used by u-OS
 ENV U_OS_RUST_VERSION="1.75.0"
@@ -11,15 +10,6 @@ ENV U_OS_RUST_VERSION="1.75.0"
 ARG BASE_IMAGE_USERNAME="vscode"
 ARG BASE_IMAGE_GROUP="${BASE_IMAGE_USERNAME}"
 ARG HOME=/home/${BASE_IMAGE_USERNAME}
-
-# Overwriteable from outside via build-args
-ARG USER_UID=1000
-ARG USER_GID=1000
-
-# Change uid and gid of base image user
-RUN groupmod -g ${USER_GID} ${BASE_IMAGE_GROUP}
-RUN usermod -u ${USER_UID} -g ${USER_GID} ${BASE_IMAGE_USERNAME}
-RUN chown ${USER_UID}:${USER_GID} ${HOME} -R
 
 RUN apt-get update \
     && apt-get install -y \
@@ -79,6 +69,3 @@ ENV PATH=$PATH:/home/vscode
 
 # Add localhost nats server to contexts
 RUN nats context add localhost --description "Localhost"
-
-ENTRYPOINT ["/usr/bin/bash", "-c", "nats-server -a 127.0.0.1 -p 4222 > $HOME/nats-log.txt 2>&1"]
-
