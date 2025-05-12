@@ -12,8 +12,6 @@ rm -Rf $dest_path/*
 
 api_path="../external/u-os-hub-api"
 
-tree $api_path
-
 flatc -o $dest_path -r --gen-object-api --bfbs-comments --rust-serialize --rust-module-root-file \
     $api_path/flatbuffers/types/uuid.fbs \
     $api_path/flatbuffers/types/timestamp.fbs \
