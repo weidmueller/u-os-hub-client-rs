@@ -24,7 +24,7 @@ async fn test_register_provider_with_variables() {
     let auth_nats_con = utils::create_auth_con(PROVIDER_ID).await;
     let test_nats_client = auth_nats_con.get_client();
 
-    let mut registry_def_changed_subscribtion = test_nats_client
+    let mut registry_def_changed_subscription = test_nats_client
         .subscribe(nats_subjects::registry_provider_definition_changed_event(
             PROVIDER_ID,
         ))
@@ -55,7 +55,7 @@ async fn test_register_provider_with_variables() {
     // assert
     if let Ok(Some(msg)) = timeout(
         Duration::from_secs(1),
-        registry_def_changed_subscribtion.next(),
+        registry_def_changed_subscription.next(),
     )
     .await
     {
@@ -94,7 +94,7 @@ async fn test_resend_provider_definition_on_registry_up_event() {
     let auth_nats_con = utils::create_auth_con(PROVIDER_ID).await;
     let test_nats_client = auth_nats_con.get_client().clone();
 
-    let mut def_changed_subscribtion = test_nats_client
+    let mut def_changed_subscription = test_nats_client
         .subscribe(nats_subjects::provider_changed_event(PROVIDER_ID))
         .await
         .unwrap();
@@ -119,7 +119,7 @@ async fn test_resend_provider_definition_on_registry_up_event() {
         .expect("provider should register");
 
     // First definition can be ignored (we wanna test what happes on registry up event)
-    let _ = timeout(Duration::from_secs(1), def_changed_subscribtion.next())
+    let _ = timeout(Duration::from_secs(1), def_changed_subscription.next())
         .await
         .expect("Provider definition should be published");
 
@@ -132,7 +132,7 @@ async fn test_resend_provider_definition_on_registry_up_event() {
         .expect("should publish registry up event");
 
     // assert
-    if let Ok(Some(msg)) = timeout(Duration::from_secs(1), def_changed_subscribtion.next()).await {
+    if let Ok(Some(msg)) = timeout(Duration::from_secs(1), def_changed_subscription.next()).await {
         let provider_definition = root_as_read_provider_definition_query_response(&msg.payload)
             .unwrap()
             .unpack()

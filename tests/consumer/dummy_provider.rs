@@ -76,7 +76,7 @@ impl DummyProvider {
                 .unwrap();
 
             //Register write handler for RW vars
-            let mut subscribtion_to_write_cmd = provider
+            let mut subscription_to_write_cmd = provider
                 .subscribe_to_write_command(vec![rw_string.clone(), rw_int.clone()])
                 .await
                 .unwrap();
@@ -140,7 +140,7 @@ impl DummyProvider {
                         ro_int = new_ro_int;
                     }
                     //wait for write command
-                    Some(write_commands) = subscribtion_to_write_cmd.recv() => {
+                    Some(write_commands) = subscription_to_write_cmd.recv() => {
                         // Just accept all and update the states
                         let mut updated_states = Vec::with_capacity(write_commands.len());
 

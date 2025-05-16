@@ -183,7 +183,7 @@ impl ProviderWorker {
         // Update the fingerprint
         self.current_fingerprint = calc_variables_hash(&self.variables);
 
-        let mut registry_provider_definition_updated_subscribtion = self
+        let mut registry_provider_definition_updated_subscription = self
             .get_nats_client()
             .subscribe(nats_subjects::registry_provider_definition_changed_event(
                 self.get_provider_id(),
@@ -212,7 +212,7 @@ impl ProviderWorker {
             debug!("Waiting for the provider definition validation of the registry...");
             loop {
                 select! {
-                    Some(msg) = registry_provider_definition_updated_subscribtion.next() => {
+                    Some(msg) = registry_provider_definition_updated_subscription.next() => {
                         if let Ok(parsed_message) =
                         flatbuffers::root::<ProviderDefinitionChangedEvent>(&msg.payload)
                         {

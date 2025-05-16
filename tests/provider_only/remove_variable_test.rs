@@ -21,7 +21,7 @@ async fn test_remove_variables() {
     let auth_nats_con = utils::create_auth_con(PROVIDER_ID).await;
     let test_nats_client = auth_nats_con.get_client();
 
-    let mut def_changed_subscribtion = test_nats_client
+    let mut def_changed_subscription = test_nats_client
         .subscribe(nats_subjects::provider_changed_event(PROVIDER_ID))
         .await
         .unwrap();
@@ -45,7 +45,7 @@ async fn test_remove_variables() {
         .expect("provider should register");
 
     // Register definition can be ignored (we wanna test the definition after removing a variable)
-    let _ = timeout(Duration::from_secs(1), def_changed_subscribtion.next())
+    let _ = timeout(Duration::from_secs(1), def_changed_subscription.next())
         .await
         .expect("Provider definition should be published");
 
@@ -56,7 +56,7 @@ async fn test_remove_variables() {
         .expect("should add a new variable");
 
     // assert
-    if let Ok(Some(msg)) = timeout(Duration::from_secs(1), def_changed_subscribtion.next()).await {
+    if let Ok(Some(msg)) = timeout(Duration::from_secs(1), def_changed_subscription.next()).await {
         let provider_definition = root_as_read_provider_definition_query_response(&msg.payload)
             .unwrap()
             .unpack()

@@ -222,7 +222,7 @@ pub enum SubscribeToWriteCommandError {
     ProviderThreadCrashed,
     #[error("Can't find variable `{0}`")]
     VariableNotFound(String),
-    #[error("There is already an active write subscribtion of the variable `{0}`")]
+    #[error("There is already an active write subscription of the variable `{0}`")]
     AlreadySubscribed(String),
     #[error("Can't subscribt to write command of read only variabe `{0}`")]
     ReadOnlyVariable(String),
