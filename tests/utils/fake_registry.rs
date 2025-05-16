@@ -46,7 +46,7 @@ impl FakeRegistry {
 
         let auth_nats_con = create_auth_con("fake-registry").await;
 
-        let mut def_changed_subscribtion = auth_nats_con
+        let mut def_changed_subscription = auth_nats_con
             .get_client()
             .subscribe(nats_subjects::provider_changed_event("*"))
             .await
@@ -70,7 +70,7 @@ impl FakeRegistry {
 
             loop {
                 tokio::select! {
-                    Some(msg) = def_changed_subscribtion.next() => {
+                    Some(msg) = def_changed_subscription.next() => {
                         Self::handle_provider_definition_changed(msg, client, &state_clone).await.unwrap();
                     },
                     Some(msg) = read_provider_ids_sub.next() => {

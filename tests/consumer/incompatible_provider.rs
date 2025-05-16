@@ -45,7 +45,7 @@ enum RawVariableValue {
     IncompatibleValueType(VariableValue),
 }
 
-/// A special provider that publishes flatbuffer structs with invalid enum an union values.
+/// A special provider that publishes flatbuffer structs with invalid enum and union values.
 ///
 /// Used to simulate a newer provider/hub version that is incompatible with the current consumer implementation.
 pub struct IncompatibleProvider {
@@ -172,7 +172,7 @@ impl IncompatibleProvider {
 
     /// Creates a variable with the given ID, quality and value using the low level flatbuffer builder.
     ///
-    /// Livetime bounds are needed here to ensure that the mut builder is borrowed shorter than the immutable builder.
+    /// Lifetime bounds are needed here to ensure that the mut builder is borrowed shorter than the immutable builder.
     /// See ::create methods from flatbuffers for more details.
     fn create_variable_raw<'bldr: 'mut_bldr, 'mut_bldr>(
         builder: &'mut_bldr mut FlatBufferBuilder<'bldr>,
@@ -282,7 +282,7 @@ impl IncompatibleProvider {
         nats_con: &AuthenticatedNatsConnection,
         provider_definition: ProviderDefinitionT,
     ) -> anyhow::Result<()> {
-        let mut registry_provider_definition_updated_subscribtion = nats_con
+        let mut registry_provider_definition_updated_subscription = nats_con
             .get_client()
             .subscribe(nats_subjects::registry_provider_definition_changed_event(
                 PROVIDER_ID,
@@ -302,7 +302,7 @@ impl IncompatibleProvider {
 
         let msg = timeout(
             Duration::from_secs(2),
-            registry_provider_definition_updated_subscribtion.next(),
+            registry_provider_definition_updated_subscription.next(),
         )
         .await?
         .ok_or_else(|| {

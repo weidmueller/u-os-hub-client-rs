@@ -22,7 +22,7 @@ async fn test_write_variable_command() {
     let auth_nats_con = utils::create_auth_con(PROVIDER_ID).await;
     let test_nats_client = auth_nats_con.get_client().clone();
 
-    let mut def_changed_subscribtion = test_nats_client
+    let mut def_changed_subscription = test_nats_client
         .subscribe(nats_subjects::provider_changed_event(PROVIDER_ID))
         .await
         .unwrap();
@@ -41,12 +41,12 @@ async fn test_write_variable_command() {
         .await
         .expect("provider should register");
 
-    let mut subscribtion_to_write_cmd = provider
+    let mut subscription_to_write_cmd = provider
         .subscribe_to_write_command(vec![var1.clone()])
         .await
         .expect("should work");
 
-    let timeout_result = timeout(Duration::from_secs(1), def_changed_subscribtion.next()).await;
+    let timeout_result = timeout(Duration::from_secs(1), def_changed_subscription.next()).await;
 
     let fingerprint = if let Ok(Some(msg)) = timeout_result {
         let provider_definition = root_as_read_provider_definition_query_response(&msg.payload)
@@ -81,7 +81,7 @@ async fn test_write_variable_command() {
 
     // assert
     if let Ok(Some(write_commands)) =
-        timeout(Duration::from_secs(1), subscribtion_to_write_cmd.recv()).await
+        timeout(Duration::from_secs(1), subscription_to_write_cmd.recv()).await
     {
         let first_write_command = write_commands
             .first()
