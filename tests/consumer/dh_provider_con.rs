@@ -9,6 +9,7 @@ use u_os_hub_client::{
     },
     consumer::{
         connected_dh_provider::{self, DataHubProviderConnection, ProviderEvent},
+        connected_nats_provider,
         consumer_types::VariableState,
         dh_consumer::DataHubConsumer,
         variable_key::VariableKey,
@@ -19,6 +20,7 @@ use u_os_hub_client::{
 
 use crate::{
     dummy_provider::{self, DummyProvider, PROVIDER_ID},
+    incompatible_provider::{IncompatibleProvider, VariableIDs, INCOMPATIBLE_ENUM_VALUE},
     utils::{fake_registry::FakeRegistry, run_with_timeout, NATS_HOSTNAME},
 };
 
@@ -37,6 +39,7 @@ use crate::{
 ///
 /// - Registry goes offline -> we cant react to this, as the consumer doesnt get registry down events.
 const CONSUMER_ID: &str = "test_consumer";
+const INCOMPATIBLE_PROVIDER_ID: &str = "incompatible_provider";
 
 fn consumer_auth_settings(perms: NatsPermission) -> AuthenticationSettings {
     AuthenticationSettingsBuilder::new(perms)
@@ -713,6 +716,219 @@ async fn provider_goes_offline() {
 
         //the subscription should return values even though it was started while provider was offline
         vars_changed_sub.next().await.unwrap();
+    })
+    .await;
+}
+
+#[tokio::test]
+#[serial]
+async fn read_incompatible_var_defs() {
+    run_with_timeout(async move {
+        let _fake_reg = FakeRegistry::new().await;
+
+        let auth_settings = consumer_auth_settings(NatsPermission::VariableHubReadWrite);
+        let consumer = Arc::new(
+            DataHubConsumer::connect(NATS_HOSTNAME, &auth_settings)
+                .await
+                .unwrap(),
+        );
+
+        let _dummy_provider = IncompatibleProvider::new().await.unwrap();
+        let dh_provider_con =
+            DataHubProviderConnection::new(consumer.clone(), INCOMPATIBLE_PROVIDER_ID, true)
+                .await
+                .unwrap();
+
+        //read all at once
+        let mut var_defs = dh_provider_con.get_all_variable_definitions().unwrap();
+        var_defs.sort_by(|a, b| a.id.cmp(&b.id));
+
+        //All definitions should be present
+        assert_eq!(var_defs.len(), 5);
+        {
+            //Incompatible access type should be treated as read/write access
+            let checked_def = &var_defs[VariableIDs::InvalidAccessType as usize];
+            assert!(!checked_def.read_only);
+        }
+        {
+            //Incompatible data type should be received as unknown with raw int value
+            let checked_def = &var_defs[VariableIDs::InvalidDataType as usize];
+            assert_eq!(
+                checked_def.data_type,
+                VariableType::Unknown(INCOMPATIBLE_ENUM_VALUE as i8)
+            );
+        }
+    })
+    .await;
+}
+
+#[tokio::test]
+#[serial]
+async fn read_incompatible_var_states() {
+    //Helper function to check the states
+    fn check_var_states(var_states: Vec<(u32, VariableState)>, expected_value: i64) {
+        //All states should be present
+        assert_eq!(var_states.len(), 5);
+
+        {
+            //Int value should be readable, even though its data type is unknown (Also, type mismatch on provider side)
+            let checked_id = VariableIDs::InvalidDataType;
+            let (id, state) = &var_states[checked_id as usize];
+            assert_eq!(*id, checked_id as u32);
+            assert_eq!(state.value, expected_value.into());
+            assert_eq!(state.quality, VariableQuality::Good);
+        }
+        {
+            //Quality should be unknown, value readable
+            let checked_id = VariableIDs::InvalidQuality;
+            let (id, state) = &var_states[checked_id as usize];
+            assert_eq!(*id, checked_id as u32);
+            assert_eq!(state.value, expected_value.into());
+            assert_eq!(
+                state.quality,
+                VariableQuality::Unknown(INCOMPATIBLE_ENUM_VALUE)
+            );
+        }
+        {
+            //Value should be unknown
+            let checked_id = VariableIDs::InvalidValueType;
+            let (id, state) = &var_states[checked_id as usize];
+            assert_eq!(*id, checked_id as u32);
+            assert_eq!(state.value, VariableValue::Unknown);
+            assert_eq!(state.quality, VariableQuality::Good);
+        }
+    }
+
+    run_with_timeout(async move {
+        let _fake_reg = FakeRegistry::new().await;
+
+        let auth_settings = consumer_auth_settings(NatsPermission::VariableHubReadWrite);
+        let consumer = Arc::new(
+            DataHubConsumer::connect(NATS_HOSTNAME, &auth_settings)
+                .await
+                .unwrap(),
+        );
+
+        let _dummy_provider = IncompatibleProvider::new().await.unwrap();
+        let mut dh_provider_con =
+            DataHubProviderConnection::new(consumer.clone(), INCOMPATIBLE_PROVIDER_ID, true)
+                .await
+                .unwrap();
+
+        //enable processing of unknown values
+        dh_provider_con.set_ignore_unknown_variable_values(false);
+
+        //read all at once
+        let var_states = dh_provider_con
+            .read_variables(None::<&[&str]>)
+            .await
+            .unwrap();
+
+        //the incompatible provider fills all valid values with Int(1234) and then starts sending change events with values 1, 2, ...
+        check_var_states(var_states, 1234);
+
+        //subscribe to variable changes
+        let mut change_stream = dh_provider_con
+            .subscribe_variables_with_filter(Option::<Vec<VariableKey>>::None)
+            .await
+            .unwrap();
+
+        //For change events, the same check applies
+        let change_evt = change_stream.next().await.unwrap();
+        check_var_states(change_evt, 1);
+        let change_evt = change_stream.next().await.unwrap();
+        check_var_states(change_evt, 2);
+
+        //Check if unknown vars are filtered out when set to ignore
+        dh_provider_con.set_ignore_unknown_variable_values(true);
+
+        //read all at once
+        let var_states = dh_provider_con
+            .read_variables(None::<&[&str]>)
+            .await
+            .unwrap();
+
+        //should no longer contain the unknown value
+        assert_eq!(var_states.len(), 4);
+        for (_, state) in &var_states {
+            assert_ne!(state.value, VariableValue::Unknown);
+        }
+
+        //re-subscribe to variable changes
+        let mut change_stream = dh_provider_con
+            .subscribe_variables_with_filter(Option::<Vec<VariableKey>>::None)
+            .await
+            .unwrap();
+
+        //For change events, the same check applies
+        let change_evt = change_stream.next().await.unwrap();
+        assert_eq!(change_evt.len(), 4);
+        for (_, state) in &change_evt {
+            assert_ne!(state.value, VariableValue::Unknown);
+        }
+    })
+    .await;
+}
+
+#[tokio::test]
+#[serial]
+async fn write_incompatible_vars() {
+    run_with_timeout(async move {
+        let _fake_reg = FakeRegistry::new().await;
+
+        let auth_settings = consumer_auth_settings(NatsPermission::VariableHubReadWrite);
+        let consumer = Arc::new(
+            DataHubConsumer::connect(NATS_HOSTNAME, &auth_settings)
+                .await
+                .unwrap(),
+        );
+
+        let _dummy_provider = IncompatibleProvider::new().await.unwrap();
+        let dh_provider_con =
+            DataHubProviderConnection::new(consumer.clone(), INCOMPATIBLE_PROVIDER_ID, true)
+                .await
+                .unwrap();
+
+        //it should be possible to write to a variable with unknown access type
+        dh_provider_con
+            .write_single_variable("incompatible_access_type", 1000)
+            .await
+            .unwrap();
+
+        //This should work, because the incompatible provider defined the variable as int type (But filled in a wrong value)
+        dh_provider_con
+            .write_single_variable("incompatible_value", 1000)
+            .await
+            .unwrap();
+
+        //It should not be possible to write to variables with unknown data type, also not by using the special unknown value
+        assert!(matches!(
+            dh_provider_con
+                .write_single_variable("incompatible_data_type", 1000)
+                .await
+                .unwrap_err(),
+            connected_dh_provider::Error::LowLevelApi(
+                connected_nats_provider::Error::InvalidValueType
+            )
+        ));
+        assert!(matches!(
+            dh_provider_con
+                .write_single_variable("incompatible_data_type", VariableValue::Unknown)
+                .await
+                .unwrap_err(),
+            connected_dh_provider::Error::LowLevelApi(
+                connected_nats_provider::Error::InvalidValueType
+            )
+        ));
+        assert!(matches!(
+            dh_provider_con
+                .write_single_variable("incompatible_value", VariableValue::Unknown)
+                .await
+                .unwrap_err(),
+            connected_dh_provider::Error::LowLevelApi(
+                connected_nats_provider::Error::InvalidValueType
+            )
+        ));
     })
     .await;
 }
