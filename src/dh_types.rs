@@ -41,23 +41,23 @@ pub enum VariableQuality {
     UncertainLastUsableValue,
     /// Variable has not been written yet and still contains a default initial value
     UncertainInitialValue,
+    /// The enum value is unknown in this API version.
+    /// Stores the raw integer value.
+    ///
+    /// This can happen if the payload flatbuffer spec is newer than the client API version.
+    Unknown(u8),
 }
 
-impl TryFrom<FbVariableQuality> for VariableQuality {
-    type Error = Error;
-
-    fn try_from(value: FbVariableQuality) -> Result<Self, Self::Error> {
+impl From<FbVariableQuality> for VariableQuality {
+    fn from(value: FbVariableQuality) -> Self {
         match value {
-            FbVariableQuality::BAD => Ok(VariableQuality::BadOrUndefined),
-            FbVariableQuality::GOOD => Ok(VariableQuality::Good),
-            FbVariableQuality::UNCERTAIN => Ok(VariableQuality::Uncertain),
-            FbVariableQuality::UNCERTAIN_LAST_USABLE_VALUE => {
-                Ok(VariableQuality::UncertainLastUsableValue)
-            }
-            FbVariableQuality::UNCERTAIN_INITIAL_VALUE => {
-                Ok(VariableQuality::UncertainInitialValue)
-            }
-            _ => Err(Error::FlatbufferDataTypeConversionFailure),
+            FbVariableQuality::BAD => Self::BadOrUndefined,
+            FbVariableQuality::GOOD => Self::Good,
+            FbVariableQuality::UNCERTAIN => Self::Uncertain,
+            FbVariableQuality::UNCERTAIN_LAST_USABLE_VALUE => Self::UncertainLastUsableValue,
+            FbVariableQuality::UNCERTAIN_INITIAL_VALUE => Self::UncertainInitialValue,
+            //This can happen if the payload flatbuffer spec is newer than the client API version
+            unknown_enum_value => Self::Unknown(unknown_enum_value.0),
         }
     }
 }
@@ -72,6 +72,8 @@ impl From<VariableQuality> for FbVariableQuality {
                 FbVariableQuality::UNCERTAIN_LAST_USABLE_VALUE
             }
             VariableQuality::UncertainInitialValue => FbVariableQuality::UNCERTAIN_INITIAL_VALUE,
+            //This can happen if the payload flatbuffer spec is newer than the client API version
+            VariableQuality::Unknown(unknown_enum_value) => FbVariableQuality(unknown_enum_value),
         }
     }
 }
@@ -86,20 +88,24 @@ pub enum VariableType {
     Timestamp,
     Duration,
     Boolean,
+    /// The enum value is unknown in this API version.
+    /// Stores the raw integer value.
+    ///
+    /// This can happen if the payload flatbuffer spec is newer than the client API version.
+    Unknown(i8),
 }
 
-impl TryFrom<VariableDataType> for VariableType {
-    type Error = Error;
-
-    fn try_from(value: VariableDataType) -> Result<Self, Self::Error> {
+impl From<VariableDataType> for VariableType {
+    fn from(value: VariableDataType) -> Self {
         match value {
-            VariableDataType::FLOAT64 => Ok(VariableType::Float64),
-            VariableDataType::INT64 => Ok(VariableType::Int64),
-            VariableDataType::STRING => Ok(VariableType::String),
-            VariableDataType::TIMESTAMP => Ok(VariableType::Timestamp),
-            VariableDataType::DURATION => Ok(VariableType::Duration),
-            VariableDataType::BOOLEAN => Ok(VariableType::Boolean),
-            _ => Err(Error::FlatbufferDataTypeConversionFailure),
+            VariableDataType::FLOAT64 => Self::Float64,
+            VariableDataType::INT64 => Self::Int64,
+            VariableDataType::STRING => Self::String,
+            VariableDataType::TIMESTAMP => Self::Timestamp,
+            VariableDataType::DURATION => Self::Duration,
+            VariableDataType::BOOLEAN => Self::Boolean,
+            //This can happen if the payload flatbuffer spec is newer than the client API version
+            unknown_enum_value => Self::Unknown(unknown_enum_value.0),
         }
     }
 }
@@ -113,6 +119,8 @@ impl From<VariableType> for VariableDataType {
             VariableType::Timestamp => VariableDataType::TIMESTAMP,
             VariableType::Duration => VariableDataType::DURATION,
             VariableType::Boolean => VariableDataType::BOOLEAN,
+            //This can happen if the payload flatbuffer spec is newer than the client API version
+            VariableType::Unknown(unknown_enum_value) => VariableDataType(unknown_enum_value),
         }
     }
 }
@@ -132,19 +140,19 @@ pub struct VariableDefinition {
     pub experimental: bool,
 }
 
-impl TryFrom<VariableDefinitionT> for VariableDefinition {
-    type Error = Error;
+impl From<VariableDefinitionT> for VariableDefinition {
+    fn from(ll_var_def: VariableDefinitionT) -> Self {
+        let mapped_data_type = ll_var_def.data_type.into();
 
-    fn try_from(ll_var_def: VariableDefinitionT) -> Result<Self, Self::Error> {
-        let mapped_data_type = ll_var_def.data_type.try_into()?;
-
-        Ok(VariableDefinition {
+        VariableDefinition {
             id: ll_var_def.id,
             key: ll_var_def.key,
             data_type: mapped_data_type,
-            read_only: (ll_var_def.access_type != VariableAccessType::READ_WRITE),
+            //Unknown enum values will be treated as read/write by consumers for maximum flexibility.
+            //Provider can still reject write commands.
+            read_only: (ll_var_def.access_type == VariableAccessType::READ_ONLY),
             experimental: ll_var_def.experimental,
-        })
+        }
     }
 }
 
@@ -206,6 +214,11 @@ pub enum VariableValue {
     Float64(f64),
     Duration(DurationValue),
     Timestamp(TimestampValue),
+    /// The variable value type is unknown in this API version.
+    ///
+    /// This can happen if the payload flatbuffer spec is newer than the client API version.
+    /// You can not read or write this variable value.
+    Unknown,
 }
 
 impl From<i64> for VariableValue {
@@ -253,7 +266,7 @@ impl From<TimestampValue> for VariableValue {
 impl From<VariableValueT> for Option<VariableValue> {
     fn from(value: VariableValueT) -> Self {
         Some(match value {
-            VariableValueT::NONE => None?,
+            VariableValueT::NONE => VariableValue::Unknown,
             VariableValueT::Boolean(v) => VariableValue::Boolean(v.value),
             VariableValueT::Duration(v) => {
                 let value = v.value?;
@@ -273,6 +286,7 @@ impl From<VariableValueT> for Option<VariableValue> {
 impl From<&VariableValue> for VariableValueT {
     fn from(value: &VariableValue) -> VariableValueT {
         match value {
+            VariableValue::Unknown => VariableValueT::NONE,
             VariableValue::Int(val) => {
                 let val_t = VariableValueInt64T { value: *val };
                 VariableValueT::Int64(Box::new(val_t))

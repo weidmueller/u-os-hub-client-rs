@@ -111,7 +111,7 @@ impl VariableBuilder {
                 definition: VariableDefinition {
                     key: self.key,
                     id: self.id,
-                    data_type: Self::infer_variable_type_from_value(&value),
+                    data_type: Self::infer_variable_type_from_value(&value)?,
                     read_only: self.read_only,
                     experimental: self.experimental,
                 },
@@ -131,14 +131,17 @@ impl VariableBuilder {
         }
     }
 
-    fn infer_variable_type_from_value(value: &VariableValue) -> VariableType {
+    fn infer_variable_type_from_value(
+        value: &VariableValue,
+    ) -> Result<VariableType, VariableBuildError> {
         match value {
-            VariableValue::Int(_) => VariableType::Int64,
-            VariableValue::Float64(_) => VariableType::Float64,
-            VariableValue::String(_) => VariableType::String,
-            VariableValue::Boolean(_) => VariableType::Boolean,
-            VariableValue::Timestamp(_) => VariableType::Timestamp,
-            VariableValue::Duration(_) => VariableType::Duration,
+            VariableValue::Unknown => Err(VariableBuildError::InvalidValue),
+            VariableValue::Int(_) => Ok(VariableType::Int64),
+            VariableValue::Float64(_) => Ok(VariableType::Float64),
+            VariableValue::String(_) => Ok(VariableType::String),
+            VariableValue::Boolean(_) => Ok(VariableType::Boolean),
+            VariableValue::Timestamp(_) => Ok(VariableType::Timestamp),
+            VariableValue::Duration(_) => Ok(VariableType::Duration),
         }
     }
 }
@@ -152,4 +155,6 @@ pub enum VariableBuildError {
     InvalidVariableName(String),
     #[error("Missing value")]
     MissingValue,
+    #[error("Invalid value")]
+    InvalidValue,
 }

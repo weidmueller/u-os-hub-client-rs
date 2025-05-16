@@ -68,7 +68,7 @@ impl VariableState {
         Ok(VariableState {
             timestamp: mapped_ts,
             value: mapped_value,
-            quality: ll_var.quality.try_into()?,
+            quality: ll_var.quality.into(),
         })
     }
 }

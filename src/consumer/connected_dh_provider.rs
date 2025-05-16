@@ -11,7 +11,7 @@ use crate::{
     dh_types::{VariableDefinition, VariableID, VariableValue},
     generated::weidmueller::ucontrol::hub::{
         ProviderDefinitionState, ReadVariablesQueryRequestT, TimestampT, VariableListT,
-        VariableQuality, VariableT, VariablesChangedEventT, WriteVariablesCommandT,
+        VariableQuality, VariableT, VariableValueT, VariablesChangedEventT, WriteVariablesCommandT,
     },
 };
 
@@ -59,6 +59,20 @@ pub enum ProviderEvent {
     Invalid,
 }
 
+/// Contains options for the [`DataHubProviderConnection`].
+struct Options {
+    /// If set to true, unknown variable values will be ignored by read and subscribe methods.
+    ignore_unknown_variable_values: bool,
+}
+
+impl Default for Options {
+    fn default() -> Self {
+        Self {
+            ignore_unknown_variable_values: true,
+        }
+    }
+}
+
 /// Represents a connection to a data hub provider.
 /// This is used to read and write variables from/to the provider.
 ///
@@ -74,6 +88,7 @@ pub enum ProviderEvent {
 /// See documentation of [`VariableKey`] for more details.
 pub struct DataHubProviderConnection {
     connected_provider: ConnectedNatsProvider,
+    opts: Options,
 }
 
 impl DataHubProviderConnection {
@@ -102,7 +117,19 @@ impl DataHubProviderConnection {
         let connected_provider =
             ConnectedNatsProvider::new(consumer.get_nats_consumer().clone(), provider_id).await?;
 
-        Ok(Self { connected_provider })
+        Ok(Self {
+            connected_provider,
+            opts: Options::default(),
+        })
+    }
+
+    /// If `ignore` is set to true, variables with unknown value will be ignored by read and subscribe methods.
+    ///
+    /// By default, this is set to true.
+    /// See documentation of [`VariableValue::Unknown`] for more details about unknown values.
+    /// Please note that you will have to resubscribe to streams to see the effect of changes to this option.
+    pub fn set_ignore_unknown_variable_values(&mut self, ignore: bool) {
+        self.opts.ignore_unknown_variable_values = ignore;
     }
 
     /// Waits until all specified variable keys are available from the provider.
@@ -187,7 +214,7 @@ impl DataHubProviderConnection {
                             .variable_definitions
                             .unwrap_or_default()
                             .into_iter()
-                            .filter_map(|var_def| var_def.try_into().ok())
+                            .map(|var_def| var_def.into())
                             .collect();
                         ProviderEvent::DefinitionChanged(new_variable_defs)
                     } else {
@@ -226,8 +253,8 @@ impl DataHubProviderConnection {
         let var_defs = self.connected_provider.get_all_variable_definitions();
 
         let result = var_defs
-            .into_iter()
-            .filter_map(|(_id, var_def)| var_def.try_into().ok())
+            .into_values()
+            .map(|var_def| var_def.into())
             .collect();
 
         Ok(result)
@@ -244,7 +271,7 @@ impl DataHubProviderConnection {
         let id = self.variable_id_from_key(var)?;
 
         let var_def = self.connected_provider.get_variable_definition(id)?;
-        Ok(var_def.try_into()?)
+        Ok(var_def.into())
     }
 
     /// Reads the current state of a single variable from the provider.
@@ -315,6 +342,12 @@ impl DataHubProviderConnection {
             .unwrap_or_default()
             .into_iter()
             .filter_map(|ll_var| -> Option<(u32, VariableState)> {
+                //Flatbuffer deserializes unknown union values to NONE
+                if self.opts.ignore_unknown_variable_values && ll_var.value == VariableValueT::NONE
+                {
+                    return None;
+                }
+
                 let map_entry = (ll_var.id, VariableState::new(ll_var, base_timestamp).ok()?);
 
                 Some(map_entry)
@@ -371,6 +404,7 @@ impl DataHubProviderConnection {
 
         //Subscibe to all, unfiltered variable change events
         let low_level_data = self.connected_provider.subscribe_variables().await?;
+        let ignore_unknown_values = self.opts.ignore_unknown_variable_values;
 
         //Filter variables and map to user friendly type
         let mapped_stream = low_level_data.filter_map(move |var_changed_evt| {
@@ -389,7 +423,7 @@ impl DataHubProviderConnection {
             }
 
             let mapped_and_filtered_vars =
-                Self::process_var_changed_evt(&filter_set, var_changed_evt);
+                Self::process_var_changed_evt(&filter_set, var_changed_evt, ignore_unknown_values);
 
             async move { mapped_and_filtered_vars }
         });
@@ -492,6 +526,7 @@ impl DataHubProviderConnection {
     fn process_var_changed_evt(
         filter_set: &Option<HashSet<u32>>,
         var_changed_evt: connected_nats_provider::Result<VariablesChangedEventT>,
+        ignore_unknown_values: bool,
     ) -> Option<Vec<(VariableID, VariableState)>> {
         let Ok(var_changed_evt) = var_changed_evt else {
             //Low level error while receiving event
@@ -512,6 +547,11 @@ impl DataHubProviderConnection {
                     if !filter_set.contains(&ll_var.id) {
                         return None;
                     }
+                }
+
+                //Flatbuffer deserializes unknown union values to NONE
+                if ignore_unknown_values && ll_var.value == VariableValueT::NONE {
+                    return None;
                 }
 
                 let map_entry = (ll_var.id, VariableState::new(ll_var, base_timestamp).ok()?);
