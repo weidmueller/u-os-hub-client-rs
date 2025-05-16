@@ -601,8 +601,10 @@ impl ConnectedNatsProvider {
                     .get(&var.id)
                     .ok_or(Error::InvalidVariableId(var.id))?;
 
-                //check if var has write permission
-                if var_def.access_type != VariableAccessType::READ_WRITE {
+                //Check if var has write permission
+                //Unknown access type enum values will be treated as writable for maximum compatibility
+                //Provider may still reject the write command
+                if var_def.access_type == VariableAccessType::READ_ONLY {
                     return Err(Error::WritingToReadonly(var_def.key.clone()));
                 }
 
