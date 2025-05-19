@@ -20,7 +20,7 @@ use u_os_hub_client::{
 
 use crate::{
     dummy_provider::{self, DummyProvider, PROVIDER_ID},
-    incompatible_provider::{IncompatibleProvider, VariableIDs, INCOMPATIBLE_ENUM_VALUE},
+    incompatible_provider::{self, IncompatibleProvider, VariableIDs, INCOMPATIBLE_ENUM_VALUE},
     utils::{fake_registry::FakeRegistry, run_with_timeout, NATS_HOSTNAME},
 };
 
@@ -39,7 +39,6 @@ use crate::{
 ///
 /// - Registry goes offline -> we cant react to this, as the consumer doesnt get registry down events.
 const CONSUMER_ID: &str = "test_consumer";
-const INCOMPATIBLE_PROVIDER_ID: &str = "incompatible_provider";
 
 fn consumer_auth_settings(perms: NatsPermission) -> AuthenticationSettings {
     AuthenticationSettingsBuilder::new(perms)
@@ -734,10 +733,13 @@ async fn read_incompatible_var_defs() {
         );
 
         let _dummy_provider = IncompatibleProvider::new().await.unwrap();
-        let dh_provider_con =
-            DataHubProviderConnection::new(consumer.clone(), INCOMPATIBLE_PROVIDER_ID, true)
-                .await
-                .unwrap();
+        let dh_provider_con = DataHubProviderConnection::new(
+            consumer.clone(),
+            incompatible_provider::PROVIDER_ID,
+            true,
+        )
+        .await
+        .unwrap();
 
         //read all at once
         let mut var_defs = dh_provider_con.get_all_variable_definitions().unwrap();
@@ -810,10 +812,13 @@ async fn read_incompatible_var_states() {
         );
 
         let _dummy_provider = IncompatibleProvider::new().await.unwrap();
-        let mut dh_provider_con =
-            DataHubProviderConnection::new(consumer.clone(), INCOMPATIBLE_PROVIDER_ID, true)
-                .await
-                .unwrap();
+        let mut dh_provider_con = DataHubProviderConnection::new(
+            consumer.clone(),
+            incompatible_provider::PROVIDER_ID,
+            true,
+        )
+        .await
+        .unwrap();
 
         //enable processing of unknown values
         dh_provider_con.set_ignore_unknown_variable_values(false);
@@ -884,10 +889,13 @@ async fn write_incompatible_vars() {
         );
 
         let _dummy_provider = IncompatibleProvider::new().await.unwrap();
-        let dh_provider_con =
-            DataHubProviderConnection::new(consumer.clone(), INCOMPATIBLE_PROVIDER_ID, true)
-                .await
-                .unwrap();
+        let dh_provider_con = DataHubProviderConnection::new(
+            consumer.clone(),
+            incompatible_provider::PROVIDER_ID,
+            true,
+        )
+        .await
+        .unwrap();
 
         //it should be possible to write to a variable with unknown access type
         dh_provider_con
