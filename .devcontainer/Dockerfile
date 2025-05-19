@@ -59,7 +59,7 @@ WORKDIR ${HOME}
 # We are currently running nats directly in the dev container 
 # because that makes the Jenkins buildpipeline much easier
 # as Jenkins currently does not support docker compose.
-RUN curl -sf https://binaries.nats.dev/nats-io/nats-server/v2@v2.10.20 | sh
+RUN curl -sf https://binaries.nats.dev/nats-io/nats-server/v2@v2.11.3 | sh
 
 # Install nats CLI client for easy testing
 RUN curl -sf https://binaries.nats.dev/nats-io/natscli/nats@latest | sh
