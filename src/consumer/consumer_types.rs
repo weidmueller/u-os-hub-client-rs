@@ -3,37 +3,11 @@
 
 use crate::{
     dh_types::{self, TimestampValue, VariableQuality, VariableValue},
-    generated::weidmueller::ucontrol::hub::{State, VariableT},
+    generated::weidmueller::ucontrol::hub::VariableT,
 };
-
-//TODO: how to handle type conversion errors? should that really cause an error, or do we want to have placeholder values?
 
 /// Errors for data hub type conversions
 pub type Error = dh_types::Error;
-
-/// The state of the Data Hub registry
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum RegistryState {
-    /// Registry is running
-    Running,
-    /// Registry is stopping
-    Stopping,
-    /// Registry state is not specified
-    Unspecified,
-}
-
-impl TryFrom<State> for RegistryState {
-    type Error = Error;
-
-    fn try_from(value: State) -> std::result::Result<Self, Self::Error> {
-        match value {
-            State::RUNNING => Ok(RegistryState::Running),
-            State::STOPPING => Ok(RegistryState::Stopping),
-            State::UNSPECIFIED => Ok(RegistryState::Unspecified),
-            _ => Err(Error::FlatbufferDataTypeConversionFailure),
-        }
-    }
-}
 
 /// The state of a variable
 #[derive(Debug, Clone, PartialEq)]

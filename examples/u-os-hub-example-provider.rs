@@ -7,7 +7,7 @@ use tracing::error;
 use tokio::{select, task, time::sleep};
 
 use u_os_hub_client::{
-    dh_types::{DurationValue, TimestampValue, VariableQuality},
+    dh_types::{DurationValue, TimestampValue, VariableAccessType, VariableQuality},
     provider::{Provider, ProviderBuilder, VariableBuilder},
 };
 
@@ -82,34 +82,34 @@ async fn example_service_2(hub_provider: Provider) -> anyhow::Result<()> {
     let writable_vars = vec![
         VariableBuilder::new(4, "folder2.writable_string")
             .initial_value("Write me!")
-            .read_write()
+            .access_type(VariableAccessType::ReadWrite)
             .build()?,
         VariableBuilder::new(5, "folder2.writable_int")
             .initial_value(1337)
-            .read_write()
+            .access_type(VariableAccessType::ReadWrite)
             .build()?,
         VariableBuilder::new(6, "folder2.writable_bool")
             .initial_value(true)
-            .read_write()
+            .access_type(VariableAccessType::ReadWrite)
             .build()?,
         VariableBuilder::new(7, "folder2.writable_float")
             .initial_value(1122.3344)
-            .read_write()
+            .access_type(VariableAccessType::ReadWrite)
             .build()?,
         VariableBuilder::new(8, "folder2.writable_timestamp")
             .initial_value(TimestampValue::now())
-            .read_write()
+            .access_type(VariableAccessType::ReadWrite)
             .build()?,
         VariableBuilder::new(9, "folder2.writable_duration")
             .initial_value(DurationValue::new(123, 456))
-            .read_write()
+            .access_type(VariableAccessType::ReadWrite)
             .build()?,
         VariableBuilder::new(10, "folder2.experimental_string")
             .initial_value("experimental_value")
             .initial_quality(VariableQuality::Uncertain)
             .initial_timestamp(None)
             .experimental()
-            .read_write()
+            .access_type(VariableAccessType::ReadWrite)
             .build()?,
     ];
 

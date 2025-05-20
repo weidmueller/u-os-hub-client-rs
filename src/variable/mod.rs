@@ -6,7 +6,7 @@ use std::{
 
 use crate::{
     dh_types::VariableDefinition,
-    generated::weidmueller::ucontrol::hub::{VariableAccessType, VariableDefinitionT, VariableT},
+    generated::weidmueller::ucontrol::hub::{VariableDefinitionT, VariableT},
     provider::provider_types::VariableState,
 };
 
@@ -62,10 +62,7 @@ impl From<&Variable> for VariableDefinitionT {
             key: var_def.key.clone(),
             id: var_def.id,
             data_type: var_def.data_type.into(),
-            access_type: match var_def.read_only {
-                true => VariableAccessType::READ_ONLY,
-                false => VariableAccessType::READ_WRITE,
-            },
+            access_type: var_def.access_type.into(),
             experimental: var_def.experimental,
         }
     }
@@ -82,7 +79,7 @@ pub fn calc_variables_hash(variables: &BTreeMap<u32, Variable>) -> u64 {
         let var_def = variable.get_definition();
 
         var_def.key.hash(&mut hasher);
-        var_def.read_only.hash(&mut hasher);
+        var_def.access_type.hash(&mut hasher);
         var_def.id.hash(&mut hasher);
         var_def.experimental.hash(&mut hasher);
 

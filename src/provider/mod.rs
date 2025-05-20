@@ -15,6 +15,7 @@
 //!     oauth2::OAuth2Credentials,
 //!     provider::{Provider, ProviderBuilder, VariableBuilder},
 //!     variable::Variable,
+//!     dh_types::VariableAccessType,
 //! };
 //!
 //! /// Demonstrates how to create a provider that serves variables to the Data Hub.
@@ -37,7 +38,7 @@
 //!
 //!     let rw_string = VariableBuilder::new(200, "my_folder.rw_string")
 //!         .initial_value("write me!")
-//!         .read_write()
+//!         .access_type(VariableAccessType::ReadWrite)
 //!         .build()?;
 //!
 //!     // Use the ProviderBuilder to create an initial provider definition and register on the Data Hub registry

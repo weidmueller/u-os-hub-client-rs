@@ -4,6 +4,7 @@ use futures::StreamExt;
 use serial_test::serial;
 use tokio::time::timeout;
 use u_os_hub_client::{
+    dh_types::VariableAccessType,
     generated::weidmueller::ucontrol::hub::root_as_read_provider_definition_query_response,
     nats_subjects,
     payload_builders::{build_write_variables_command, VariableUpdate},
@@ -29,7 +30,7 @@ async fn test_write_variable_command() {
 
     let provider_builder = ProviderBuilder::new();
     let mut var1 = VariableBuilder::new(0, "my_folder.my_variable_1_rw")
-        .read_write()
+        .access_type(VariableAccessType::ReadWrite)
         .initial_value(true)
         .build()
         .expect("variable should build");
