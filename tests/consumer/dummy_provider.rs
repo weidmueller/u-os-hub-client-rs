@@ -2,7 +2,7 @@ use std::{sync::Arc, time::Duration};
 
 use tokio::sync::Notify;
 use u_os_hub_client::{
-    dh_types::VariableValue,
+    dh_types::{VariableAccessType, VariableValue},
     provider::{ProviderBuilder, VariableBuilder},
 };
 
@@ -40,12 +40,12 @@ impl DummyProvider {
             .build()?;
 
         let rw_string = VariableBuilder::new(200, "my_folder.rw_string")
-            .read_write()
+            .access_type(VariableAccessType::ReadWrite)
             .initial_value("write me!")
             .build()?;
 
         let rw_int = VariableBuilder::new(300, "my_folder.rw_int")
-            .read_write()
+            .access_type(VariableAccessType::ReadWrite)
             .initial_value(VariableValue::Int(1000))
             .build()?;
 
@@ -121,15 +121,15 @@ impl DummyProvider {
                             new_ro_int.clone(),
                             new_ro_float.clone(),
                             VariableBuilder::new(20, "my_folder.rw_string")
-                                .read_write()
+                                .access_type(VariableAccessType::ReadWrite)
                                 .initial_value("new string value")
                                 .build().unwrap(),
                             VariableBuilder::new(30, "my_folder.rw_int2")
-                                .read_write()
+                                .access_type(VariableAccessType::ReadWrite)
                                 .initial_value(VariableValue::Int(-1000))
                                 .build().unwrap(),
                             VariableBuilder::new(50, "my_folder.rw_int3")
-                                .read_write()
+                                .access_type(VariableAccessType::ReadWrite)
                                 .initial_value(VariableValue::Int(-500))
                                 .build().unwrap(),
                         ];

@@ -4,8 +4,8 @@ use thiserror::Error;
 
 use crate::{
     dh_types::{
-        TimestampValue, VariableDefinition, VariableID, VariableQuality, VariableType,
-        VariableValue,
+        TimestampValue, VariableAccessType, VariableDefinition, VariableID, VariableQuality,
+        VariableType, VariableValue,
     },
     provider::provider_types::VariableState,
     variable::Variable,
@@ -23,7 +23,7 @@ pub struct VariableBuilder {
     //definition
     key: String,
     id: u32,
-    read_only: bool,
+    access_type: VariableAccessType,
     experimental: bool,
     //state
     value: Option<VariableValue>,
@@ -39,7 +39,7 @@ impl VariableBuilder {
         VariableBuilder {
             id,
             key: key.into(),
-            read_only: true,
+            access_type: VariableAccessType::ReadOnly,
             experimental: false,
             value: None,
             quality: VariableQuality::Good,
@@ -47,9 +47,14 @@ impl VariableBuilder {
         }
     }
 
-    /// Sets the variable to read write (optional)
-    pub fn read_write(mut self) -> Self {
-        self.read_only = false;
+    /// Changes the [`VariableAccessType`] of the variable.
+    ///
+    /// This determines how the variable can be accessed by consumers.
+    /// By default, the access type is set to [`VariableAccessType::ReadOnly`].
+    ///
+    /// Special values like [`VariableAccessType::Unknown`] are not allowed.
+    pub fn access_type(mut self, access_type: VariableAccessType) -> Self {
+        self.access_type = access_type;
         self
     }
 
@@ -106,13 +111,18 @@ impl VariableBuilder {
             return Err(VariableBuildError::InvalidVariableName(self.key));
         }
 
+        //Validate the access type
+        if let VariableAccessType::Unknown(_) = self.access_type {
+            return Err(VariableBuildError::InvalidAccessType);
+        }
+
         if let Some(value) = self.value {
             Ok(Variable {
                 definition: VariableDefinition {
                     key: self.key,
                     id: self.id,
                     data_type: Self::infer_variable_type_from_value(&value)?,
-                    read_only: self.read_only,
+                    access_type: self.access_type,
                     experimental: self.experimental,
                 },
                 state: VariableState {
@@ -157,4 +167,6 @@ pub enum VariableBuildError {
     MissingValue,
     #[error("Invalid value")]
     InvalidValue,
+    #[error("Invalid access type")]
+    InvalidAccessType,
 }

@@ -26,7 +26,7 @@ use tracing::{debug, error, info, trace};
 
 use crate::{
     authenticated_nats_con::AuthenticatedNatsConnection,
-    dh_types::{VariableID, VariableValue},
+    dh_types::{VariableAccessType, VariableID, VariableValue},
     generated::weidmueller::ucontrol::hub::{
         ProviderDefinitionChangedEvent, ProviderDefinitionState, ProviderDefinitionT,
         ReadVariablesQueryRequest, WriteVariablesCommand,
@@ -464,7 +464,7 @@ impl ProviderWorker {
             .filter_map(|to_conv| {
                 if let Some(current_variable) = self.variables.get(&to_conv.id) {
                     // Filter out read only variables
-                    if current_variable.definition.read_only {
+                    if current_variable.definition.access_type == VariableAccessType::ReadOnly {
                         trace!(
                             "Ignore write command on readonly variable with id `{}`",
                             to_conv.id

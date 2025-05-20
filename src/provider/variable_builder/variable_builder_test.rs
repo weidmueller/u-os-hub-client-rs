@@ -1,6 +1,6 @@
 use rstest::rstest;
 
-use crate::provider::VariableBuildError;
+use crate::{dh_types::VariableAccessType, provider::VariableBuildError};
 
 use super::VariableBuilder;
 
@@ -14,6 +14,18 @@ fn test_missing_value_error() {
 
     // Assert
     assert_eq!(result, Err(VariableBuildError::MissingValue));
+}
+
+#[test]
+fn test_invalid_access_type_error() {
+    // Prepare
+    let my_var = VariableBuilder::new(0, "my_var").access_type(VariableAccessType::Unknown(0));
+
+    // Act
+    let result = my_var.build();
+
+    // Assert
+    assert_eq!(result, Err(VariableBuildError::InvalidAccessType));
 }
 
 #[rstest]
@@ -40,7 +52,7 @@ fn test_missing_value_error() {
 fn test_key_validation(#[case] key: String, #[case] valid: bool) {
     // Prepare
 
-    use crate::dh_types::VariableValue;
+    use crate::dh_types::{VariableAccessType, VariableValue};
     let my_var = VariableBuilder::new(0, &key).initial_value(true);
 
     // Act
@@ -52,7 +64,7 @@ fn test_key_validation(#[case] key: String, #[case] valid: bool) {
             assert!(valid, "the variable should be valid");
             assert_eq!(var.definition.id, 0);
             assert_eq!(var.definition.key, key);
-            assert!(var.definition.read_only);
+            assert_eq!(var.definition.access_type, VariableAccessType::ReadOnly);
             assert_eq!(var.state.value, VariableValue::Boolean(true));
         }
         Err(e) => {

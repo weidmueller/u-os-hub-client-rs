@@ -7,10 +7,9 @@ use crate::generated::weidmueller::ucontrol::hub::{
     DurationT, TimestampT, VariableValueBooleanT, VariableValueDurationT, VariableValueFloat64T,
     VariableValueInt64T, VariableValueStringT, VariableValueT, VariableValueTimestampT,
 };
-use crate::generated::weidmueller::ucontrol::hub::{
-    VariableAccessType, VariableDataType, VariableDefinitionT,
-};
+use crate::generated::weidmueller::ucontrol::hub::{VariableDataType, VariableDefinitionT};
 
+use crate::generated::weidmueller::ucontrol::hub::VariableAccessType as FbVariableAccessType;
 use crate::generated::weidmueller::ucontrol::hub::VariableQuality as FbVariableQuality;
 
 /// Represents a variable ID on the hub.
@@ -125,6 +124,43 @@ impl From<VariableType> for VariableDataType {
     }
 }
 
+/// The access type of the variable
+///
+/// This determines which actions are allowed on the variable.
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+pub enum VariableAccessType {
+    /// Consumers can read and write the variable.
+    ReadWrite,
+    /// Consumers can only read the variable.
+    ReadOnly,
+    /// The enum value is unknown in this API version.
+    ///
+    /// This can happen if the payload flatbuffer spec is newer than the client API version.
+    Unknown(i8),
+}
+
+impl From<FbVariableAccessType> for VariableAccessType {
+    fn from(value: FbVariableAccessType) -> Self {
+        match value {
+            FbVariableAccessType::READ_WRITE => Self::ReadWrite,
+            FbVariableAccessType::READ_ONLY => Self::ReadOnly,
+            //This can happen if the payload flatbuffer spec is newer than the client API version
+            unknown_enum_value => Self::Unknown(unknown_enum_value.0),
+        }
+    }
+}
+
+impl From<VariableAccessType> for FbVariableAccessType {
+    fn from(value: VariableAccessType) -> Self {
+        match value {
+            VariableAccessType::ReadWrite => Self::READ_WRITE,
+            VariableAccessType::ReadOnly => Self::READ_ONLY,
+            //This can happen if the payload flatbuffer spec is newer than the client API version
+            VariableAccessType::Unknown(unknown_enum_value) => Self(unknown_enum_value),
+        }
+    }
+}
+
 /// The definition of a variable
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct VariableDefinition {
@@ -134,23 +170,19 @@ pub struct VariableDefinition {
     pub key: String,
     /// Data type of the variable
     pub data_type: VariableType,
-    /// Whether the variable is read-only or not
-    pub read_only: bool,
+    /// The access type of the variable
+    pub access_type: VariableAccessType,
     /// Experimantal variables are hidden in the data hub GUI
     pub experimental: bool,
 }
 
 impl From<VariableDefinitionT> for VariableDefinition {
     fn from(ll_var_def: VariableDefinitionT) -> Self {
-        let mapped_data_type = ll_var_def.data_type.into();
-
         VariableDefinition {
             id: ll_var_def.id,
             key: ll_var_def.key,
-            data_type: mapped_data_type,
-            //Unknown enum values will be treated as read/write by consumers for maximum flexibility.
-            //Provider can still reject write commands.
-            read_only: (ll_var_def.access_type == VariableAccessType::READ_ONLY),
+            data_type: ll_var_def.data_type.into(),
+            access_type: ll_var_def.access_type.into(),
             experimental: ll_var_def.experimental,
         }
     }

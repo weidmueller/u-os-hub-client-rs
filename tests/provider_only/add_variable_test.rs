@@ -75,7 +75,7 @@ async fn test_add_variables() {
             get_provider_name_from_subject(&msg.subject).expect("should be there set"),
             PROVIDER_ID
         );
-        assert_eq!(provider_definition.fingerprint, 11655556113256031081);
+        assert_eq!(provider_definition.fingerprint, 15085505095296877768);
 
         let recv_var_defs = provider_definition
             .variable_definitions

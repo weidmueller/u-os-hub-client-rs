@@ -14,7 +14,10 @@ use u_os_hub_client::{
         dh_consumer::DataHubConsumer,
         variable_key::VariableKey,
     },
-    dh_types::{VariableDefinition, VariableID, VariableQuality, VariableType, VariableValue},
+    dh_types::{
+        VariableAccessType, VariableDefinition, VariableID, VariableQuality, VariableType,
+        VariableValue,
+    },
     oauth2::OAuth2Credentials,
 };
 
@@ -203,7 +206,7 @@ async fn read_var_defs() {
             VariableDefinition {
                 id: 100,
                 key: "my_folder.ro_float".to_string(),
-                read_only: true,
+                access_type: VariableAccessType::ReadOnly,
                 experimental: true,
                 data_type: VariableType::Float64,
             }
@@ -215,7 +218,7 @@ async fn read_var_defs() {
             VariableDefinition {
                 id: 200,
                 key: "my_folder.rw_string".to_string(),
-                read_only: false,
+                access_type: VariableAccessType::ReadWrite,
                 experimental: false,
                 data_type: VariableType::String,
             }
@@ -227,7 +230,7 @@ async fn read_var_defs() {
             VariableDefinition {
                 id: 300,
                 key: "my_folder.rw_int".to_string(),
-                read_only: false,
+                access_type: VariableAccessType::ReadWrite,
                 experimental: false,
                 data_type: VariableType::Int64,
             }
@@ -239,7 +242,7 @@ async fn read_var_defs() {
             VariableDefinition {
                 id: 400,
                 key: "my_folder.ro_int".to_string(),
-                read_only: true,
+                access_type: VariableAccessType::ReadOnly,
                 experimental: false,
                 data_type: VariableType::Int64,
             }
@@ -252,28 +255,28 @@ async fn read_var_defs() {
         assert!(var_defs.contains(&VariableDefinition {
             id: 100,
             key: "my_folder.ro_float".to_string(),
-            read_only: true,
+            access_type: VariableAccessType::ReadOnly,
             experimental: true,
             data_type: VariableType::Float64,
         }));
         assert!(var_defs.contains(&VariableDefinition {
             id: 200,
             key: "my_folder.rw_string".to_string(),
-            read_only: false,
+            access_type: VariableAccessType::ReadWrite,
             experimental: false,
             data_type: VariableType::String,
         }));
         assert!(var_defs.contains(&VariableDefinition {
             id: 300,
             key: "my_folder.rw_int".to_string(),
-            read_only: false,
+            access_type: VariableAccessType::ReadWrite,
             experimental: false,
             data_type: VariableType::Int64,
         }));
         assert!(var_defs.contains(&VariableDefinition {
             id: 400,
             key: "my_folder.ro_int".to_string(),
-            read_only: true,
+            access_type: VariableAccessType::ReadOnly,
             experimental: false,
             data_type: VariableType::Int64,
         }));
@@ -606,7 +609,7 @@ async fn change_var_defs() {
             VariableDefinition {
                 id: 50,
                 key: "my_folder.rw_int3".to_string(),
-                read_only: false,
+                access_type: VariableAccessType::ReadWrite,
                 experimental: false,
                 data_type: VariableType::Int64,
             }
@@ -750,7 +753,7 @@ async fn read_incompatible_var_defs() {
         {
             //Incompatible access type should be treated as read/write access
             let checked_def = &var_defs[VariableIDs::InvalidAccessType as usize];
-            assert!(!checked_def.read_only);
+            assert_ne!(checked_def.access_type, VariableAccessType::ReadOnly);
         }
         {
             //Incompatible data type should be received as unknown with raw int value
