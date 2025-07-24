@@ -1,7 +1,8 @@
 # Changelog
 
-### 0.1.0-next
+### 0.2.0
 
-- Add new consumer API
-- Rework provider API
-- Improve documentation
+- feat: improve forwards compatibility
+- feat: add new consumer api
+- refactor: rework provider api
+- docs: improve documentation
