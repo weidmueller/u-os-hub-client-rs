@@ -53,6 +53,18 @@ RUN <<-EOT
     rm $DIR/archive.tar.gz
 EOT
 
+#Install cargo deny
+RUN <<-EOT
+    set -eux
+
+    VER="0.18.5"
+    DIR="/usr/local/cargo/bin"
+
+    curl -L -o $DIR/archive.tar.gz https://github.com/EmbarkStudios/cargo-deny/releases/download/${VER}/cargo-deny-${VER}-x86_64-unknown-linux-musl.tar.gz
+    tar -xzvf $DIR/archive.tar.gz --strip-components=1 -C $DIR
+    rm $DIR/archive.tar.gz
+EOT
+
 WORKDIR ${HOME}
 
 # Install and run nats server (needed for unit tests and jenkins pipeline)

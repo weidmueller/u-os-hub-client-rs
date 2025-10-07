@@ -1,5 +1,6 @@
 [package]
 name = "u-os-hub-client"
+license = "MIT"
 description = "u-OS Data Hub Client"
 version = "0.2.0"
 edition = "2021"

@@ -17,6 +17,9 @@ profile="dev"
 # Check version consistency
 "${script_dir}/check_version.sh"
 
+# Check licenses of all transitive dependencies
+cargo-deny check licenses
+
 # Check formatting once
 cargo fmt --check
 
