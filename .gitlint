@@ -7,7 +7,7 @@ ignore=body-is-missing
 contrib=contrib-body-requires-signed-off-by,contrib-title-conventional-commits
 
 [contrib-title-conventional-commits]
-types = fix,feat,chore,docs,refactor,revert,ci,test
+types = fix,feat,chore,docs,refactor,revert,ci,test,version
 
 [body-max-line-length]
 line-length=120

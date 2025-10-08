@@ -2,6 +2,18 @@
 #
 # SPDX-License-Identifier: MIT
 
+[graph]
+# When creating the dependency graph used as the source of truth when checks are
+# executed, this field can be used to prune crates from the graph, removing them
+# from the view of cargo-deny. This is an extremely heavy hammer, as if a crate
+# is pruned from the graph, all of its dependencies will also be pruned unless
+# they are connected to another crate in the graph that hasn't been pruned,
+# so it should be used with care. The identifiers are [Package ID Specifications]
+# (https://doc.rust-lang.org/cargo/reference/pkgid-spec.html)
+exclude = [
+    "ring", #older versions of ring have no license specified, which triggers a warning. It uses a mix of ISC, OpenSSL, BSD and MIT licenses. All are ok for commercial use.
+]
+
 # This section is considered when running `cargo deny check licenses`
 # More documentation for the licenses section can be found here:
 # https://embarkstudios.github.io/cargo-deny/checks/licenses/cfg.html
@@ -12,13 +24,12 @@
 allow = [
     "MIT",
     "Apache-2.0",
-    "BSD-2-Clause",
     "BSD-3-Clause",
     "ISC",
     "BSL-1.0",
-    "Unicode-3.0",
     "Zlib",
-    "CDLA-Permissive-2.0",
+    "MPL-2.0",
+    "Unicode-DFS-2016"
 ]
 # The confidence threshold for detecting a license from license text.
 # The higher the value, the more closely the license text must be to the

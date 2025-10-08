@@ -19,10 +19,12 @@
 #[cfg(not(feature = "export-low-level-api"))]
 #[allow(dead_code, unused_imports, clippy::all, clippy::unwrap_used, clippy::expect_used)]
 #[rustfmt::skip]
+#[path = "../target/flatbuffers/mod.rs"]
 mod generated;
 #[cfg(feature = "export-low-level-api")]
 #[allow(dead_code, unused_imports, clippy::all, clippy::unwrap_used, clippy::expect_used)]
 #[rustfmt::skip]
+#[path = "../target/flatbuffers/mod.rs"]
 pub mod generated;
 
 // Note: We force documentation for public items for some select modules.
