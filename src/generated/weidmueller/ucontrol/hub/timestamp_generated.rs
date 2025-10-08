@@ -24,8 +24,8 @@ use super::*;
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq)]
 pub struct Timestamp(pub [u8; 16]);
-impl Default for Timestamp { 
-  fn default() -> Self { 
+impl Default for Timestamp {
+  fn default() -> Self {
     Self([0; 16])
   }
 }
@@ -182,4 +182,3 @@ impl TimestampT {
     )
   }
 }
-

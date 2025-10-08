@@ -22,7 +22,7 @@ REPOSITORY_ROOT="$(dirname "$(readlink -f "$0")")/.."
 
 if [ -z "$NEW_VERSION" ]; then
     echo "Error: New version is missing"
-    echo "Please pass the new version as the first argument e.g ./tools/set_version.sh 1.0.0"    
+    echo "Please pass the new version as the first argument e.g ./tools/set_version.sh 1.0.0"
     exit 1
 fi
 

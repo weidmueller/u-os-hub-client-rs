@@ -130,7 +130,7 @@ impl<'a> Variable<'a> {
   /// The individual timestamp of the variable.
   ///
   /// Only set by the provider!
-  /// Consumers can left this empty. This value is ignored by the provider in 
+  /// Consumers can left this empty. This value is ignored by the provider in
   /// a write command.
   #[inline]
   pub fn timestamp(&self) -> Option<&'a Timestamp> {
@@ -142,7 +142,7 @@ impl<'a> Variable<'a> {
   /// The quality of the variable.
   ///
   /// Only set by the provider!
-  /// Consumers can set it to BAD. This value is ignored by the provider  
+  /// Consumers can set it to BAD. This value is ignored by the provider
   /// in a write command.
   #[inline]
   pub fn quality(&self) -> VariableQuality {

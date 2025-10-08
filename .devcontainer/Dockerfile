@@ -48,7 +48,7 @@ RUN rustup component add --toolchain ${U_OS_RUST_VERSION} clippy
 RUN rustup target add armv7-unknown-linux-gnueabihf aarch64-unknown-linux-gnu x86_64-unknown-linux-gnu
 RUN rustup target add armv7-unknown-linux-gnueabihf aarch64-unknown-linux-gnu x86_64-unknown-linux-gnu --toolchain ${U_OS_RUST_VERSION}
 
-# Download and install cargo-audit 
+# Download and install cargo-audit
 RUN <<-EOT
     VER="0.21.2"
     DIR="/usr/local/cargo/bin"
@@ -76,7 +76,7 @@ RUN curl --proto '=https' --tlsv1.2 -LsSf https://github.com/j178/prek/releases/
 WORKDIR ${HOME}
 
 # Install and run nats server (needed for unit tests and jenkins pipeline)
-# We are currently running nats directly in the dev container 
+# We are currently running nats directly in the dev container
 # because that makes the Jenkins buildpipeline much easier
 # as Jenkins currently does not support docker compose.
 RUN curl -sf https://binaries.nats.dev/nats-io/nats-server/v2@v2.11.3 | sh

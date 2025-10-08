@@ -18,12 +18,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      #We need this to free up enough space for our cache. 
+      #We need this to free up enough space for our cache.
       #See: https://github.com/orgs/community/discussions/25678#discussioncomment-5242449
       - name: Delete huge unnecessary tools folder
         run: rm -rf /opt/hostedtoolcache
 
-      # This is required to be able to pull protected repositories      
+      # This is required to be able to pull protected repositories
       - uses: actions/create-github-app-token@v2
         id: app-token
         with:

@@ -26,12 +26,12 @@ echo "Checking component versions..."
 # Check all crates
 for toml_file_path in $CRATES; do
     version=$(get_cargo_version "$toml_file_path")
-    
+
     if [ -z "$reference_version" ]; then
         reference_version=$version
         echo "Reference version from $toml_file_path: $reference_version"
     fi
-    
+
     if [ "$version" != "$reference_version" ]; then
         echo "❌ $toml_file_path has inconsistent version: $version (expected: $reference_version)"
         inconsistent=true

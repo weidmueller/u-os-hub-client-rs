@@ -19,8 +19,8 @@ use super::*;
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq)]
 pub struct Uuid(pub [u8; 16]);
-impl Default for Uuid { 
-  fn default() -> Self { 
+impl Default for Uuid {
+  fn default() -> Self {
     Self([0; 16])
   }
 }
@@ -170,4 +170,3 @@ impl UuidT {
     )
   }
 }
-

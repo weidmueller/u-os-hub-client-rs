@@ -34,7 +34,7 @@ flatc -o $dest_path -r --gen-object-api --bfbs-comments --rust-serialize --rust-
     $api_path/flatbuffers/messages/read_variables_query_request.fbs \
     $api_path/flatbuffers/messages/read_variables_query_response.fbs \
     $api_path/flatbuffers/messages/variables_changed_event.fbs \
-    $api_path/flatbuffers/messages/write_variables_command.fbs 
+    $api_path/flatbuffers/messages/write_variables_command.fbs
 
 # There is a bug in flatc where the generation of mod.rs does not include all generated files.
 # https://github.com/google/flatbuffers/issues/8096

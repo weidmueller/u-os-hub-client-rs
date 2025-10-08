@@ -80,7 +80,7 @@ impl<'a> VariableList<'a> {
   /// fallback if no explicit was specified for the variable.
   ///
   /// Only set by the provider!
-  /// Consumers can set it to 0s and 0ns. This value is ignored by the 
+  /// Consumers can set it to 0s and 0ns. This value is ignored by the
   /// provider in a write command.
   #[inline]
   pub fn base_timestamp(&self) -> &'a Timestamp {

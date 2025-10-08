@@ -21,14 +21,14 @@ use super::*;
 /// or "month". It is related to Timestamp in that the difference between
 /// two Timestamp values is a Duration and it can be added or subtracted
 /// from a Timestamp. Range is approximately +-10,000 years.
-/// 
+///
 /// Based on google protobuf duration definition: <https://github.com/protocolbuffers/protobuf/blob/main/src/google/protobuf/duration.proto>
 // struct Duration, aligned to 8
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq)]
 pub struct Duration(pub [u8; 16]);
-impl Default for Duration { 
-  fn default() -> Self { 
+impl Default for Duration {
+  fn default() -> Self {
     Self([0; 16])
   }
 }
@@ -187,4 +187,3 @@ impl DurationT {
     )
   }
 }
-

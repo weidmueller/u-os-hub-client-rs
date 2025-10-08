@@ -79,7 +79,7 @@ impl<'a> ProviderDefinition<'a> {
   ///
   /// Therefore, the fingerprint can be used by a consumer to check whether
   /// the provider's definition matches the values received.
-  /// Whenever a provider definition changed, the provider must change the 
+  /// Whenever a provider definition changed, the provider must change the
   /// fingerprint.
   #[inline]
   pub fn fingerprint(&self) -> u64 {
