@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025 Weidmueller Interface GmbH & Co. KG <oss@weidmueller.com>
+#
+# SPDX-License-Identifier: MIT
+
 # For library crates, we always use the most recent stable version of rust
 ARG VARIANT="bookworm"
 FROM mcr.microsoft.com/vscode/devcontainers/rust:1.0.22-${VARIANT}

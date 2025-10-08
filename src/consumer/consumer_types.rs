@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2025 Weidmueller Interface GmbH & Co. KG <oss@weidmueller.com>
+//
+// SPDX-License-Identifier: MIT
+
 //! Collection of types that are used in the consumer side of the library.
 //! These types abstract the low level flatbuffer types and provide a more user-friendly interface.
 

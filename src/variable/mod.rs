@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2025 Weidmueller Interface GmbH & Co. KG <oss@weidmueller.com>
+//
+// SPDX-License-Identifier: MIT
+
 //! Contains a variable with definition and value
 use std::{
     collections::{hash_map::DefaultHasher, BTreeMap},

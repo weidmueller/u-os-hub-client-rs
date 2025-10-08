@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025 Weidmueller Interface GmbH & Co. KG <oss@weidmueller.com>
+#
+# SPDX-License-Identifier: MIT
+
 [submodule "external/u-os-hub-api"]
 	path = external/u-os-hub-api
 	url = ../u-os-hub-api.git

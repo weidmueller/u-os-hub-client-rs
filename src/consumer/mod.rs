@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2025 Weidmueller Interface GmbH & Co. KG <oss@weidmueller.com>
+//
+// SPDX-License-Identifier: MIT
+
 //! This module provides APIs and data types for interacting with the u-OS Data Hub as a consumer.
 //!
 //! The consumer API is split into a low- and a high-level API.

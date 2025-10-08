@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2025 Weidmueller Interface GmbH & Co. KG <oss@weidmueller.com>
+//
+// SPDX-License-Identifier: MIT
+
 //! This module provides a low-level API for interacting with the variable hub registry via NATS.
 
 use std::sync::Arc;

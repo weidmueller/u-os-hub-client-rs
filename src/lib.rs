@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2025 Weidmueller Interface GmbH & Co. KG <oss@weidmueller.com>
+//
+// SPDX-License-Identifier: MIT
+
 //! Welcome to the u-OS Data Hub client library.
 //!
 //! This library allows to interact with the u-OS Variable Data Hub as a provider or consumer.

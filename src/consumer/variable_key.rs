@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2025 Weidmueller Interface GmbH & Co. KG <oss@weidmueller.com>
+//
+// SPDX-License-Identifier: MIT
+
 //! This module contains the `VariableKey` struct, which is used to represent a variable key on the hub.
 
 use std::fmt::Display;

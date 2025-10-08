@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2025 Weidmueller Interface GmbH & Co. KG <oss@weidmueller.com>
+//
+// SPDX-License-Identifier: MIT
+
 //! This module provides a high-level API for interacting with a variable hub provider
 //! by abstacting the low-level API details via easy to use rust types.
 
