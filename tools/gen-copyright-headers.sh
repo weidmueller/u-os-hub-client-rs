@@ -4,16 +4,16 @@
 
 set -euo pipefail
 
+script_path="$(readlink -f ${0})"
+script_dir="$(dirname ${script_path})"
+project_dir="$(dirname ${script_dir})"
+
 copyright="Weidmueller Interface GmbH & Co. KG <oss@weidmueller.com>"
 
 set -x
 
-reuse annotate --license MIT --copyright "$copyright" --merge-copyrights --recursive --skip-unrecognised $files
-
-exit 0
-
 # Only check modified files, ignore deleted files and files with less than 4 lines changed
-files=$(git diff --diff-filter=dcr -w --numstat origin/main..HEAD | awk '{if ($1+$2 > 3) print $3}')
+files=$(git diff --diff-filter=dcr -w --numstat origin/main..HEAD | awk -v project_dir="$project_dir" '{if ($1+$2 > 3) print project_dir "/" $3}')
 
 reuse annotate --license MIT --copyright "$copyright" --merge-copyrights --recursive --skip-unrecognised $files
 

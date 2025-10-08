@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# SPDX-FileCopyrightText: 2025 Weidmueller Interface GmbH & Co. KG <oss@weidmueller.com>
+#
+# SPDX-License-Identifier: MIT
+
 set -euo pipefail
 
 cd "$(dirname "$(readlink -f "$0")")" || exit 1
@@ -38,3 +42,10 @@ flatc -o $dest_path -r --gen-object-api --bfbs-comments --rust-serialize --rust-
 # !!! If you add more files to the flatc call above, you have to adjust ./mod.rs manually. !!!
 # TODO: Check the state of the issue
 cp files/mod.rs $dest_path/mod.rs
+
+# Regenerate copyright headers in generated files
+# For some reason recursive fails with the temp folder, so we manually find all files
+echo "Annotating copyright headers in generated files under $dest_path"
+copyright="Weidmueller Interface GmbH & Co. KG <oss@weidmueller.com>"
+generated_files=$(find $dest_path -type f)
+reuse annotate --license MIT --copyright "$copyright" $generated_files
