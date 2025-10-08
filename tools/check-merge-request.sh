@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# SPDX-FileCopyrightText: 2025 Weidmueller Interface GmbH & Co. KG <oss@weidmueller.com>
+#
+# SPDX-License-Identifier: MIT
+
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
 if [ -n "${BUILD_ALL_ARCHS}" ]; then
@@ -10,6 +14,9 @@ fi
 echo "BUILD_ALL_ARCHS is set to ${build_all_archs}"
 
 set -euxo pipefail
+
+# Check copyright headers and license files
+reuse lint
 
 # Default build profile
 profile="dev"
@@ -54,3 +61,6 @@ cargo test --profile ${profile} --all-features --target x86_64-unknown-linux-gnu
 
 # Audit once, independently of the rust version
 cargo audit
+
+# Check licenses of all transitive dependencies
+cargo-deny check licenses

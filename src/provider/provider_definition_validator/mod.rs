@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2025 Weidmueller Interface GmbH & Co. KG <oss@weidmueller.com>
+//
+// SPDX-License-Identifier: MIT
+
 //! This module contains the validation logic for provider definitions.
 
 use std::collections::HashSet;

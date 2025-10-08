@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2025 Weidmueller Interface GmbH & Co. KG <oss@weidmueller.com>
+//
+// SPDX-License-Identifier: MIT
+
 //! Parser for environment files.
 use anyhow::Result;
 use std::{collections::HashMap, path::Path};
@@ -33,7 +37,7 @@ r#"
 KEY_1=valuE1!
 KEY_2=valuE2!
 "#, HashMap::from([
-        ("KEY_1".to_string(), "valuE1!".to_string()), 
+        ("KEY_1".to_string(), "valuE1!".to_string()),
         ("KEY_2".to_string(), "valuE2!".to_string())
     ]))]
     fn test_parse_env_file(#[case] input: &str, #[case] expected_result: HashMap<String, String>) {

@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2025 Weidmueller Interface GmbH & Co. KG <oss@weidmueller.com>
+//
+// SPDX-License-Identifier: MIT
+
 use rstest::rstest;
 
 use crate::{dh_types::VariableAccessType, provider::VariableBuildError};

@@ -1,4 +1,9 @@
 #!/bin/bash
+
+# SPDX-FileCopyrightText: 2025 Weidmueller Interface GmbH & Co. KG <oss@weidmueller.com>
+#
+# SPDX-License-Identifier: MIT
+
 # This scripts compares the current version of the repository with the version set in Cargo.toml files.
 
 set -euo pipefail
@@ -21,12 +26,12 @@ echo "Checking component versions..."
 # Check all crates
 for toml_file_path in $CRATES; do
     version=$(get_cargo_version "$toml_file_path")
-    
+
     if [ -z "$reference_version" ]; then
         reference_version=$version
         echo "Reference version from $toml_file_path: $reference_version"
     fi
-    
+
     if [ "$version" != "$reference_version" ]; then
         echo "❌ $toml_file_path has inconsistent version: $version (expected: $reference_version)"
         inconsistent=true
@@ -58,26 +63,5 @@ if [ "$reference_version" == "$changelog_latest_version" ]; then
     echo "✅ App version '$reference_version' matches latest entry in version changelog."
 else
     echo "❌ App version '$reference_version' does NOT match latest entry in version changelog '$changelog_latest_version'"
-    exit 1
-fi
-
-# Check if generated flatbuffers files are up to date
-echo "👀 Checking if generated flatbuffers files are up to date..."
-
-tmp_generated_dir=$(mktemp -d)
-current_generated_dir="$REPOSITORY_ROOT/src/generated"
-
-DEST_PATH=$tmp_generated_dir $REPOSITORY_ROOT/tools/regenerate_fbs.sh
-
-diff_rc=0
-diff -rq $tmp_generated_dir $current_generated_dir || diff_rc=$?
-
-if [ "$diff_rc" -eq 0 ]; then
-    echo "✅ Generated flatbuffers files are up to date!"
-elif [ "$diff_rc" -eq 1 ]; then
-    echo "❌ Generated flatbuffers files are not up to date. Please run 'tools/regenerate_fbs.sh' to update them."
-    exit 1
-else
-    echo "Diff encountered an error (code: $diff_rc)."
     exit 1
 fi

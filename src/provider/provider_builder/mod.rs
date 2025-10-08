@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2025 Weidmueller Interface GmbH & Co. KG <oss@weidmueller.com>
+//
+// SPDX-License-Identifier: MIT
+
 //! Contains the provider builder which is need to create a provider.
 use std::{collections::BTreeMap, sync::Arc};
 

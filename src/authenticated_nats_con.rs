@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2025 Weidmueller Interface GmbH & Co. KG <oss@weidmueller.com>
+//
+// SPDX-License-Identifier: MIT
+
 //! Handles authentication and connection to NATS server.
 //! Used by both provider and consumer modules.
 

@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2025 Weidmueller Interface GmbH & Co. KG <oss@weidmueller.com>
+//
+// SPDX-License-Identifier: MIT
+
 //! Contains constants and functions for dealing with the u-OS Data Hub subjects
 use const_format::formatcp;
 

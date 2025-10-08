@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025 Weidmueller Interface GmbH & Co. KG <oss@weidmueller.com>
+#
+# SPDX-License-Identifier: MIT
+
 name: "build"
 on: # rebuild any PRs and main branch changes
   pull_request:
@@ -14,12 +18,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      #We need this to free up enough space for our cache. 
+      #We need this to free up enough space for our cache.
       #See: https://github.com/orgs/community/discussions/25678#discussioncomment-5242449
       - name: Delete huge unnecessary tools folder
         run: rm -rf /opt/hostedtoolcache
 
-      # This is required to be able to pull protected repositories      
+      # This is required to be able to pull protected repositories
       - uses: actions/create-github-app-token@v2
         id: app-token
         with:
@@ -36,6 +40,21 @@ jobs:
           submodules: recursive
           # Make sure the value of GITHUB_TOKEN will not be persisted in repo's config
           persist-credentials: false
+          fetch-depth: 0 # Fetch all history for all tags and branches
+
+      # Check commit messages
+      # Lint everything from the base to the latest
+      - name: Run gitlint
+        shell: bash
+        run: |
+          python -m pip install gitlint
+          echo "Linting commits:"
+          git log --pretty=format:"%h %s" ${{ github.event.pull_request.base.sha }}..HEAD
+          gitlint -vvv --commits "${{ github.event.pull_request.base.sha }}..HEAD"
+
+      # Run pre commit hooks
+      - name: Run Commit Checks
+        uses: j178/prek-action@v1
 
       # Cache rust target folder for faster builds
       - name: Cache rust target folder
@@ -63,9 +82,6 @@ jobs:
       - name: Build and run dev container task
         uses: devcontainers/ci@v0.3
         with:
-          imageName: ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}/devcontainer
-          push: always
-          cacheFrom: ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}/devcontainer
           runCmd: |
             set -eu
 

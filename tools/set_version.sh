@@ -1,4 +1,9 @@
 #!/bin/bash
+
+# SPDX-FileCopyrightText: 2025 Weidmueller Interface GmbH & Co. KG <oss@weidmueller.com>
+#
+# SPDX-License-Identifier: MIT
+
 # This script sets the version of the repository inside all Cargo.toml files.
 
 NEW_VERSION=$1
@@ -17,7 +22,7 @@ REPOSITORY_ROOT="$(dirname "$(readlink -f "$0")")/.."
 
 if [ -z "$NEW_VERSION" ]; then
     echo "Error: New version is missing"
-    echo "Please pass the new version as the first argument e.g ./tools/set_version.sh 1.0.0"    
+    echo "Please pass the new version as the first argument e.g ./tools/set_version.sh 1.0.0"
     exit 1
 fi
 

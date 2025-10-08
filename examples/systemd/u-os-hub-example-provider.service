@@ -1,10 +1,14 @@
+# SPDX-FileCopyrightText: 2025 Weidmueller Interface GmbH & Co. KG <oss@weidmueller.com>
+#
+# SPDX-License-Identifier: MIT
+
 [Unit]
 Description=Just a simple dummy provider
 Wants=nats-server.service uc-hub.service
 After=uc-hub.service uc-hub-auth.service hydra.service
 
 [Service]
-LoadCredentialEncrypted=u_os_hub_example_provider:/etc/credstore.encrypted/u_os_hub_example_provider.creds  
+LoadCredentialEncrypted=u_os_hub_example_provider:/etc/credstore.encrypted/u_os_hub_example_provider.creds
 ExecStart=/usr/bin/u-os-hub-example-provider --client-name u_os_hub_example_provider --cred-file ${CREDENTIALS_DIRECTORY}/u_os_hub_example_provider
 
 [Install]

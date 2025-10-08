@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2025 Weidmueller Interface GmbH & Co. KG <oss@weidmueller.com>
+//
+// SPDX-License-Identifier: MIT
+
 //! Contains some utils for oauth2 handling
 use base64::{prelude::BASE64_STANDARD, Engine};
 use hyper::header::AUTHORIZATION;

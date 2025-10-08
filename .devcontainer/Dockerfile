@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025 Weidmueller Interface GmbH & Co. KG <oss@weidmueller.com>
+#
+# SPDX-License-Identifier: MIT
+
 # For library crates, we always use the most recent stable version of rust
 ARG VARIANT="bookworm"
 FROM mcr.microsoft.com/vscode/devcontainers/rust:1.0.22-${VARIANT}
@@ -13,7 +17,6 @@ ARG HOME=/home/${BASE_IMAGE_USERNAME}
 
 RUN apt-get update \
     && apt-get install -y \
-    cmake \
     binutils-arm-linux-gnueabihf \
     binutils-aarch64-linux-gnu \
     ca-certificates \
@@ -21,15 +24,22 @@ RUN apt-get update \
     gcc \
     gcc-arm-linux-gnueabihf \
     gcc-aarch64-linux-gnu \
-    libc-dev \
-    libssl-dev \
+    reuse \
     && rm -rf /var/lib/apt/lists/*
 
+
 # Install flatc
-RUN git clone https://github.com/google/flatbuffers.git && cd flatbuffers \
-    && git checkout v23.5.26 \
-    && cmake -G "Unix Makefiles" && make -j$(nproc) \
-    && sudo cp /flatbuffers/flatc /usr/bin/flatc && chmod +x /usr/bin/flatc
+RUN <<-EOT
+    set -eux
+
+    VER="v23.5.26"
+    DIR="/usr/bin"
+
+    curl -L -o /tmp/archive.zip https://github.com/google/flatbuffers/releases/download/${VER}/Linux.flatc.binary.g++-10.zip
+    unzip /tmp/archive.zip -d /tmp/extract
+    install -m 0755 /tmp/extract/flatc $DIR/flatc
+    rm -rf /tmp/extract
+EOT
 
 # Install nightly rust toolchain, needed for cargo -Z flags
 RUN rustup toolchain install nightly
@@ -43,7 +53,7 @@ RUN rustup component add --toolchain ${U_OS_RUST_VERSION} clippy
 RUN rustup target add armv7-unknown-linux-gnueabihf aarch64-unknown-linux-gnu x86_64-unknown-linux-gnu
 RUN rustup target add armv7-unknown-linux-gnueabihf aarch64-unknown-linux-gnu x86_64-unknown-linux-gnu --toolchain ${U_OS_RUST_VERSION}
 
-# Download and install cargo-audit 
+# Download and install cargo-audit
 RUN <<-EOT
     VER="0.21.2"
     DIR="/usr/local/cargo/bin"
@@ -53,10 +63,25 @@ RUN <<-EOT
     rm $DIR/archive.tar.gz
 EOT
 
+#Install cargo deny
+RUN <<-EOT
+    set -eux
+
+    VER="0.18.5"
+    DIR="/usr/local/cargo/bin"
+
+    curl -L -o $DIR/archive.tar.gz https://github.com/EmbarkStudios/cargo-deny/releases/download/${VER}/cargo-deny-${VER}-x86_64-unknown-linux-musl.tar.gz
+    tar -xzvf $DIR/archive.tar.gz --strip-components=1 -C $DIR
+    rm $DIR/archive.tar.gz
+EOT
+
+# Install prek for pre commit hooks
+RUN curl --proto '=https' --tlsv1.2 -LsSf https://github.com/j178/prek/releases/download/v0.2.3/prek-installer.sh | sh
+
 WORKDIR ${HOME}
 
 # Install and run nats server (needed for unit tests and jenkins pipeline)
-# We are currently running nats directly in the dev container 
+# We are currently running nats directly in the dev container
 # because that makes the Jenkins buildpipeline much easier
 # as Jenkins currently does not support docker compose.
 RUN curl -sf https://binaries.nats.dev/nats-io/nats-server/v2@v2.11.3 | sh

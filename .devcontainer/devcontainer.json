@@ -22,7 +22,9 @@
         "fill-labs.dependi",
         "tamasfe.even-better-toml",
         "vadimcn.vscode-lldb",
-        "gaborv.flatbuffers"
+        "gaborv.flatbuffers",
+        "ban.spellright",
+        "ms-azuretools.vscode-docker"
       ],
       "settings": {
         "rust-analyzer.check.command": "clippy",

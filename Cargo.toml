@@ -1,5 +1,10 @@
+# SPDX-FileCopyrightText: 2025 Weidmueller Interface GmbH & Co. KG <oss@weidmueller.com>
+#
+# SPDX-License-Identifier: MIT
+
 [package]
 name = "u-os-hub-client"
+license = "MIT"
 description = "u-OS Data Hub Client"
 version = "0.2.0"
 edition = "2021"
@@ -36,6 +41,9 @@ serial_test = "3.0"
 rstest = "0.21"
 tracing-subscriber = { version = "0.3", features = ["fmt"] }
 clap = { version = "4.1", features = ["derive"] }
+
+[build-dependencies]
+flatc-rust = "0.2"
 
 # Additional lints to prevent runtime crashes
 # Some of them are relaxed for tests, see clippy.toml and source code allow tags

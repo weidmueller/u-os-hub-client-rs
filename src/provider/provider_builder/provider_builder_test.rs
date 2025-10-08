@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2025 Weidmueller Interface GmbH & Co. KG <oss@weidmueller.com>
+//
+// SPDX-License-Identifier: MIT
+
 use crate::provider::{
     provider_builder::AddVariablesError,
     provider_definition_validator::InvalidProviderDefinitionError, VariableBuilder,

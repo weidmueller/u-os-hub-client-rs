@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2025 Weidmueller Interface GmbH & Co. KG <oss@weidmueller.com>
+//
+// SPDX-License-Identifier: MIT
+
 //! This module provides APIs and data types for interacting with the u-OS Data Hub as a provider.
 //! Providers are responsible for providing variables to the Data Hub and managing their values.
 //! They can publish data and accept write requests from consumers.
