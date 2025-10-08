@@ -17,7 +17,6 @@ ARG HOME=/home/${BASE_IMAGE_USERNAME}
 
 RUN apt-get update \
     && apt-get install -y \
-    cmake \
     binutils-arm-linux-gnueabihf \
     binutils-aarch64-linux-gnu \
     ca-certificates \
@@ -25,16 +24,22 @@ RUN apt-get update \
     gcc \
     gcc-arm-linux-gnueabihf \
     gcc-aarch64-linux-gnu \
-    libc-dev \
-    libssl-dev \
     reuse \
     && rm -rf /var/lib/apt/lists/*
 
+
 # Install flatc
-RUN git clone https://github.com/google/flatbuffers.git && cd flatbuffers \
-    && git checkout v23.5.26 \
-    && cmake -G "Unix Makefiles" && make -j$(nproc) \
-    && sudo cp /flatbuffers/flatc /usr/bin/flatc && chmod +x /usr/bin/flatc
+RUN <<-EOT
+    set -eux
+
+    VER="v23.5.26"
+    DIR="/usr/bin"
+
+    curl -L -o /tmp/archive.zip https://github.com/google/flatbuffers/releases/download/${VER}/Linux.flatc.binary.g++-10.zip
+    unzip /tmp/archive.zip -d /tmp/extract
+    install -m 0755 /tmp/extract/flatc $DIR/flatc
+    rm -rf /tmp/extract
+EOT
 
 # Install nightly rust toolchain, needed for cargo -Z flags
 RUN rustup toolchain install nightly

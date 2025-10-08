@@ -82,9 +82,6 @@ jobs:
       - name: Build and run dev container task
         uses: devcontainers/ci@v0.3
         with:
-          imageName: ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}/devcontainer
-          push: always
-          cacheFrom: ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}/devcontainer
           runCmd: |
             set -eu
 
