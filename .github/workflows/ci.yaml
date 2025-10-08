@@ -36,6 +36,21 @@ jobs:
           submodules: recursive
           # Make sure the value of GITHUB_TOKEN will not be persisted in repo's config
           persist-credentials: false
+          fetch-depth: 0 # Fetch all history for all tags and branches
+
+      # Check commit messages
+      # Lint everything from the base to the latest
+      - name: Run gitlint
+        shell: bash
+        run: |
+          python -m pip install gitlint
+          echo "Linting commits:"
+          git log --pretty=format:"%h %s" ${{ github.event.pull_request.base.sha }}..HEAD
+          gitlint -vvv --commits "${{ github.event.pull_request.base.sha }}..HEAD"
+
+      # Run pre commit hooks
+      - name: Run Commit Checks
+        uses: j178/prek-action@v1
 
       # Cache rust target folder for faster builds
       - name: Cache rust target folder

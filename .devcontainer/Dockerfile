@@ -23,6 +23,7 @@ RUN apt-get update \
     gcc-aarch64-linux-gnu \
     libc-dev \
     libssl-dev \
+    reuse \
     && rm -rf /var/lib/apt/lists/*
 
 # Install flatc
@@ -64,6 +65,9 @@ RUN <<-EOT
     tar -xzvf $DIR/archive.tar.gz --strip-components=1 -C $DIR
     rm $DIR/archive.tar.gz
 EOT
+
+# Install prek for pre commit hooks
+RUN curl --proto '=https' --tlsv1.2 -LsSf https://github.com/j178/prek/releases/download/v0.2.3/prek-installer.sh | sh
 
 WORKDIR ${HOME}
 

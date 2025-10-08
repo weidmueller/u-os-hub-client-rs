@@ -1,0 +1,96 @@
+// SPDX-FileCopyrightText: 2025 Weidmueller Interface GmbH & Co. KG <oss@weidmueller.com>
+//
+// SPDX-License-Identifier: MIT
+
+= Contributing
+
+Thank you for your interest in contributing to this project!
+
+You can contribute in many ways, including:
+
+- Reporting bugs
+- Suggesting features
+- Writing code or documentation
+
+== Conduct
+
+Please follow the link:CODE_OF_CONDUCT.md[Code of Conduct]. This describes the minimum behavior expected from all contributors.
+
+== Reporting Bugs and Suggesting Features
+
+Please use the GitHub issue tracker for reporting bugs and suggesting features.
+
+== Writing Code or Documentation
+
+For contributing source files, please fork the repository and create a pull request (PR) from your fork to the main repository.
+
+This adheres to the standard GitHub open source workflow. For details, see link:https://docs.github.com/en/get-started/quickstart/contributing-to-projects[Contributing to Projects on GitHub].
+
+The project is optimized for development within a VSCode devcontainer.
+
+=== Developing in Visual Studio Code
+
+Install `Remote Development` and `Remote-Containers` and start the development container via `Reopen in Container`.
+
+==== Set Up Pre-commit Hooks (Optional)
+
+This repository uses prek for pre-commit hooks.
+
+Run `prek install` while in the devcontainer to set up the hooks locally.
+
+==== Installing Dependencies
+
+Execute
+
+```
+npm ci --ignore-optional
+```
+
+to install necessary dependencies.
+
+==== Building
+
+Execute
+
+```
+npm run build
+```
+
+to perform a complete build of u-os-hub-api.
+This includes the following steps:
+
+1.  Generate JSON schemas from the FlatBuffers messages.
+    They are used in the generation of the AsyncAPI site.
+2.  Validate AsyncAPI using link:https://stoplight.io/open-source/spectral[Spectral]. See <<Validating the APIs>> for details.
+3.  Generate AsyncAPI UI. See <<Generating AsyncAPI UI>> for details.
+4.  Validate OpenAPI using link:https://stoplight.io/open-source/spectral[Spectral]. See <<Validating the APIs>> for details.
+
+==== Generating AsyncAPI UI
+
+Execute
+
+```
+npm run generateAsyncApiSite
+```
+
+to generate an AsyncAPI UI from `variable-nats-asyncapi.yaml`.
+
+Find the generated UI in the `dist/asyncapi` directory.
+
+After building, you can open the AsyncAPI UI in the browser via the link:https://marketplace.visualstudio.com/items?itemName=ritwickdey.LiveServer[Live Server] extension by clicking on `Go Live`.
+
+==== Validating the APIs
+
+link:https://stoplight.io/open-source/spectral[Spectral] is an API style guide enforcer and linter.
+
+We use Spectral for both OpenAPI and AsyncAPI linting based on a set of rules described in `tools/spectral.json`.
+
+=== Publishing Your Changes
+
+==== Developer Certificate of Origin
+
+All commits must be signed off to affirm compliance with the link:https://developercertificate.org/[DCO].
+
+==== Check Your Changes
+
+Before creating a merge request, please run `tools/check-merge-request.sh` to validate your changes. This will prevent failures in the CI pipeline later.
