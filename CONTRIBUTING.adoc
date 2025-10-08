@@ -38,52 +38,55 @@ This repository uses prek for pre-commit hooks.
 
 Run `prek install` while in the devcontainer to set up the hooks locally.
 
-==== Installing Dependencies
-
-Execute
-
-```
-npm ci --ignore-optional
-```
-
-to install necessary dependencies.
-
 ==== Building
 
-Execute
+Clone the submodules:
 
-```
-npm run build
-```
+----
+git submodule update --init
+----
 
-to perform a complete build of u-os-hub-api.
-This includes the following steps:
+Now you can build the project via
 
-1.  Generate JSON schemas from the FlatBuffers messages.
-    They are used in the generation of the AsyncAPI site.
-2.  Validate AsyncAPI using link:https://stoplight.io/open-source/spectral[Spectral]. See <<Validating the APIs>> for details.
-3.  Generate AsyncAPI UI. See <<Generating AsyncAPI UI>> for details.
-4.  Validate OpenAPI using link:https://stoplight.io/open-source/spectral[Spectral]. See <<Validating the APIs>> for details.
-
-==== Generating AsyncAPI UI
-
-Execute
-
-```
-npm run generateAsyncApiSite
+```sh
+cargo build
 ```
 
-to generate an AsyncAPI UI from `variable-nats-asyncapi.yaml`.
+==== Run tests
 
-Find the generated UI in the `dist/asyncapi` directory.
+You can run all tests via
 
-After building, you can open the AsyncAPI UI in the browser via the link:https://marketplace.visualstudio.com/items?itemName=ritwickdey.LiveServer[Live Server] extension by clicking on `Go Live`.
+```sh
+cargo test
+```
 
-==== Validating the APIs
+==== Generate documentation
 
-link:https://stoplight.io/open-source/spectral[Spectral] is an API style guide enforcer and linter.
+You can generate the crate documentation via
 
-We use Spectral for both OpenAPI and AsyncAPI linting based on a set of rules described in `tools/spectral.json`.
+```sh
+cargo doc
+```
+
+Then you will find the documentation under `target/doc/u_os_hub_client/index.html`.
+
+==== Running examples
+
+The examples folder contains some examples of how to use the library.
+Running the examples requires a running u-OS Data Hub instance as well as a nats server and various authentication services.
+
+The easiest way to do this is to cross compile the examples and run them directly on the target device.
+
+There are convenience scripts to deploy and remove the examples from a device:
+
+```bash
+#Cross compiles and installs examples as systemd services on the target device
+./tools/build_and_deploy_hub_examples.sh <IP> <arch>
+
+#Removes the examples from the target device
+./tools/remove_hub_examples.sh <IP>
+```
+
 
 === Publishing Your Changes
 

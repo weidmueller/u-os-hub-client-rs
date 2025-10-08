@@ -42,7 +42,6 @@ rstest = "0.21"
 tracing-subscriber = { version = "0.3", features = ["fmt"] }
 clap = { version = "4.1", features = ["derive"] }
 
-
 [build-dependencies]
 flatc-rust = "0.2"
 
