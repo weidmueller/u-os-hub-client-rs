@@ -6,6 +6,11 @@ SPDX-License-Identifier: MIT
 
 # Changelog
 
+### 0.2.2
+
+- fix: docs.rs build
+- fix: readme on crates.io
+
 ### 0.2.0
 
 - feat: improve forwards compatibility

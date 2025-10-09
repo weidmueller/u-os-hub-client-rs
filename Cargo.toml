@@ -6,7 +6,10 @@
 name = "u-os-hub-client"
 license = "MIT"
 description = "u-OS Data Hub Client"
-version = "0.2.0"
+repository = "https://github.com/weidmueller/u-os-hub-client-rs"
+homepage = "https://github.com/weidmueller/u-os-hub-client-rs"
+readme = "README.md"
+version = "0.2.2"
 edition = "2021"
 rust-version = "1.75"
 
@@ -20,11 +23,14 @@ async-trait = "0.1.80"
 base64 = "0.22"
 bytes = "1.10"
 const_format = "0.2.20"
-flatbuffers = { version="23.0", features = ["serde", "serialize"]}
+flatbuffers = { version = "23.0", features = ["serde", "serialize"] }
 futures = "0.3.28"
 futures-util = "0.3"
 hyper = "1.6"
-reqwest = { version = "0.12", features = ["json", "rustls-tls"], default-features = false  }
+reqwest = { version = "0.12", features = [
+    "json",
+    "rustls-tls",
+], default-features = false }
 regex = "1.11"
 serde = { version = "1.0.184", features = ["derive"] }
 serde_json = "1.0.104"
