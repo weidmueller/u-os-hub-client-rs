@@ -96,4 +96,4 @@ All commits must be signed off to affirm compliance with the link:https://develo
 
 ==== Check Your Changes
 
-Before creating a merge request, please run `tools/check-merge-request.sh` to validate your changes. This will prevent failures in the CI pipeline later.
+Before creating a merge request, please run `tools/check_merge_request.sh` to validate your changes. This will prevent failures in the CI pipeline later.

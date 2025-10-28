@@ -31,10 +31,10 @@ cargo fmt --check
 rm -f Cargo.lock
 cargo +nightly -Zminimal-versions update
 
-"${script_dir}/build-for-target.sh" ${profile} x86_64-unknown-linux-gnu ${U_OS_RUST_VERSION}
+"${script_dir}/build_for_target.sh" ${profile} x86_64-unknown-linux-gnu ${U_OS_RUST_VERSION}
 if [ "${build_all_archs}" = "true" ]; then
-    "${script_dir}/build-for-target.sh" ${profile} armv7-unknown-linux-gnueabihf ${U_OS_RUST_VERSION}
-    "${script_dir}/build-for-target.sh" ${profile} aarch64-unknown-linux-gnu ${U_OS_RUST_VERSION}
+    "${script_dir}/build_for_target.sh" ${profile} armv7-unknown-linux-gnueabihf ${U_OS_RUST_VERSION}
+    "${script_dir}/build_for_target.sh" ${profile} aarch64-unknown-linux-gnu ${U_OS_RUST_VERSION}
 fi
 
 cargo +${U_OS_RUST_VERSION} clippy --profile ${profile} --all-features --all-targets -- -D warnings
@@ -43,7 +43,7 @@ cargo +${U_OS_RUST_VERSION} test --profile ${profile} --all-features --target x8
 
 # Build with latest rust toolchain and latest dependencies
 rm -f Cargo.lock
-"${script_dir}/build-for-target.sh" ${profile} x86_64-unknown-linux-gnu
+"${script_dir}/build_for_target.sh" ${profile} x86_64-unknown-linux-gnu
 
 # Lib and high level examples must also build without low level feature flag
 cargo build --profile ${profile} --target x86_64-unknown-linux-gnu
@@ -51,8 +51,8 @@ cargo build --profile ${profile} --target x86_64-unknown-linux-gnu --example u-o
 cargo build --profile ${profile} --target x86_64-unknown-linux-gnu --example u-os-hub-example-consumer
 
 if [ "${build_all_archs}" = "true" ]; then
-    "${script_dir}/build-for-target.sh" ${profile} armv7-unknown-linux-gnueabihf
-    "${script_dir}/build-for-target.sh" ${profile} aarch64-unknown-linux-gnu
+    "${script_dir}/build_for_target.sh" ${profile} armv7-unknown-linux-gnueabihf
+    "${script_dir}/build_for_target.sh" ${profile} aarch64-unknown-linux-gnu
 fi
 
 cargo clippy --profile ${profile} --all-features --all-targets -- -D warnings
