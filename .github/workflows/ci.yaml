@@ -86,7 +86,7 @@ jobs:
             set -eu
 
             # Check merge request for all architectures
-            BUILD_ALL_ARCHS=1 ./tools/check-merge-request.sh
+            BUILD_ALL_ARCHS=1 ./tools/check_merge_request.sh
 
             # Print size of target folder
             du -sh target/

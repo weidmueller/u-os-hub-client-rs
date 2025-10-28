@@ -12,7 +12,7 @@
       "type": "bind"
     }
   ],
-  "postStartCommand": "nohup bash -c './tools/start-nats-server.sh &' > /home/vscode/nats-log.txt",
+  "postStartCommand": "nohup bash -c './tools/start_nats_server.sh &' > /home/vscode/nats-log.txt",
   "customizations": {
     "vscode": {
       "extensions": [
