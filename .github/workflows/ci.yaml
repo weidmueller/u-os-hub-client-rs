@@ -23,23 +23,10 @@ jobs:
       - name: Delete huge unnecessary tools folder
         run: rm -rf /opt/hostedtoolcache
 
-      # This is required to be able to pull protected repositories
-      - uses: actions/create-github-app-token@v2
-        id: app-token
-        with:
-          app-id: ${{ vars.GH_APP_ID }}
-          private-key: ${{ secrets.GH_APP_PRIVATE_KEY }}
-          repositories: |
-            u-os-hub-api
-            u-os-hub-client-rs
-
       - name: Checkout (GitHub)
         uses: actions/checkout@v4
         with:
-          token: ${{ steps.app-token.outputs.token }}
           submodules: recursive
-          # Make sure the value of GITHUB_TOKEN will not be persisted in repo's config
-          persist-credentials: false
           fetch-depth: 0 # Fetch all history for all tags and branches
 
       # Check commit messages
