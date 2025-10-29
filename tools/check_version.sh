@@ -65,3 +65,26 @@ else
     echo "❌ App version '$reference_version' does NOT match latest entry in version changelog '$changelog_latest_version'"
     exit 1
 fi
+
+
+# Check if generated flatbuffers files are up to date
+echo "👀 Checking if generated flatbuffers files are up to date..."
+
+fbs_generation_dir="$REPOSITORY_ROOT/src/generated"
+tmp_generated_dir="$REPOSITORY_ROOT/src/tmp_generated"
+
+DEST_PATH="$tmp_generated_dir" $REPOSITORY_ROOT/tools/regenerate_fbs.sh
+
+diff_rc=0
+diff -rq "$tmp_generated_dir" "$fbs_generation_dir" || diff_rc=$?
+rm -rf "$tmp_generated_dir"
+
+if [ "$diff_rc" -eq 0 ]; then
+    echo "✅ Generated flatbuffers files are up to date!"
+elif [ "$diff_rc" -eq 1 ]; then
+    echo "❌ Generated flatbuffers files are not up to date. Please run 'tools/regenerate_fbs.sh' to update them."
+    exit 1
+else
+    echo "Diff encountered an error (code: $diff_rc)."
+    exit 1
+fi
