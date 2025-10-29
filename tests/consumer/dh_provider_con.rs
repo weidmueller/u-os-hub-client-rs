@@ -584,8 +584,9 @@ async fn change_var_defs() {
             panic!("Expected ProviderEvent::DefinitionChanged");
         };
 
-        let var_defs = dh_provider_con.get_all_variable_definitions().unwrap();
-        assert!(var_defs.is_empty());
+        //Note: We must not check var defs of the provider connection here, as they are asynchronously updated.
+        //They may already contain the state from the second event which changes the var defs again.
+        //This would lead to non deterministic test behavior!
 
         if let ProviderEvent::DefinitionChanged(event_var_defs) =
             provider_events_sub.next().await.unwrap()
