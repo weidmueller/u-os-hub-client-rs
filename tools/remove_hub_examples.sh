@@ -1,55 +1,43 @@
-#!/bin/sh
+#!/bin/bash
 
 # SPDX-FileCopyrightText: 2025 Weidmueller Interface GmbH & Co. KG <oss@weidmueller.com>
 #
 # SPDX-License-Identifier: MIT
 
-REMOTE_ADDR=$1
+REMOTE_LOGIN=$1
+
+DEVICE_SCRIPT_NAME="remove_hub_examples_on_device.sh"
 
 set -euo pipefail
-
-REMOTE_DIRECTORY="/usr/bin"
-SYSTEMD_SERVICE_DIRECTORY="/usr/lib/systemd/system"
-HYDRA_CLIENTS_DIR="/usr/share/uc-iam/clients"
-#Note: This includes the old names on purpose, so that old dummy examples also get cleaned up
-SERVICES="u-os-hub-example-provider u-os-hub-example-consumer uc-hub-dummy-provider uc-hub-dummy-consumer"
 
 print_usage() {
     echo ""
     echo "Usage:"
-    echo "  $0 REMOTE_ADDRESS"
+    echo "  $0 user@address"
     exit 1
 }
 
-if [ -z "$REMOTE_ADDR" ]; then
-    echo "Error: Missing remote address"
+if [ -z "$REMOTE_LOGIN" ]; then
+    echo "Error: Missing remote login"
     print_usage
     exit 1
 fi
 
 cd "$(dirname "$(readlink -f "$0")")/.." || exit 1
 
-echo "--> Disable the $SERVICES"
-ssh root@$REMOTE_ADDR "systemctl stop $SERVICES" || true
-ssh root@$REMOTE_ADDR "systemctl disable $SERVICES" || true
+# Prompt password for sshpass
+read -sp "Enter SSH password: " PASSWORD
+echo
+export SSHPASS="$PASSWORD"
 
-echo "--> Mount / as rw and growfs"
-ssh root@$REMOTE_ADDR "mount / -o rw,remount && /usr/lib/systemd/systemd-growfs /"
+# Copy script to device
+echo "--> Copy uninstall script to /tmp on device"
+sshpass -e scp ./examples/scripts/$DEVICE_SCRIPT_NAME $REMOTE_LOGIN:/tmp/
 
-echo "--> Remove files"
-for service in $SERVICES; do
-    ssh root@$REMOTE_ADDR "rm -f $REMOTE_DIRECTORY/$service"
-    ssh root@$REMOTE_ADDR "rm -f $REMOTE_DIRECTORY/$service.service"
-done
+# Run script with interactive SSH shell
+echo "--> Run uninstall script on device"
+echo "Note: You will be prompted for the sudo password on the remote device."
+sshpass -e ssh -tt $REMOTE_LOGIN "sudo bash /tmp/$DEVICE_SCRIPT_NAME"
 
-echo "--> Remove credentials"
-ssh root@$REMOTE_ADDR "rm -f $HYDRA_CLIENTS_DIR/u_os_hub_example_*"
-#Note: This includes the old names on purpose, so that old dummy examples also get cleaned up
-ssh root@$REMOTE_ADDR "rm -f $HYDRA_CLIENTS_DIR/u_os_uc_hub_dummy_*"
-ssh root@$REMOTE_ADDR "systemctl restart hydra-client-creator"
-
-echo "--> Mount / as ro"
-ssh root@$REMOTE_ADDR "mount / -o ro,remount"
-
-echo "--> Reload systemd"
-ssh root@$REMOTE_ADDR "systemctl daemon-reload"
+# Remove script from tmp again
+sshpass -e ssh $REMOTE_LOGIN "rm -f /tmp/$DEVICE_SCRIPT_NAME"
