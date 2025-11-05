@@ -25,6 +25,7 @@ RUN apt-get update \
     gcc-arm-linux-gnueabihf \
     gcc-aarch64-linux-gnu \
     reuse \
+    sshpass \
     && rm -rf /var/lib/apt/lists/*
 
 

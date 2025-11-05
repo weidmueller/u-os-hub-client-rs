@@ -4,20 +4,24 @@
 #
 # SPDX-License-Identifier: MIT
 
-REMOTE_ADDR=$1
+REMOTE_LOGIN=$1
 TARGET=$2
+
+# List of services to build and deploy
+SERVICES="u-os-hub-example-provider u-os-hub-example-consumer"
+
+# Name of the script that runs on the target device
+DEVICE_SCRIPT_NAME="build_and_deploy_hub_examples_on_device.sh"
 
 set -euo pipefail
 
-REMOTE_DIRECTORY="/usr/bin"
-SYSTEMD_SERVICE_DIRECTORY="/usr/lib/systemd/system"
-HYDRA_CLIENTS_DIR="/usr/share/uc-iam/clients"
-SERVICES="u-os-hub-example-provider u-os-hub-example-consumer"
-
+# Function to print usage information
 print_usage() {
     echo ""
     echo "Usage:"
-    echo "  $0 REMOTE_ADDRESS TARGET"
+    echo "  $0 USER@ADDRESS TARGET"
+    echo ""
+    echo "User must have administrative rights on the remote device."
     echo ""
     echo "Target examples:"
     echo "  'ucu', 'ucg', 'ucm' and 'x86_64' which got mapped to the cargo target"
@@ -29,8 +33,8 @@ print_usage() {
     exit 1
 }
 
-if [ -z "$REMOTE_ADDR" ]; then
-    echo "Error: Missing remote address"
+if [ -z "$REMOTE_LOGIN" ]; then
+    echo "Error: Missing remote user and address"
     print_usage
     exit 1
 fi
@@ -51,43 +55,32 @@ fi
 
 cd "$(dirname "$(readlink -f "$0")")/.." || exit 1
 
+# Prompt password for sshpass
+read -sp "Enter SSH password: " PASSWORD
+echo
+export SSHPASS="$PASSWORD"
+
 echo "--> Build services"
 for service in $SERVICES; do
     echo "--> Building $service"
     cargo build --release --example $service --target $TARGET
 done
 
-echo "--> Stop the $SERVICES"
-ssh root@$REMOTE_ADDR "systemctl stop $SERVICES" || true
-
-echo "--> Mount / as rw and growfs"
-ssh root@$REMOTE_ADDR "mount / -o rw,remount && /usr/lib/systemd/systemd-growfs /"
-
-echo "--> Copy new files"
+# Copy service and executable files to tmp folder on device
 for service in $SERVICES; do
-    scp ./target/$TARGET/release/examples/$service root@$REMOTE_ADDR:$REMOTE_DIRECTORY/
-    scp ./examples/systemd/$service.service root@$REMOTE_ADDR:$SYSTEMD_SERVICE_DIRECTORY/
+    echo "--> Copying $service files to /tmp on device"
+    sshpass -e scp ./target/$TARGET/release/examples/$service $REMOTE_LOGIN:/tmp/
+    sshpass -e scp ./examples/systemd/$service.service $REMOTE_LOGIN:/tmp/
 done
 
-echo "--> Overwrite file permissions"
-for service in $SERVICES; do
-    ssh root@$REMOTE_ADDR "chmod +x $REMOTE_DIRECTORY/$service"
-done
+# Copy install script to device
+echo "--> Copy install script to /tmp on device"
+sshpass -e scp ./examples/scripts/$DEVICE_SCRIPT_NAME $REMOTE_LOGIN:/tmp/
 
+# Run install script with interactive SSH shell
+echo "--> Run install script on device"
+echo "Note: You will be prompted for the sudo password on the remote device."
+sshpass -e ssh -tt $REMOTE_LOGIN "sudo bash /tmp/$DEVICE_SCRIPT_NAME $TARGET"
 
-# generate credentials
-echo "--> Generate credentials"
-ssh root@$REMOTE_ADDR "echo 'hub.variables.provide' > $HYDRA_CLIENTS_DIR/u_os_hub_example_provider"
-ssh root@$REMOTE_ADDR "echo 'hub.variables.readwrite' > $HYDRA_CLIENTS_DIR/u_os_hub_example_consumer"
-ssh root@$REMOTE_ADDR "systemctl restart hydra-client-creator"
-
-# Note: This is not recommended for production systems
-# We will rework the example script soon to include a more idiomatic way to upload the services
-echo "--> Mount / as ro"
-ssh root@$REMOTE_ADDR "mount / -o ro,remount"
-
-echo "--> Reload systemd"
-ssh root@$REMOTE_ADDR "systemctl daemon-reload"
-
-echo "--> Enable and start the services"
-ssh root@$REMOTE_ADDR "systemctl enable --now $SERVICES"
+# Remove script from tmp again
+sshpass -e ssh $REMOTE_LOGIN "rm -f /tmp/$DEVICE_SCRIPT_NAME"

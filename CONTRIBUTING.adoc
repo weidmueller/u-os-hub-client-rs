@@ -81,11 +81,13 @@ There are convenience scripts to deploy and remove the examples from a device:
 
 ```bash
 #Cross compiles and installs examples as systemd services on the target device
-./tools/build_and_deploy_hub_examples.sh <IP> <arch>
+./tools/build_and_deploy_hub_examples.sh <user@IP> <arch>
 
 #Removes the examples from the target device
-./tools/remove_hub_examples.sh <IP>
+./tools/remove_hub_examples.sh <user@IP>
 ```
+
+Note that the user must have sudo access on the target device.
 
 
 === Publishing Your Changes
