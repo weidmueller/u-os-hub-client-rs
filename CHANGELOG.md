@@ -6,6 +6,10 @@ SPDX-License-Identifier: MIT
 
 # Changelog
 
+### 0.2.3
+
+- fix: minimize crate dependencies and feature bloat
+
 ### 0.2.2
 
 - fix: docs.rs build
