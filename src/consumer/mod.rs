@@ -34,7 +34,7 @@
 //!     dh_types::VariableValue
 //! };
 //!
-//! #[tokio::main]
+//! #[tokio::main(flavor = "current_thread")]
 //! async fn main() -> anyhow::Result<()> {
 //!     //The provider id to connect to
 //!     let provider_id = "test-provider";

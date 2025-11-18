@@ -23,7 +23,7 @@ use u_os_hub_client::{
 mod utils;
 
 /// It is recommended to use the deploy examples script to copy this example to a device and register it as a systemd service.
-#[tokio::main]
+#[tokio::main(flavor = "current_thread")]
 async fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt()
         .with_max_level(tracing::Level::INFO)
