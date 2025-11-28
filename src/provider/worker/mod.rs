@@ -301,6 +301,12 @@ impl ProviderWorker {
             Ok(Event::ClientError(error)) => {
                 debug!("Client Error: {:?}", error);
             }
+            Ok(Event::Closed) => {
+                debug!("NATS connection closed");
+            }
+            Ok(Event::Draining) => {
+                debug!("NATS connection draining");
+            }
             Err(error) => {
                 debug!("NATS event channel closed, error: {:?}", error);
             }
