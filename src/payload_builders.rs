@@ -190,7 +190,7 @@ pub fn build_read_variables_query_response(
             .filter(|(id, _)| ids.contains(id))
             .map(|(_, var)| var)
             .collect(),
-        None => variables.iter().map(|(_, var)| var).collect(),
+        None => variables.values().collect(),
     };
 
     let items = items.into_iter().map(|x| x.into()).collect();
@@ -221,7 +221,7 @@ pub fn build_variables_changed_event(
 ) -> Bytes {
     let mut response = VariablesChangedEventT::default();
 
-    let to_publish = variables.iter().map(|(_, x)| x.into()).collect();
+    let to_publish = variables.values().map(|x| x.into()).collect();
 
     let var_list_flat = VariableListT {
         items: Some(to_publish),

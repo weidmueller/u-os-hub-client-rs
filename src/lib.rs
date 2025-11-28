@@ -17,11 +17,11 @@
 // The module comment/description is located here to not change the generated files.
 // Because of the same reason the "dead_code", "unused_imports" and "clippy::all" is allowed for the generated module.
 #[cfg(not(feature = "export-low-level-api"))]
-#[allow(dead_code, unused_imports, clippy::all, clippy::unwrap_used, clippy::expect_used)]
+#[allow(warnings, dead_code, unused_imports, clippy::all, clippy::unwrap_used, clippy::expect_used)]
 #[rustfmt::skip]
 mod generated;
 #[cfg(feature = "export-low-level-api")]
-#[allow(dead_code, unused_imports, clippy::all, clippy::unwrap_used, clippy::expect_used)]
+#[allow(warnings, dead_code, unused_imports, clippy::all, clippy::unwrap_used, clippy::expect_used)]
 #[rustfmt::skip]
 pub mod generated;
 
