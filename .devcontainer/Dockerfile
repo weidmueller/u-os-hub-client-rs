@@ -3,8 +3,8 @@
 # SPDX-License-Identifier: MIT
 
 # For library crates, we always use the most recent stable version of rust
-ARG VARIANT="bookworm"
-FROM mcr.microsoft.com/vscode/devcontainers/rust:1.0.22-${VARIANT}
+ARG VARIANT="trixie"
+FROM mcr.microsoft.com/vscode/devcontainers/rust:2.0.3-${VARIANT}
 # See here for the contents of the image: https://github.com/devcontainers/images/blob/main/src/rust/history
 
 # Rust Version that is used by u-OS
