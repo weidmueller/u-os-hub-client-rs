@@ -47,14 +47,16 @@ use crate::{
 /// - Registry goes offline -> we cant react to this, as the consumer doesnt get registry down events.
 const CONSUMER_ID: &str = "test_consumer";
 
-fn consumer_auth_settings(perms: NatsPermission) -> AuthenticationSettings {
-    AuthenticationSettingsBuilder::new(perms)
-        .with_credentials(OAuth2Credentials {
-            client_name: CONSUMER_ID.to_string(),
-            client_id: "".to_owned(),
-            client_secret: "".to_owned(),
-        })
-        .build()
+fn consumer_auth_settings(perms: NatsPermission) -> Box<AuthenticationSettings> {
+    Box::new(
+        AuthenticationSettingsBuilder::new(perms)
+            .with_credentials(OAuth2Credentials {
+                client_name: CONSUMER_ID.to_string(),
+                client_id: String::new(),
+                client_secret: String::new(),
+            })
+            .build(),
+    )
 }
 
 #[tokio::test]
@@ -427,7 +429,7 @@ async fn subscribe_variables() {
 #[tokio::test]
 #[serial]
 async fn write_variables() {
-    run_with_timeout(async move {
+    run_with_timeout(Box::pin(async move {
         let _fake_reg = FakeRegistry::new().await;
 
         let auth_settings = consumer_auth_settings(NatsPermission::VariableHubReadWrite);
@@ -489,7 +491,7 @@ async fn write_variables() {
         assert_eq!(change_evt.len(), 2);
         assert_eq!(change_evt.get(&200).unwrap().value, "Multi write!!!".into());
         assert_eq!(change_evt.get(&300).unwrap().value, 123.into());
-    })
+    }))
     .await;
 }
 
@@ -523,7 +525,7 @@ async fn write_with_insufficient_nats_permissions() {
 #[tokio::test]
 #[serial]
 async fn change_var_defs() {
-    run_with_timeout(async move {
+    run_with_timeout(Box::pin(async move {
         let _fake_reg = FakeRegistry::new().await;
 
         let auth_settings = consumer_auth_settings(NatsPermission::VariableHubRead);
@@ -582,7 +584,7 @@ async fn change_var_defs() {
             assert!(event_var_defs.is_empty());
         } else {
             panic!("Expected ProviderEvent::DefinitionChanged");
-        };
+        }
 
         //Note: We must not check var defs of the provider connection here, as they are asynchronously updated.
         //They may already contain the state from the second event which changes the var defs again.
@@ -594,7 +596,7 @@ async fn change_var_defs() {
             assert_eq!(event_var_defs.len(), 5);
         } else {
             panic!("Expected ProviderEvent::DefinitionChanged");
-        };
+        }
 
         //read new var defs
         let var_defs = dh_provider_con.get_all_variable_definitions().unwrap();
@@ -627,7 +629,7 @@ async fn change_var_defs() {
         timeout(dummy_provider::VARIABLE_UPDATE_RATE * 2, ro_int_sub.next())
             .await
             .unwrap_err();
-    })
+    }))
     .await;
 }
 
@@ -636,7 +638,7 @@ async fn change_var_defs() {
 async fn provider_goes_offline() {
     use u_os_hub_client::consumer::connected_nats_provider;
 
-    run_with_timeout(async move {
+    run_with_timeout(Box::pin(async move {
         let _fake_reg = FakeRegistry::new().await;
 
         let auth_settings = consumer_auth_settings(NatsPermission::VariableHubReadWrite);
@@ -704,7 +706,7 @@ async fn provider_goes_offline() {
             assert_eq!(event_var_defs.len(), 4);
         } else {
             panic!("Expected ProviderEvent::DefinitionChanged");
-        };
+        }
 
         //read new var defs
         let var_defs = dh_provider_con.get_all_variable_definitions().unwrap();
@@ -723,12 +725,13 @@ async fn provider_goes_offline() {
 
         //the subscription should return values even though it was started while provider was offline
         vars_changed_sub.next().await.unwrap();
-    })
+    }))
     .await;
 }
 
 #[tokio::test]
 #[serial]
+#[allow(clippy::cast_possible_wrap)]
 async fn read_incompatible_var_defs() {
     run_with_timeout(async move {
         let _fake_reg = FakeRegistry::new().await;
@@ -776,7 +779,7 @@ async fn read_incompatible_var_defs() {
 #[serial]
 async fn read_incompatible_var_states() {
     //Helper function to check the states
-    fn check_var_states(var_states: Vec<(u32, VariableState)>, expected_value: i64) {
+    fn check_var_states(var_states: &[(u32, VariableState)], expected_value: i64) {
         //All states should be present
         assert_eq!(var_states.len(), 5);
 
@@ -809,7 +812,7 @@ async fn read_incompatible_var_states() {
         }
     }
 
-    run_with_timeout(async move {
+    run_with_timeout(Box::pin(async move {
         let _fake_reg = FakeRegistry::new().await;
 
         let auth_settings = consumer_auth_settings(NatsPermission::VariableHubReadWrite);
@@ -838,7 +841,7 @@ async fn read_incompatible_var_states() {
             .unwrap();
 
         //the incompatible provider fills all valid values with Int(1234) and then starts sending change events with values 1, 2, ...
-        check_var_states(var_states, 1234);
+        check_var_states(&var_states, 1234);
 
         //subscribe to variable changes
         let mut change_stream = dh_provider_con
@@ -848,9 +851,9 @@ async fn read_incompatible_var_states() {
 
         //For change events, the same check applies
         let change_evt = change_stream.next().await.unwrap();
-        check_var_states(change_evt, 1);
+        check_var_states(&change_evt, 1);
         let change_evt = change_stream.next().await.unwrap();
-        check_var_states(change_evt, 2);
+        check_var_states(&change_evt, 2);
 
         //Check if unknown vars are filtered out when set to ignore
         dh_provider_con.set_ignore_unknown_variable_values(true);
@@ -879,7 +882,7 @@ async fn read_incompatible_var_states() {
         for (_, state) in &change_evt {
             assert_ne!(state.value, VariableValue::Unknown);
         }
-    })
+    }))
     .await;
 }
 

@@ -74,7 +74,7 @@ async fn test_register_provider_with_variables() {
                 .expect("should be there set"),
             PROVIDER_ID
         );
-        assert_eq!(provider_definition.fingerprint, 6260400464788667216);
+        assert_eq!(provider_definition.fingerprint, 6_260_400_464_788_667_216);
 
         let recv_var_defs = provider_definition
             .variable_definitions
@@ -148,7 +148,7 @@ async fn test_resend_provider_definition_on_registry_up_event() {
                 .expect("should be there set"),
             PROVIDER_ID
         );
-        assert_eq!(provider_definition.fingerprint, 6260400464788667216);
+        assert_eq!(provider_definition.fingerprint, 6_260_400_464_788_667_216);
 
         let recv_var_defs = provider_definition
             .variable_definitions

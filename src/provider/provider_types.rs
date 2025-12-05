@@ -70,12 +70,14 @@ impl VariableState {
 
     /// Returns the current value of the variable.
     #[inline(always)]
+    #[must_use]
     pub fn get_value(&self) -> &VariableValue {
         &self.value
     }
 
     /// Returns the current quality of the variable.
     #[inline(always)]
+    #[must_use]
     pub fn get_quality(&self) -> &VariableQuality {
         &self.quality
     }
@@ -84,6 +86,7 @@ impl VariableState {
     ///
     /// If timestamp is `None`, the variable will inherit its timestamp from the variable list.
     #[inline(always)]
+    #[must_use]
     pub fn get_timestamp(&self) -> &Option<TimestampValue> {
         &self.timestamp
     }
@@ -92,6 +95,7 @@ impl VariableState {
     ///
     /// This can be used to identify the variable definition that belongs to this state.
     #[inline(always)]
+    #[must_use]
     pub fn get_id(&self) -> VariableID {
         self.id
     }

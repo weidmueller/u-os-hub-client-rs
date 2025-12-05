@@ -13,6 +13,7 @@ use crate::generated::weidmueller::ucontrol::hub::{
     VariableDefinitionT,
 };
 
+#[must_use]
 pub fn valid_provider_definition_with_variables() -> ProviderDefinitionT {
     ProviderDefinitionT {
         fingerprint: 1,
@@ -72,6 +73,7 @@ pub fn valid_provider_definition_with_variables() -> ProviderDefinitionT {
     }
 }
 
+#[must_use]
 pub fn valid_provider_definition_with_read_write_variables() -> ProviderDefinitionT {
     ProviderDefinitionT {
         fingerprint: 1,
@@ -138,6 +140,7 @@ pub fn valid_provider_definition_with_read_write_variables() -> ProviderDefiniti
     }
 }
 
+#[must_use]
 pub fn invalid_provider_definition_with_unnamed_variable() -> ProviderDefinitionT {
     ProviderDefinitionT {
         fingerprint: 2,
@@ -150,7 +153,7 @@ pub fn invalid_provider_definition_with_unnamed_variable() -> ProviderDefinition
                 ..VariableDefinitionT::default()
             },
             VariableDefinitionT {
-                key: "".to_string(),
+                key: String::new(),
                 id: 2,
                 data_type: VariableDataType::BOOLEAN,
                 access_type: VariableAccessType::READ_ONLY,
@@ -161,6 +164,7 @@ pub fn invalid_provider_definition_with_unnamed_variable() -> ProviderDefinition
     }
 }
 
+#[must_use]
 pub fn invalid_provider_definition_with_duplicate_id() -> ProviderDefinitionT {
     ProviderDefinitionT {
         fingerprint: 3,
@@ -184,6 +188,7 @@ pub fn invalid_provider_definition_with_duplicate_id() -> ProviderDefinitionT {
     }
 }
 
+#[must_use]
 pub fn invalid_provider_definition_with_invalid_characters() -> ProviderDefinitionT {
     ProviderDefinitionT {
         fingerprint: 4,
@@ -207,6 +212,7 @@ pub fn invalid_provider_definition_with_invalid_characters() -> ProviderDefiniti
     }
 }
 
+#[must_use]
 pub fn invalid_provider_definition_with_subnode_of_node() -> ProviderDefinitionT {
     ProviderDefinitionT {
         fingerprint: 5,
@@ -230,6 +236,7 @@ pub fn invalid_provider_definition_with_subnode_of_node() -> ProviderDefinitionT
     }
 }
 
+#[must_use]
 pub fn invalid_provider_definition_with_subsubnode_of_node() -> ProviderDefinitionT {
     ProviderDefinitionT {
         fingerprint: 5,
@@ -271,14 +278,14 @@ impl ProviderDefinitionFilter for ProviderDefinitionT {
             Ok(self)
         } else {
             Err(format!(
-                "Unable to filter variable definitions by datatype {:?}",
-                datatype
+                "Unable to filter variable definitions by datatype {datatype:?}"
             ))
         }
     }
 }
 
 pub trait ReverseableVarDefinitions {
+    #[must_use]
     fn reverse_nodes(self) -> Self;
 }
 

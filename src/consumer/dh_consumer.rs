@@ -58,6 +58,7 @@ impl DataHubConsumer {
     }
 
     /// Allows access to low level api
+    #[must_use]
     pub fn get_nats_consumer(&self) -> &Arc<NatsConsumer> {
         &self.nats_consumer
     }

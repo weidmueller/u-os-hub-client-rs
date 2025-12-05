@@ -27,6 +27,7 @@ pub struct Variable {
 impl Variable {
     /// Returns the immutable state of the variable.
     #[inline(always)]
+    #[must_use]
     pub fn get_state(&self) -> &VariableState {
         &self.state
     }
@@ -42,6 +43,7 @@ impl Variable {
 
     /// Returns the definition of the variable.
     #[inline(always)]
+    #[must_use]
     pub fn get_definition(&self) -> &VariableDefinition {
         &self.definition
     }
@@ -53,7 +55,7 @@ impl From<&Variable> for VariableT {
             quality: (*var.state.get_quality()).into(),
             id: var.definition.id,
             value: var.state.get_value().into(),
-            timestamp: var.state.get_timestamp().map(|ts| ts.into()),
+            timestamp: var.state.get_timestamp().map(Into::into),
         }
     }
 }
@@ -76,10 +78,11 @@ impl From<&Variable> for VariableDefinitionT {
 /// Calculates a hash over multiple variables (without value)
 ///
 /// This can be used as a fingerprint for the provider definition.
+#[must_use]
 pub fn calc_variables_hash(variables: &BTreeMap<u32, Variable>) -> u64 {
     let mut hasher = DefaultHasher::default();
 
-    variables.iter().for_each(|(_, variable)| {
+    for variable in variables.values() {
         let var_def = variable.get_definition();
 
         var_def.key.hash(&mut hasher);
@@ -88,7 +91,7 @@ pub fn calc_variables_hash(variables: &BTreeMap<u32, Variable>) -> u64 {
         var_def.experimental.hash(&mut hasher);
 
         std::mem::discriminant(variable.state.get_value()).hash(&mut hasher);
-    });
+    }
 
     hasher.finish()
 }

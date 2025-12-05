@@ -51,6 +51,7 @@ impl From<VariableUpdate> for VariableT {
 }
 
 /// Builds the payload of the read variables query request
+#[must_use]
 pub fn build_read_variables_query_request(ids: Option<Vec<u32>>) -> Bytes {
     let mut builder = FlatBufferBuilder::new();
     let request_content = ReadVariablesQueryRequestT { ids }.pack(&mut builder);
@@ -60,6 +61,7 @@ pub fn build_read_variables_query_request(ids: Option<Vec<u32>>) -> Bytes {
 }
 
 /// Builds the payload of the write variables command
+#[must_use]
 pub fn build_write_variables_command(
     variables: Vec<VariableUpdate>,
     based_on_fingerprint: u64,
@@ -68,7 +70,7 @@ pub fn build_write_variables_command(
 
     let var_list = VariableListT {
         provider_definition_fingerprint: based_on_fingerprint,
-        items: Some(variables.into_iter().map(|v| v.into()).collect()),
+        items: Some(variables.into_iter().map(Into::into).collect()),
         //We always write a zero timestamp as a consumer, as the timestamp is in the control of the provider
         base_timestamp: TimestampT::default(),
     };
@@ -84,6 +86,7 @@ pub fn build_write_variables_command(
 }
 
 /// Build the payload for a state changed event message.
+#[must_use]
 pub fn build_state_changed_event_payload(state: State) -> Bytes {
     let mut builder = FlatBufferBuilder::new();
     let state_changed_event_args = StateChangedEventArgs { state };
@@ -177,6 +180,7 @@ where
 }
 
 /// Builds the payload of the read variables query response
+#[must_use]
 pub fn build_read_variables_query_response(
     msg: ReadVariablesQueryRequestT,
     variables: &BTreeMap<u32, Variable>,
@@ -193,7 +197,7 @@ pub fn build_read_variables_query_response(
         None => variables.values().collect(),
     };
 
-    let items = items.into_iter().map(|x| x.into()).collect();
+    let items = items.into_iter().map(Into::into).collect();
 
     let var_list_flat = VariableListT {
         items: Some(items),
@@ -214,14 +218,15 @@ pub fn build_read_variables_query_response(
 
 /// Builds the payload of the variables changed event
 ///
-/// The base_timestamp is automatically set to the current time.
+/// The `base_timestamp` is automatically set to the current time.
+#[must_use]
 pub fn build_variables_changed_event(
     variables: &BTreeMap<u32, Variable>,
     provider_definition_fingerprint: u64,
 ) -> Bytes {
     let mut response = VariablesChangedEventT::default();
 
-    let to_publish = variables.values().map(|x| x.into()).collect();
+    let to_publish = variables.values().map(Into::into).collect();
 
     let var_list_flat = VariableListT {
         items: Some(to_publish),

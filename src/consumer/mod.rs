@@ -12,7 +12,7 @@
 //! The low-level API is designed for advanced users who want to have full control and performance, at the cost of lower usability.
 //! It may change at any time without compatibility guarantees and uses raw NATS and flatbuffer data types without abstraction.
 //!
-//! All modules and structs with "DataHub" in their name are part of the high-level API, while "Nats" indicates the low-level API.
+//! All modules and structs with `DataHub` in their name are part of the high-level API, while "Nats" indicates the low-level API.
 //! Please refer to the module and struct documentation for more details on the available APIs and data types.
 //!
 //! The following example demonstrates how to connect to a provider and read and write variables via the high-level API:

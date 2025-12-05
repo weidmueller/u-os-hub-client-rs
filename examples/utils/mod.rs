@@ -26,7 +26,7 @@ pub struct Config {
     /// Path to the credentials file
     #[clap(long)]
     pub cred_file: PathBuf,
-    /// Optional OAuth2 token endpoint address.
+    /// Optional `OAuth2` token endpoint address.
     /// If not provided, the default endpoint will be used.
     #[clap(long)]
     pub oauth_token_endpoint: Option<String>,

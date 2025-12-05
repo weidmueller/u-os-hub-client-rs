@@ -254,7 +254,7 @@ async fn test_quality_and_timestamp() {
     provider_var_state.set_all(
         3,
         VariableQuality::UncertainLastUsableValue,
-        Some(TimestampValue::from_unix_timestamp(123456).unwrap()),
+        Some(TimestampValue::from_unix_timestamp(123_456).unwrap()),
     );
     provider
         .update_variable_states(vec![provider_var_state.clone()])
@@ -278,7 +278,7 @@ async fn test_quality_and_timestamp() {
     //Variable should no longer inherit the timestamp from the variable list
     assert_eq!(
         var_state.timestamp,
-        TimestampValue::from_unix_timestamp(123456).unwrap()
+        TimestampValue::from_unix_timestamp(123_456).unwrap()
     );
 
     //Change the variable state on the provider once more

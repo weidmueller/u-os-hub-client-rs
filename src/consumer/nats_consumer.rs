@@ -52,8 +52,9 @@ impl NatsConsumer {
     /// Creates a consumer object using an existing nats connection.
     ///
     /// If the connection uses oauth2 authentication, the constructor will check if the user has the required permissions
-    /// [NatsPermission::VariableHubRead](`crate::authenticated_nats_con::NatsPermission::VariableHubRead`)
-    /// or [NatsPermission::VariableHubReadWrite](`crate::authenticated_nats_con::NatsPermission::VariableHubReadWrite`).
+    /// [`NatsPermission::VariableHubRead`](`crate::authenticated_nats_con::NatsPermission::VariableHubRead`)
+    /// or [`NatsPermission::VariableHubReadWrite`](`crate::authenticated_nats_con::NatsPermission::VariableHubReadWrite`).
+    #[allow(clippy::unused_async)] // async for future use
     pub async fn new(nats_con: Arc<AuthenticatedNatsConnection>) -> Result<Self> {
         //Check if the user has the required permissions if the connection uses oauth2 authentication
         let perms = nats_con.get_permissions();
@@ -72,6 +73,7 @@ impl NatsConsumer {
     }
 
     /// Gets the nats connection object.
+    #[must_use]
     pub fn get_nats_con(&self) -> &Arc<AuthenticatedNatsConnection> {
         &self.nats_con
     }

@@ -17,7 +17,7 @@ type Result<T> = core::result::Result<T, async_nats::Error>;
 /// The default NATS server address for u-OS.
 pub const DEFAULT_U_OS_NATS_ADDRESS: &str = "nats://127.0.0.1:49360";
 
-/// The default OAuth2 endpoint for u-OS.
+/// The default `OAuth2` endpoint for u-OS.
 pub const DEFAULT_U_OS_OAUTH2_ENDPOINT: &str = "https://127.0.0.1/oauth2/token";
 
 /// Access permissions for the NATS connection.
@@ -33,7 +33,8 @@ pub enum NatsPermission {
 }
 
 impl NatsPermission {
-    /// Converts the NatsPermission to a str that can be used as an Oauth2 scope.
+    /// Converts the `NatsPermission` to a str that can be used as an Oauth2 scope.
+    #[must_use]
     pub fn as_str(&self) -> &'static str {
         match self {
             NatsPermission::VariableHubRead => "hub.variables.readonly",
@@ -53,7 +54,7 @@ pub struct AuthenticationSettings {
     pub permissions: NatsPermissionList,
     /// Address of the oauth2 endpoint.
     pub oauth2_endpoint: String,
-    /// OAuth2 credentials used to authenticate the client.
+    /// `OAuth2` credentials used to authenticate the client.
     pub creds: Option<OAuth2Credentials>,
 }
 
@@ -66,6 +67,7 @@ pub struct AuthenticationSettingsBuilder {
 
 impl AuthenticationSettingsBuilder {
     /// Creates a new authentication settings builder.
+    #[must_use]
     pub fn new(permission: NatsPermission) -> Self {
         Self {
             settings: AuthenticationSettings {
@@ -79,6 +81,7 @@ impl AuthenticationSettingsBuilder {
     /// Allows to add multiple permissions at once.
     ///
     /// This is useful if the connection should be shared between e.g. a provider and a consumer.
+    #[must_use]
     pub fn add_permission(mut self, permission: NatsPermission) -> Self {
         self.settings
             .permissions
@@ -91,6 +94,7 @@ impl AuthenticationSettingsBuilder {
     /// This is always needed for providers. For consumers,
     /// this can be left out if unauthenticated access is enabled on the device.
     /// In this case, the client name will be "_UNAUTHENTICATED".
+    #[must_use]
     pub fn with_credentials(mut self, creds: OAuth2Credentials) -> Self {
         self.settings.creds = Some(creds);
         self
@@ -100,12 +104,14 @@ impl AuthenticationSettingsBuilder {
     ///
     /// Useful e.g. if the oauth endpoint is on another device.
     /// If not specified, uses the default localhost endpoint that comes with u-OS.
+    #[must_use]
     pub fn with_custom_oauth2_endpoint(mut self, endpoint: impl Into<String>) -> Self {
         self.settings.oauth2_endpoint = endpoint.into();
         self
     }
 
     /// Builds the authentication settings.
+    #[must_use]
     pub fn build(self) -> AuthenticationSettings {
         self.settings
     }
@@ -121,7 +127,7 @@ pub enum NatsAuthenticationMethod {
     #[allow(missing_docs)]
     UsernameAndPassword { username: String, password: String },
 
-    /// You should use OAuth2Client instead to refresh the token one connect retry.
+    /// You should use `OAuth2Client` instead to refresh the token one connect retry.
     Token(String),
 
     /// Default authentication method for providers and consumers.
@@ -143,10 +149,10 @@ pub struct AuthenticatedNatsConnection {
 impl AuthenticatedNatsConnection {
     /// Tries to connect and authenticate to the NATS server.
     ///
-    /// If no client_name is suppied in the settings, "_UNAUTHENTICATED" is used.
+    /// If no `client_name` is suppied in the settings, "_UNAUTHENTICATED" is used.
     ///
     /// The constructor will wait until the first connection event is received by the nats client.
-    /// No internal timeout is used. If you want, you can use tokio::timeout to limit the time for connection.
+    /// No internal timeout is used. If you want, you can use `tokio::timeout` to limit the time for connection.
     pub async fn new(
         nats_server_addr: impl Into<String>,
         auth_settings: &AuthenticationSettings,
@@ -169,7 +175,7 @@ impl AuthenticatedNatsConnection {
     ///
     /// This is useful if a certain authorization method should be used.
     ///
-    /// Usually, this is not needed for providers and consumers and they should use [Self::new()] instead.
+    /// Usually, this is not needed for providers and consumers and they should use [`Self::new()`] instead.
     pub async fn connect_with_auth_method(
         nats_server_addr: impl Into<String>,
         client_name: Option<impl Into<String>>,
@@ -177,7 +183,7 @@ impl AuthenticatedNatsConnection {
         wait_for_con: bool,
     ) -> Result<Self> {
         let mut client_name =
-            client_name.map_or_else(|| "_UNAUTHENTICATED".to_string(), |creds| creds.into());
+            client_name.map_or_else(|| "_UNAUTHENTICATED".to_string(), Into::into);
 
         if let NatsAuthenticationMethod::Unauthenticated = auth_method {
             client_name = "_UNAUTHENTICATED".to_string();
@@ -234,25 +240,29 @@ impl AuthenticatedNatsConnection {
 
     /// Gets the nats client name that was supplied in the auth settings.
     /// If no client name was supplied, "_UNAUTHENTICATED" is used.
+    #[must_use]
     pub fn get_client_name(&self) -> &str {
         &self.client_name
     }
 
     /// Returns the nats client.
+    #[must_use]
     pub fn get_client(&self) -> &async_nats::Client {
         &self.nats_client
     }
 
     /// Allows to subscribe to nats events and react to them.
     /// This simply forwards nats events to the caller.
+    #[must_use]
     pub fn get_events(&self) -> broadcast::Receiver<async_nats::Event> {
         self.event_sender.subscribe()
     }
 
     /// Returns a set of permissions that were requested by the client.
     ///
-    /// This will return [None] if the client is not using OAuth2Client authentication,
+    /// This will return [None] if the client is not using `OAuth2Client` authentication,
     /// as in this case the client does not know about the permissions.
+    #[must_use]
     pub fn get_permissions(&self) -> &Option<NatsPermissionList> {
         &self.nats_permissions
     }
@@ -282,7 +292,7 @@ impl AuthenticatedNatsConnection {
         let scope_list = auth_settings
             .permissions
             .iter()
-            .map(|perm| perm.to_string())
+            .map(std::string::ToString::to_string)
             .collect::<Vec<_>>()
             .join(" ");
 
@@ -332,7 +342,7 @@ impl AuthenticatedNatsConnection {
 
         let connection_options = connection_options
             .name(client_name)
-            .custom_inbox_prefix(format!("_INBOX.{}", client_name));
+            .custom_inbox_prefix(format!("_INBOX.{client_name}"));
 
         let connection_options = connection_options
             .event_callback(move |event| {

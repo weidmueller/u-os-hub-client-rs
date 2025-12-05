@@ -39,8 +39,8 @@ pub async fn create_auth_con_with_perm(
     let auth_settings = AuthenticationSettingsBuilder::new(perm)
         .with_credentials(OAuth2Credentials {
             client_name: client_name.to_owned(),
-            client_id: "".to_owned(),
-            client_secret: "".to_owned(),
+            client_id: String::new(),
+            client_secret: String::new(),
         })
         .build();
 

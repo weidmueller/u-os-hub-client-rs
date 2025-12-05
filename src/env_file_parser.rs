@@ -7,13 +7,14 @@ use anyhow::Result;
 use std::{collections::HashMap, path::Path};
 use tokio::fs;
 
-/// Read an env file and parse it into a HashMap
+/// Read an env file and parse it into a `HashMap`
 pub async fn read_and_parse_env_file(path: impl AsRef<Path>) -> Result<HashMap<String, String>> {
     let file_content = fs::read_to_string(path).await?;
     Ok(parse_env_file(&file_content))
 }
 
-/// Parse an env file formatted string to a HashMap.
+/// Parse an env file formatted string to a `HashMap`.
+#[must_use]
 pub fn parse_env_file(input: &str) -> HashMap<String, String> {
     let mut map = HashMap::new();
     for line in input.lines() {
@@ -33,10 +34,10 @@ mod tests {
     #[rstest]
     #[case::test_one_variable("KEY_1=valuE1!", HashMap::from([("KEY_1".to_string(), "valuE1!".to_string())]))]
     #[case::test_multiple_variables(
-r#"
+r"
 KEY_1=valuE1!
 KEY_2=valuE2!
-"#, HashMap::from([
+", HashMap::from([
         ("KEY_1".to_string(), "valuE1!".to_string()),
         ("KEY_2".to_string(), "valuE2!".to_string())
     ]))]

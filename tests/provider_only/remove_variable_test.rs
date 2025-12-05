@@ -71,7 +71,7 @@ async fn test_remove_variables() {
             get_provider_name_from_subject(&msg.subject).expect("should be there set"),
             PROVIDER_ID
         );
-        assert_eq!(provider_definition.fingerprint, 478345620836131671);
+        assert_eq!(provider_definition.fingerprint, 478_345_620_836_131_671);
 
         let recv_var_defs = provider_definition
             .variable_definitions

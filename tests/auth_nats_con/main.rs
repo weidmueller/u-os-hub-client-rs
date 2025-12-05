@@ -72,8 +72,8 @@ async fn test_custom_name_and_multi_perms() {
         .add_permission(NatsPermission::VariableHubReadWrite)
         .with_credentials(OAuth2Credentials {
             client_name: "test_client".to_string(),
-            client_secret: "".to_string(),
-            client_id: "".to_string(),
+            client_secret: String::new(),
+            client_id: String::new(),
         })
         .build();
 

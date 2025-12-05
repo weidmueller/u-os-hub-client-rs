@@ -6,6 +6,8 @@
 name = "u-os-hub-client"
 license = "MIT"
 description = "u-OS Data Hub Client"
+keywords = ["weidmueller", "u-os", "data hub", "iiot", "industry 4.0"]
+categories = ["embedded", "data-structures"]
 repository = "https://github.com/weidmueller/u-os-hub-client-rs"
 homepage = "https://github.com/weidmueller/u-os-hub-client-rs"
 readme = "README.md"
@@ -62,14 +64,16 @@ unwrap_used = "warn"
 expect_used = "warn"
 panic = "warn"
 indexing_slicing = "warn"
+pedantic = "warn"
 
-# For building with reduced binary size
-[profile.release-small]
-inherits = "release"
-opt-level = "s"
-lto = true
-codegen-units = 1
-strip = true
+# explicitly allow these lints workspace-wide
+multiple_crate_versions = { priority = 10, level = "allow" }
+missing_errors_doc = { priority = 10, level = "allow" }
+module_name_repetitions = { priority = 10, level = "allow" }
+struct_excessive_bools = { priority = 10, level = "allow" }
+struct_field_names = { priority = 10, level = "allow" }
+inline_always = { priority = 10, level = "allow" }
+similar_names = { priority = 10, level = "allow" }
 
 [features]
 # If enabled, the crate will export the consumer low level API and generated flatbuffer types to the user
