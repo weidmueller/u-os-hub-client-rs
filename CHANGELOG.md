@@ -6,6 +6,12 @@ SPDX-License-Identifier: MIT
 
 # Changelog
 
+### 0.2.4
+
+- feat: update async nats crate to 0.45
+- fix: improve support for modern rust by fixing new warnings
+- fix: increase clippy warn level and fix new warnings
+
 ### 0.2.3
 
 - fix: minimize crate dependencies and feature bloat
