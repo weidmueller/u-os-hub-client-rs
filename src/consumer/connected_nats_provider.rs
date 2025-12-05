@@ -15,8 +15,17 @@ use tokio::task::JoinHandle;
 use tracing::{error, warn};
 
 use crate::{
-    authenticated_nats_con::NatsPermission, dh_types::VariableID,
-    generated::weidmueller::ucontrol::hub::*, nats_subjects,
+    authenticated_nats_con::NatsPermission,
+    dh_types::VariableID,
+    generated::weidmueller::ucontrol::hub::{
+        ProviderDefinitionChangedEvent, ProviderDefinitionChangedEventT, ProviderDefinitionState,
+        ProviderDefinitionT, ReadProviderDefinitionQueryRequestT,
+        ReadProviderDefinitionQueryResponse, ReadProviderDefinitionQueryResponseT,
+        ReadVariablesQueryRequestT, ReadVariablesQueryResponse, ReadVariablesQueryResponseT,
+        VariableAccessType, VariableDataType, VariableDefinitionT, VariableValueT,
+        VariablesChangedEvent, VariablesChangedEventT, WriteVariablesCommandT,
+    },
+    nats_subjects,
 };
 
 use super::{
@@ -56,8 +65,8 @@ pub enum Error {
 
 /// Shared state for the connected provider.
 ///
-/// We use an RwLock here as provider definition changes (and therefor write operations) should be quite rare,
-/// and the RwLock allows parallel reads without contention.
+/// We use an `RwLock` here as provider definition changes (and therefor write operations) should be quite rare,
+/// and the `RwLock` allows parallel reads without contention.
 pub(super) type SharedState = Arc<RwLock<ConnectedNatsProviderState>>;
 
 /// Result type for the connected nats provider.
@@ -68,7 +77,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 /// This is used to cache the provider definition and variable definitions.
 /// It is updated by the internal event loop when new provider definition events are received.
 ///
-/// We use FxHash for lookup tables because rusts default hash algorithm is quite slow for integer keys. See FxHash crate docs for more info.
+/// We use `FxHash` for lookup tables because rusts default hash algorithm is quite slow for integer keys. See `FxHash` crate docs for more info.
 #[derive(Debug)]
 pub(super) struct ConnectedNatsProviderState {
     /// The current fingerprint of the provider definition.
@@ -140,19 +149,21 @@ impl ConnectedNatsProvider {
         let instance = Self {
             provider_id,
             consumer,
-            state,
             event_loop_task,
+            state,
         };
 
         Ok(instance)
     }
 
     /// Gets the linked nats consumer.
+    #[must_use]
     pub fn get_consumer(&self) -> &Arc<NatsConsumer> {
         &self.consumer
     }
 
     /// Returns the provider ID.
+    #[must_use]
     pub fn get_provider_id(&self) -> &str {
         &self.provider_id
     }
@@ -161,6 +172,8 @@ impl ConnectedNatsProvider {
     /// If the provider is offline or invalid, this will return None.
     ///
     /// The cached value will be updated internally once the provider definition changes.
+    #[must_use]
+    #[allow(clippy::missing_panics_doc)] // See comment below
     pub fn get_fingerprint(&self) -> Option<u64> {
         //Safety: Unwrap is ok here as we know that the mutex cant be poisoned during writing
         #[allow(clippy::unwrap_used)]
@@ -168,6 +181,8 @@ impl ConnectedNatsProvider {
     }
 
     /// Returns if the provider is online and has a valid definition.
+    #[must_use]
+    #[allow(clippy::missing_panics_doc)] // See comment below
     pub fn is_online(&self) -> bool {
         self.get_fingerprint().is_some()
     }
@@ -175,6 +190,8 @@ impl ConnectedNatsProvider {
     /// Returns the cached list of all currently registered variable IDs for this provider.
     ///
     /// The cached value will be updated internally once the provider definition changes.
+    #[must_use]
+    #[allow(clippy::missing_panics_doc)] // See comment below
     pub fn get_variable_ids(&self) -> Vec<VariableID> {
         //Safety: Unwrap is ok here as we know that the mutex cant be poisoned during writing
         #[allow(clippy::unwrap_used)]
@@ -191,6 +208,7 @@ impl ConnectedNatsProvider {
     ///
     /// Will fail if the variable ID is unknown.
     /// The cached value will be updated internally once the provider definition changes.
+    #[allow(clippy::missing_panics_doc)] // See comment below
     pub fn get_variable_definition(&self, id: VariableID) -> Result<VariableDefinitionT> {
         //Safety: Unwrap is ok here as we know that the mutex cant be poisoned during writing
         #[allow(clippy::unwrap_used)]
@@ -206,6 +224,8 @@ impl ConnectedNatsProvider {
     /// Returns a cached list of all variable IDs and their corresponding definition for this provider.
     ///
     /// The cached value will be updated internally once the provider definition changes.
+    #[must_use]
+    #[allow(clippy::missing_panics_doc)] // See comment below
     pub fn get_all_variable_definitions(&self) -> FxHashMap<VariableID, VariableDefinitionT> {
         //Safety: Unwrap is ok here as we know that the mutex cant be poisoned during writing
         #[allow(clippy::unwrap_used)]
@@ -217,6 +237,7 @@ impl ConnectedNatsProvider {
     /// Please note that variable IDs and their mapping to keys may change at any time if the provider definition changes.
     ///
     /// Will fail if the variable key is unknown.
+    #[allow(clippy::missing_panics_doc)] // See comment below
     pub fn variable_id_from_key<'a>(&self, key: impl Into<VariableKey<'a>>) -> Result<VariableID> {
         let key: VariableKey = key.into();
 
@@ -233,6 +254,7 @@ impl ConnectedNatsProvider {
     /// Returns the variable key string belonging to the specified variable ID.
     ///
     /// Will fail if the variable ID is unknown.
+    #[allow(clippy::missing_panics_doc)] // See comment below
     pub fn variable_key_from_id(&self, id: VariableID) -> Result<String> {
         //Safety: Unwrap is ok here as we know that the mutex cant be poisoned during writing
         #[allow(clippy::unwrap_used)]
@@ -248,6 +270,8 @@ impl ConnectedNatsProvider {
     }
 
     /// Checks if the specified variable ID exists on the provider
+    #[must_use]
+    #[allow(clippy::missing_panics_doc)] // See comment below
     pub fn is_variable_id_valid(&self, id: VariableID) -> bool {
         //Safety: Unwrap is ok here as we know that the mutex cant be poisoned during writing
         #[allow(clippy::unwrap_used)]
@@ -375,7 +399,7 @@ impl ConnectedNatsProvider {
     ///
     /// - Provider must be online
     /// - The current provider fingerprint must match the one in the write command
-    /// - Needs a connection with [NatsPermission::VariableHubReadWrite](`crate::authenticated_nats_con::NatsPermission::VariableHubReadWrite`)
+    /// - Needs a connection with [`NatsPermission::VariableHubReadWrite`](`crate::authenticated_nats_con::NatsPermission::VariableHubReadWrite`)
     pub async fn write_variables_unchecked(
         &self,
         write_command: &WriteVariablesCommandT,
@@ -577,12 +601,12 @@ impl ConnectedNatsProvider {
         var_def: VariableDataType,
     ) -> Result<()> {
         match (value_type, var_def) {
-            (VariableValueT::Float64(_), VariableDataType::FLOAT64) => Ok(()),
-            (VariableValueT::Int64(_), VariableDataType::INT64) => Ok(()),
-            (VariableValueT::String(_), VariableDataType::STRING) => Ok(()),
-            (VariableValueT::Timestamp(_), VariableDataType::TIMESTAMP) => Ok(()),
-            (VariableValueT::Boolean(_), VariableDataType::BOOLEAN) => Ok(()),
-            (VariableValueT::Duration(_), VariableDataType::DURATION) => Ok(()),
+            (VariableValueT::Float64(_), VariableDataType::FLOAT64)
+            | (VariableValueT::Int64(_), VariableDataType::INT64)
+            | (VariableValueT::String(_), VariableDataType::STRING)
+            | (VariableValueT::Timestamp(_), VariableDataType::TIMESTAMP)
+            | (VariableValueT::Boolean(_), VariableDataType::BOOLEAN)
+            | (VariableValueT::Duration(_), VariableDataType::DURATION) => Ok(()),
             _ => Err(Error::InvalidValueType),
         }
     }

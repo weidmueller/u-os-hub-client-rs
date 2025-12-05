@@ -22,14 +22,16 @@ use crate::{
 
 const CONSUMER_ID: &str = "test_consumer";
 
-fn consumer_auth_settings(perms: NatsPermission) -> AuthenticationSettings {
-    AuthenticationSettingsBuilder::new(perms)
-        .with_credentials(OAuth2Credentials {
-            client_name: CONSUMER_ID.to_string(),
-            client_id: "".to_owned(),
-            client_secret: "".to_owned(),
-        })
-        .build()
+fn consumer_auth_settings(perms: NatsPermission) -> Box<AuthenticationSettings> {
+    Box::new(
+        AuthenticationSettingsBuilder::new(perms)
+            .with_credentials(OAuth2Credentials {
+                client_name: CONSUMER_ID.to_string(),
+                client_id: String::new(),
+                client_secret: String::new(),
+            })
+            .build(),
+    )
 }
 
 #[tokio::test]

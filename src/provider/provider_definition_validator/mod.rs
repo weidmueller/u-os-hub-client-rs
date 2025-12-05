@@ -32,7 +32,7 @@ pub enum InvalidProviderDefinitionError {
     DuplicateId(u32),
 }
 
-/// Block extends the generated flatbuffers structure 'ProviderDefinitionT' with a validate function.
+/// Block extends the generated flatbuffers structure '`ProviderDefinitionT`' with a validate function.
 impl ProviderDefinitionT {
     /// The function validates a provider definition.
     ///

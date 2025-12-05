@@ -4,6 +4,7 @@
 
 use std::{sync::Arc, time::Duration};
 
+use anyhow::anyhow;
 use tokio::sync::Notify;
 use u_os_hub_client::{
     dh_types::{VariableAccessType, VariableValue},
@@ -31,6 +32,7 @@ impl DummyProvider {
         Self::new_with_delay(Duration::ZERO).await
     }
 
+    #[allow(clippy::too_many_lines)] // We accept this for the dummy provider as its only used for testing
     pub async fn new_with_delay(registration_delay: Duration) -> anyhow::Result<Self> {
         //Create connection for dummy provider
         let auth_nats_con = create_auth_con(PROVIDER_ID).await;
@@ -108,7 +110,7 @@ impl DummyProvider {
                         cur_int_val += 1;
                     },
                     //change variables
-                    _ = change_vars_notify_clone.notified() => {
+                    () = change_vars_notify_clone.notified() => {
                         //remove all existing vars
                         provider.remove_variables(cur_vars.clone()).await.unwrap();
 
@@ -153,7 +155,7 @@ impl DummyProvider {
                             let written_var = cur_vars
                                 .iter_mut()
                                 .find(|var| var.get_definition().id == write_cmd.id).ok_or(
-                                    anyhow::anyhow!("Received write command for unknown variable: {}", write_cmd.id)
+                                    anyhow!("Received write command for unknown variable: {}", write_cmd.id)
                                 ).unwrap();
 
                             let written_var_state = written_var.get_mut_state();
@@ -168,8 +170,8 @@ impl DummyProvider {
         });
 
         Ok(Self {
-            worker_task,
             change_vars_notify,
+            worker_task,
         })
     }
 

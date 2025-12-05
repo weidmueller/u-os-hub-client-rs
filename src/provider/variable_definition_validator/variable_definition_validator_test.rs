@@ -52,7 +52,7 @@ use rstest::rstest;
         experimental: false
     }, Ok(()))]
 #[case(&VariableDefinitionT {
-        key: "".to_string(),
+        key: String::new(),
         id: 5,
         data_type: VariableDataType::BOOLEAN,
         access_type: VariableAccessType::READ_ONLY,

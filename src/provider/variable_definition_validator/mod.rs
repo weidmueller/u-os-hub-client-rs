@@ -86,7 +86,7 @@ pub fn validate_variable_key(key: &str) -> Result<(), InvalidVariableDefinitionE
 impl VariableDefinitionT {
     /// Checks if the variable definition is valid.
     ///
-    /// Checks if the key adheres to the naming schema and if access_type and data_type are set properly.
+    /// Checks if the key adheres to the naming schema and if `access_type` and `data_type` are set properly.
     pub fn validate(&self) -> Result<(), InvalidVariableDefinitionError> {
         //Try to do quick O(1) checks first here, as this can speed up the validation time
         if self.access_type == VariableAccessType::UNSPECIFIED {

@@ -35,6 +35,7 @@ impl Default for ProviderBuilder {
 
 impl ProviderBuilder {
     /// Creates a new instance with an empty list of variables.
+    #[must_use]
     pub fn new() -> Self {
         Self {
             variables: BTreeMap::new(),
@@ -101,12 +102,12 @@ pub(crate) fn validate_var_list(
     let merged_var_list = [
         new_variables
             .iter()
-            .map(|var| var.into())
+            .map(Into::into)
             .collect::<Vec<_>>()
             .as_slice(),
         existing_variables
             .values()
-            .map(|dh_var| dh_var.into())
+            .map(Into::into)
             .collect::<Vec<_>>()
             .as_slice(),
     ]
@@ -134,7 +135,7 @@ pub enum ConnectError {
     /// Indicates an error with the nats connection
     #[error("Nats error: `{0}`")]
     Nats(#[from] async_nats::Error),
-    /// Indicates an error with the OAuth2 token request
+    /// Indicates an error with the `OAuth2` token request
     #[error("Oauth2 error: `{0}`")]
     OAuth(String),
     /// Indicates an error with the registration at the registry

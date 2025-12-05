@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: MIT
 
 //! Contains constants and functions for dealing with the u-OS Data Hub subjects
+use anyhow::anyhow;
 use const_format::formatcp;
 
 #[cfg(test)]
@@ -15,18 +16,21 @@ pub const LOCATION_PREFIX: &str = "loc";
 
 /// Get the subject that reports variable value changes of a provider.
 #[inline(always)]
+#[must_use]
 pub fn vars_changed_event(provider_id: &str) -> String {
     format!("{VERSION_PREFIX}.{LOCATION_PREFIX}.{provider_id}.vars.evt.changed")
 }
 
 /// Get the subject to read variables from a provider.
 #[inline(always)]
+#[must_use]
 pub fn read_variables_query(provider_id: &str) -> String {
     format!("{VERSION_PREFIX}.{LOCATION_PREFIX}.{provider_id}.vars.qry.read")
 }
 
 /// Get the subject to read variables from a provider.
 #[inline(always)]
+#[must_use]
 pub fn write_variables_command(provider_id: &str) -> String {
     format!("{VERSION_PREFIX}.{LOCATION_PREFIX}.{provider_id}.vars.cmd.write")
 }
@@ -35,12 +39,14 @@ pub fn write_variables_command(provider_id: &str) -> String {
 ///
 /// The provider will use this subject to notify the registry about a changed definition.
 #[inline(always)]
+#[must_use]
 pub fn provider_changed_event(provider_id: &str) -> String {
     format!("{VERSION_PREFIX}.{LOCATION_PREFIX}.{provider_id}.def.evt.changed")
 }
 
 /// Subject for reading the provider definition from the registry. Used by hub participants.
 #[inline(always)]
+#[must_use]
 pub fn registry_provider_definition_read_query(provider_id: &str) -> String {
     format!("{VERSION_PREFIX}.{LOCATION_PREFIX}.registry.providers.{provider_id}.def.qry.read",)
 }
@@ -49,6 +55,7 @@ pub fn registry_provider_definition_read_query(provider_id: &str) -> String {
 ///
 /// The registry will publish the whole provider definition and not only the changes.
 #[inline(always)]
+#[must_use]
 pub fn registry_provider_definition_changed_event(provider_id: &str) -> String {
     format!("{VERSION_PREFIX}.{LOCATION_PREFIX}.registry.providers.{provider_id}.def.evt.changed")
 }
@@ -57,6 +64,7 @@ pub fn registry_provider_definition_changed_event(provider_id: &str) -> String {
 #[inline(always)]
 //Safety: formatcp uses unchecked indexing internally, so this creates a false positive for us.
 #[allow(clippy::indexing_slicing)]
+#[must_use]
 pub const fn registry_providers_read_query() -> &'static str {
     formatcp!("{VERSION_PREFIX}.{LOCATION_PREFIX}.registry.providers.qry.read")
 }
@@ -65,6 +73,7 @@ pub const fn registry_providers_read_query() -> &'static str {
 #[inline(always)]
 //Safety: formatcp uses unchecked indexing internally, so this creates a false positive for us.
 #[allow(clippy::indexing_slicing)]
+#[must_use]
 pub const fn registry_providers_changed_event() -> &'static str {
     formatcp!("{VERSION_PREFIX}.{LOCATION_PREFIX}.registry.providers.evt.changed")
 }
@@ -73,16 +82,18 @@ pub const fn registry_providers_changed_event() -> &'static str {
 #[inline(always)]
 //Safety: formatcp uses unchecked indexing internally, so this creates a false positive for us.
 #[allow(clippy::indexing_slicing)]
+#[must_use]
 pub const fn registry_state_changed_event() -> &'static str {
     formatcp!("{VERSION_PREFIX}.{LOCATION_PREFIX}.registry.state.evt.changed")
 }
 
 /// Extracts the provider name from a subject.
+#[must_use]
 pub fn get_provider_name_from_subject(subject: &str) -> Option<String> {
     let parts: Vec<&str> = subject.split('.').collect();
     let provider_name_index = if subject.contains("registry") { 4 } else { 2 };
     if parts.len() >= 3 {
-        let name = parts.get(provider_name_index)?.to_string();
+        let name = (*parts.get(provider_name_index)?).to_string();
         if name.is_empty() {
             None
         } else {
@@ -101,11 +112,11 @@ pub fn get_provider_id_from_subject(subject: &str) -> anyhow::Result<String> {
 
     parts
         .get(provider_id_index)
-        .map_or(Err(anyhow::anyhow!("NoProviderInSubject")), |id| {
-            if !id.is_empty() {
-                Ok(id.to_string())
+        .map_or(Err(anyhow!("NoProviderInSubject")), |id| {
+            if id.is_empty() {
+                Err(anyhow!("NoProviderInSubject"))
             } else {
-                Err(anyhow::anyhow!("NoProviderInSubject"))
+                Ok((*id).to_string())
             }
         })
 }

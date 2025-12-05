@@ -5,6 +5,7 @@
 //! This example shows how to connect to a data hub provider and read/write/observe variables.
 //! using the high level data hub API.
 
+use anyhow::anyhow;
 use clap::Parser;
 use futures::StreamExt;
 use std::{sync::Arc, time::Duration};
@@ -28,7 +29,7 @@ async fn main() -> anyhow::Result<()> {
     let provider_id = conf
         .provider_id
         .as_ref()
-        .ok_or_else(|| anyhow::anyhow!("Provider ID is mandatory for consumers"))?;
+        .ok_or_else(|| anyhow!("Provider ID is mandatory for consumers"))?;
 
     let auth_settings = utils::build_auth_settings_from_conf(&conf, false).await?;
 

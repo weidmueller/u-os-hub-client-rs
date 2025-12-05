@@ -4,6 +4,7 @@
 
 use std::time::Duration;
 
+use anyhow::anyhow;
 use flatbuffers::{FlatBufferBuilder, WIPOffset};
 use futures::StreamExt;
 use tokio::time::timeout;
@@ -128,6 +129,7 @@ impl IncompatibleProvider {
         Ok(Self { worker_task })
     }
 
+    #[allow(clippy::cast_possible_wrap)]
     fn build_definition() -> ProviderDefinitionT {
         let mut fb_var_valid = VariableDefinitionT::default();
         fb_var_valid.id = VariableIDs::Valid as u32;
@@ -177,7 +179,7 @@ impl IncompatibleProvider {
     /// Creates a variable with the given ID, quality and value using the low level flatbuffer builder.
     ///
     /// Lifetime bounds are needed here to ensure that the mut builder is borrowed shorter than the immutable builder.
-    /// See ::create methods from flatbuffers for more details.
+    /// See `::create` methods from flatbuffers for more details.
     fn create_variable_raw<'bldr: 'mut_bldr, 'mut_bldr>(
         builder: &'mut_bldr mut FlatBufferBuilder<'bldr>,
         id: VariableIDs,
@@ -309,9 +311,7 @@ impl IncompatibleProvider {
             registry_provider_definition_updated_subscription.next(),
         )
         .await?
-        .ok_or_else(|| {
-            anyhow::anyhow!("Registry Provider definition changed event stream stopped.")
-        })?;
+        .ok_or_else(|| anyhow!("Registry Provider definition changed event stream stopped."))?;
 
         if let Ok(parsed_message) =
             flatbuffers::root::<ProviderDefinitionChangedEvent>(&msg.payload)
@@ -321,17 +321,13 @@ impl IncompatibleProvider {
                     return Ok(());
                 }
 
-                return Err(anyhow::anyhow!(
-                    "The registry marked the definition as invalid"
-                ));
+                return Err(anyhow!("The registry marked the definition as invalid"));
             }
-            Err(anyhow::anyhow!(
+            Err(anyhow!(
                 "Provider definition changed event did not contain provider definition"
             ))
         } else {
-            Err(anyhow::anyhow!(
-                "Could not parse provider definition changed event"
-            ))
+            Err(anyhow!("Could not parse provider definition changed event"))
         }
     }
 
@@ -365,7 +361,7 @@ impl IncompatibleProvider {
         msg: async_nats::Message,
         var_list: (FlatBufferBuilder<'a>, WIPOffset<VariableList<'a>>),
     ) -> anyhow::Result<()> {
-        let reply_subject = msg.reply.ok_or(anyhow::anyhow!(
+        let reply_subject = msg.reply.ok_or(anyhow!(
             "Read variables query request did not contain a reply subject"
         ))?;
 

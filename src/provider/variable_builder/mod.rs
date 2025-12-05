@@ -34,6 +34,7 @@ pub struct VariableBuilder {
     quality: VariableQuality,
     //Outer option is used to determine if the value was set in the builder,
     //if not a new timestamp will be generated when building the variable
+    #[allow(clippy::option_option)] // Nested option is needed
     override_timestamp: Option<Option<TimestampValue>>,
 }
 
@@ -57,6 +58,7 @@ impl VariableBuilder {
     /// By default, the access type is set to [`VariableAccessType::ReadOnly`].
     ///
     /// Special values like [`VariableAccessType::Unknown`] are not allowed.
+    #[must_use]
     pub fn access_type(mut self, access_type: VariableAccessType) -> Self {
         self.access_type = access_type;
         self
@@ -65,6 +67,7 @@ impl VariableBuilder {
     /// Marks the variable as experimental (optional)
     ///
     /// Experimental means that the variable is not stable/reliable and it is hidden in the user interface.
+    #[must_use]
     pub fn experimental(mut self) -> Self {
         self.experimental = true;
         self
@@ -77,6 +80,7 @@ impl VariableBuilder {
     ///
     /// If the initial value is meant to be a temporary placeholder, consider using [`Self::initial_quality`]
     /// to set the quality to [`VariableQuality::UncertainInitialValue`].
+    #[must_use]
     pub fn initial_value(mut self, value: impl Into<VariableValue>) -> Self {
         self.value = Some(value.into());
         self
@@ -85,6 +89,7 @@ impl VariableBuilder {
     /// Sets the initial quality of the variable
     ///
     /// This is optional. By default, the quality is set to [`VariableQuality::Good`].
+    #[must_use]
     pub fn initial_quality(mut self, quality: VariableQuality) -> Self {
         self.quality = quality;
         self
@@ -101,6 +106,7 @@ impl VariableBuilder {
     /// However, be aware that if the variable timestamp is `None`, consumers will always receive the timestamp of
     /// reading the variable list instead of the timestamp of the last value update, which may not be what the consumer expects, so
     /// use this optimization with caution.
+    #[must_use]
     pub fn initial_timestamp(mut self, timestamp: Option<TimestampValue>) -> Self {
         self.override_timestamp = Some(timestamp);
         self

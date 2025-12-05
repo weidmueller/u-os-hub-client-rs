@@ -62,7 +62,7 @@ fn test_performance() {
     let start_time = std::time::Instant::now();
     provider_definition.validate().unwrap();
     let duration = start_time.elapsed();
-    println!("Validation took: {:?}", duration);
+    println!("Validation took: {duration:?}");
 
     //Not strictly deterministic (hardware dependent), but this should be reasonable for debug builds
     //Currently only takes about 100ms on my local hardware.

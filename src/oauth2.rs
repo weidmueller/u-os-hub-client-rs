@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: MIT
 
 //! Contains some utils for oauth2 handling
+use anyhow::anyhow;
 use base64::{prelude::BASE64_STANDARD, Engine};
 use hyper::header::AUTHORIZATION;
 use serde::Deserialize;
@@ -10,7 +11,7 @@ use std::{collections::BTreeMap, path::Path};
 
 use crate::env_file_parser::read_and_parse_env_file;
 
-/// Contains OAuth2 client credentials
+/// Contains `OAuth2` client credentials
 #[derive(Clone, Debug)]
 pub struct OAuth2Credentials {
     pub client_name: String,
@@ -19,7 +20,7 @@ pub struct OAuth2Credentials {
 }
 
 impl OAuth2Credentials {
-    /// Creates new [OAuth2Credentials] from the provided client name and credentials file.
+    /// Creates new [`OAuth2Credentials`] from the provided client name and credentials file.
     ///
     /// The file must be a .env file which contains key=value pairs, with the keys being `CLIENT_ID` and `CLIENT_SECRET`.
     pub async fn from_env_file(
@@ -31,11 +32,11 @@ impl OAuth2Credentials {
         let client_name = client_name.into();
         let client_id = env_vars
             .get("CLIENT_ID")
-            .ok_or(anyhow::anyhow!("Can't get CLIENT_ID"))?
+            .ok_or(anyhow!("Can't get CLIENT_ID"))?
             .clone();
         let client_secret = env_vars
             .get("CLIENT_SECRET")
-            .ok_or(anyhow::anyhow!("Can't get CLIENT_SECRET"))?
+            .ok_or(anyhow!("Can't get CLIENT_SECRET"))?
             .clone();
 
         Ok(Self {
@@ -79,7 +80,7 @@ impl OAuth2Credentials {
 
         let response_text = http_response.text().await?;
         let json_body = serde_json::from_str(&response_text).map_err(|e| {
-            anyhow::anyhow!(format!(
+            anyhow!(format!(
                 "Failed to convert response body to json: {e} (Response was: {response_text}"
             ))
         })?;

@@ -8,6 +8,7 @@
 use std::{collections::HashSet, sync::Arc};
 
 use futures::{Stream, StreamExt};
+use std::convert::Into;
 use thiserror::Error;
 use tracing::error;
 
@@ -181,11 +182,13 @@ impl DataHubProviderConnection {
     }
 
     /// Allows access to the low level api
+    #[must_use]
     pub fn get_connected_nats_provider(&self) -> &ConnectedNatsProvider {
         &self.connected_provider
     }
 
     /// Returns the provider ID.
+    #[must_use]
     pub fn get_provider_id(&self) -> &str {
         self.connected_provider.get_provider_id()
     }
@@ -218,7 +221,7 @@ impl DataHubProviderConnection {
                             .variable_definitions
                             .unwrap_or_default()
                             .into_iter()
-                            .map(|var_def| var_def.into())
+                            .map(Into::into)
                             .collect();
                         ProviderEvent::DefinitionChanged(new_variable_defs)
                     } else {
@@ -256,10 +259,7 @@ impl DataHubProviderConnection {
     pub fn get_all_variable_definitions(&self) -> Result<Vec<VariableDefinition>> {
         let var_defs = self.connected_provider.get_all_variable_definitions();
 
-        let result = var_defs
-            .into_values()
-            .map(|var_def| var_def.into())
-            .collect();
+        let result = var_defs.into_values().map(Into::into).collect();
 
         Ok(result)
     }
@@ -392,6 +392,7 @@ impl DataHubProviderConnection {
     /// Internally uses the low level api to receive the values.
     /// Each received value from the low level api will be converted to an easy to use rust type.
     /// If the low level api stream returned an error value, this value will be silenly ignored, but the subscription will not be cancelled.
+    #[allow(clippy::missing_panics_doc)] // See comment below
     pub async fn subscribe_variables_with_filter<'a>(
         &self,
         filter_list: Option<Vec<impl VariableKeyLike<'a>>>,
@@ -426,8 +427,11 @@ impl DataHubProviderConnection {
                 }
             }
 
-            let mapped_and_filtered_vars =
-                Self::process_var_changed_evt(&filter_set, var_changed_evt, ignore_unknown_values);
+            let mapped_and_filtered_vars = Self::process_var_changed_evt(
+                filter_set.as_ref(),
+                var_changed_evt,
+                ignore_unknown_values,
+            );
 
             async move { mapped_and_filtered_vars }
         });
@@ -441,7 +445,7 @@ impl DataHubProviderConnection {
     /// If you want to write multiple variables, use [`Self::write_variables()`] instead,
     /// as this will be more performant for writing multiple values at once.
     ///
-    /// You need a connection with [NatsPermission::VariableHubReadWrite](`crate::authenticated_nats_con::NatsPermission::VariableHubReadWrite`) to be able to write variables.
+    /// You need a connection with [`NatsPermission::VariableHubReadWrite`](`crate::authenticated_nats_con::NatsPermission::VariableHubReadWrite`) to be able to write variables.
     ///
     /// This method will check if the specified variable is still valid before sending the write command.
     /// It will also check if the variable is writable and if the value type matches the variable definitions.
@@ -528,7 +532,7 @@ impl DataHubProviderConnection {
 
     /// Applies the specified filter set to the event and returns a hashmap of variable IDs to variable states.
     fn process_var_changed_evt(
-        filter_set: &Option<HashSet<u32>>,
+        filter_set: Option<&HashSet<u32>>,
         var_changed_evt: connected_nats_provider::Result<VariablesChangedEventT>,
         ignore_unknown_values: bool,
     ) -> Option<Vec<(VariableID, VariableState)>> {

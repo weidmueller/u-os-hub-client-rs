@@ -66,7 +66,7 @@ pub(super) struct ProviderWorker {
     /// The receiver of the commands from the [`crate::provider::Provider`] instances.
     command_channel: mpsc::Receiver<ProviderCommand>,
     /// Stores the variables with fast access.
-    /// A BTreeMap is used instead of a HashMap because it is always deterministic.
+    /// A `BTreeMap` is used instead of a `HashMap` because it is always deterministic.
     variables: BTreeMap<VariableID, Variable>,
     /// The current fingerprint of the provider definition.
     current_fingerprint: u64,
@@ -124,11 +124,11 @@ impl ProviderWorker {
         };
 
         if created.nats_con.get_client().connection_state()
-            != async_nats::connection::State::Connected
+            == async_nats::connection::State::Connected
         {
-            created.enter_state(State::Connecting).await;
+            created.enter_state(State::Registering);
         } else {
-            created.enter_state(State::Registering).await;
+            created.enter_state(State::Connecting);
         }
 
         tokio::spawn(async move { created.run(nats_events).await });
@@ -150,7 +150,7 @@ impl ProviderWorker {
     }
 
     /// Changes the state of the provider.
-    pub async fn enter_state(&mut self, new_state: State) {
+    pub fn enter_state(&mut self, new_state: State) {
         debug!("Provider is {new_state:?}");
         self.state_changed_sender.send(new_state).ok();
         self.state = new_state;
@@ -197,7 +197,7 @@ impl ProviderWorker {
 
         let provider_definition = ProviderDefinitionT {
             fingerprint: self.current_fingerprint,
-            variable_definitions: Some(self.variables.values().map(|var| var.into()).collect()),
+            variable_definitions: Some(self.variables.values().map(Into::into).collect()),
             state: ProviderDefinitionState::UNSPECIFIED,
         };
 
@@ -228,9 +228,8 @@ impl ProviderWorker {
                                 return Err(UpdateProviderDefinitionError::InvalidProviderDefinition("The registry marked the definition as invalid".to_string()));
                             }
                             return Err(UpdateProviderDefinitionError::InvalidProviderDefinition("Provider definition changed event did not contain provider definition".to_string()));
-                        } else {
-                            return Err(UpdateProviderDefinitionError::InvalidProviderDefinition("Could not parse provider definition changed event".to_string()));
                         }
+                        return Err(UpdateProviderDefinitionError::InvalidProviderDefinition("Could not parse provider definition changed event".to_string()));
                     }
                     Some(_) = self.registry_up.next() => {
                         // Republish the definition
@@ -255,13 +254,13 @@ impl ProviderWorker {
             match &self.state {
                 State::Connecting => {
                     let msg = nats_events.recv().await;
-                    self.handle_nats_event(msg).await;
+                    self.handle_nats_event(msg);
                 }
                 State::Registering => {
                     select! {
                         // run_state_registering() must be safe to abort on every "await" (by select)
-                        _ = self.run_state_registering() => {},
-                        msg = nats_events.recv() => self.handle_nats_event(msg).await,
+                        () = self.run_state_registering() => {},
+                        msg = nats_events.recv() => self.handle_nats_event(msg),
                     };
                 }
                 State::Running => {
@@ -271,7 +270,7 @@ impl ProviderWorker {
                                 error!("Error handling command: {e}");
                             }
                         },
-                        msg = nats_events.recv() => self.handle_nats_event(msg).await,
+                        msg = nats_events.recv() => self.handle_nats_event(msg),
                     };
                 }
             }
@@ -279,15 +278,15 @@ impl ProviderWorker {
     }
 
     /// Handles the nats events.
-    async fn handle_nats_event(&mut self, msg: Result<Event, RecvError>) {
+    fn handle_nats_event(&mut self, msg: Result<Event, RecvError>) {
         match msg {
             Ok(Event::Connected) => {
                 debug!("Connected to NATS");
-                self.enter_state(State::Registering).await;
+                self.enter_state(State::Registering);
             }
             Ok(Event::Disconnected) => {
                 debug!("Disconnected from NATS");
-                self.enter_state(State::Connecting).await;
+                self.enter_state(State::Connecting);
             }
             Ok(Event::LameDuckMode) => {
                 debug!("NATS server entered lame duck mode");
@@ -317,7 +316,7 @@ impl ProviderWorker {
     ///
     /// Waits for the provider to be registered.
     ///
-    /// run_state_registering() must be safe to abort on every "await" (by select)
+    /// `run_state_registering()` must be safe to abort on every "await" (by select)
     async fn run_state_registering(&mut self) {
         let result = self
             .update_definition(true)
@@ -339,7 +338,7 @@ impl ProviderWorker {
             "u-OS Data Hub provider `{}` successfully registered",
             self.get_provider_id()
         );
-        self.enter_state(State::Running).await;
+        self.enter_state(State::Running);
     }
 
     /// Receive commands for the worker task.
@@ -401,9 +400,7 @@ impl ProviderWorker {
                 self.send_empty_definition().await?;
             }
             ProviderCommand::Subscribe(vars, result_tx) => {
-                result_tx
-                    .send(self.create_write_event_notifier(vars).await)
-                    .ok();
+                result_tx.send(self.create_write_event_notifier(&vars)).ok();
             }
             ProviderCommand::HandleWrite(msg) => {
                 self.handle_write(msg).await;
@@ -414,15 +411,15 @@ impl ProviderWorker {
     }
 
     /// Creates a new write event notifier
-    async fn create_write_event_notifier(
+    fn create_write_event_notifier(
         &mut self,
-        variables: Vec<Variable>,
+        variables: &[Variable],
     ) -> Result<mpsc::Receiver<Vec<VariableWriteCommand>>, SubscribeToWriteCommandError> {
         // First remove closed channels
         self.write_event_notiers
             .retain(|(_, sender)| !sender.is_closed());
 
-        for variable in &variables {
+        for variable in variables {
             // Check if all ids exists
             if !self.variables.contains_key(&variable.definition.id) {
                 return Err(super::SubscribeToWriteCommandError::VariableNotFound(
@@ -459,13 +456,9 @@ impl ProviderWorker {
             trace!("Ignore write command with wrong fingerprint");
             return;
         }
-        let items = match write_command.variables.items {
-            Some(x) => x,
-
-            _ => {
-                trace!("Ignore write command without items");
-                return;
-            }
+        let Some(items) = write_command.variables.items else {
+            trace!("Ignore write command without items");
+            return;
         };
 
         // Add definition to items, and filter out readonly and non existing variables.
@@ -552,11 +545,11 @@ impl ProviderWorker {
         let updated_ids: Vec<u32> = states.iter().map(|x| x.id).collect();
 
         // Update the states
-        states.into_iter().for_each(|updated_state| {
+        for updated_state in states {
             if let Some(updated_variable) = self.variables.get_mut(&updated_state.id) {
                 updated_variable.state = updated_state;
             }
-        });
+        }
 
         // Publish the changes to nats
         self.publish_updates(Some(updated_ids))
@@ -570,9 +563,9 @@ impl ProviderWorker {
         vars: Vec<Variable>,
         wait_for_success: bool,
     ) -> Result<(), RemoveVariablesError> {
-        vars.into_iter().for_each(|x| {
+        for x in vars {
             self.variables.remove(&x.definition.id);
-        });
+        }
 
         self.update_definition(wait_for_success)
             .await
@@ -607,13 +600,12 @@ impl ProviderWorker {
 
     /// Handles the variable read query. It answers with the cached values.
     async fn handle_variable_read_query(&self, msg: Message) {
-        let read_request = match flatbuffers::root::<ReadVariablesQueryRequest>(&msg.payload) {
-            Ok(x) => x,
-            _ => return,
+        let Ok(read_request) = flatbuffers::root::<ReadVariablesQueryRequest>(&msg.payload) else {
+            return;
         };
-        let reply_subject = match msg.reply {
-            Some(x) => x,
-            None => return,
+
+        let Some(reply_subject) = msg.reply else {
+            return;
         };
 
         let response = build_read_variables_query_response(
