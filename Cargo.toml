@@ -11,7 +11,7 @@ categories = ["embedded", "data-structures"]
 repository = "https://github.com/weidmueller/u-os-hub-client-rs"
 homepage = "https://github.com/weidmueller/u-os-hub-client-rs"
 readme = "README.md"
-version = "0.2.3"
+version = "0.2.4"
 edition = "2021"
 rust-version = "1.75"
 
