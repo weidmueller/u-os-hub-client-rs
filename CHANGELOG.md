@@ -6,6 +6,10 @@ SPDX-License-Identifier: MIT
 
 # Changelog
 
+### 0.2.5
+
+- fix: keywords
+
 ### 0.2.4
 
 - feat: update async nats crate to 0.45
