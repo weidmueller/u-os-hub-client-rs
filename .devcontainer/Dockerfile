@@ -56,7 +56,7 @@ RUN rustup target add armv7-unknown-linux-gnueabihf aarch64-unknown-linux-gnu x8
 
 # Download and install cargo-audit
 RUN <<-EOT
-    VER="0.21.2"
+    VER="0.22.0"
     DIR="/usr/local/cargo/bin"
     mkdir -p $DIR
     curl -L -o $DIR/archive.tar.gz https://github.com/rustsec/rustsec/releases/download/cargo-audit%2Fv${VER}/cargo-audit-x86_64-unknown-linux-musl-v${VER}.tgz
