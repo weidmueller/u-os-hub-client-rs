@@ -36,13 +36,14 @@ flatc -o $dest_path -r --gen-object-api --bfbs-comments --rust-serialize --rust-
     $api_path/flatbuffers/messages/variables_changed_event.fbs \
     $api_path/flatbuffers/messages/write_variables_command.fbs
 
+
+copyright="Weidmueller Interface GmbH & Co. KG <oss@weidmueller.com>"
+
+reuse annotate --license MIT --copyright "$copyright" --year "2025-Present" --merge-copyrights --recursive --skip-unrecognised $dest_path
+
 # There is a bug in flatc where the generation of mod.rs does not include all generated files.
 # https://github.com/google/flatbuffers/issues/8096
 # We maintain our own complete mod.rs which is copied to the generated folder.
 # !!! If you add more files to the flatc call above, you have to adjust ./mod.rs manually. !!!
 # TODO: Check the state of the issue
 cp files/mod.rs $dest_path/mod.rs
-
-copyright="Weidmueller Interface GmbH & Co. KG <oss@weidmueller.com>"
-
-reuse annotate --license MIT --copyright "$copyright" --merge-copyrights --recursive --skip-unrecognised $dest_path
