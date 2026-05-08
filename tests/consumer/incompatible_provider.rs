@@ -4,7 +4,6 @@
 
 use std::time::Duration;
 
-use anyhow::anyhow;
 use flatbuffers::{FlatBufferBuilder, WIPOffset};
 use futures::StreamExt;
 use tokio::time::timeout;
@@ -64,11 +63,13 @@ impl Drop for IncompatibleProvider {
 }
 
 impl IncompatibleProvider {
-    pub async fn new() -> anyhow::Result<Self> {
+    pub async fn new() -> Result<Self, Box<dyn std::error::Error>> {
         Self::new_with_delay(Duration::ZERO).await
     }
 
-    pub async fn new_with_delay(registration_delay: Duration) -> anyhow::Result<Self> {
+    pub async fn new_with_delay(
+        registration_delay: Duration,
+    ) -> Result<Self, Box<dyn std::error::Error>> {
         //Create connection for dummy provider
         let auth_nats_con = create_auth_con(PROVIDER_ID).await;
 
@@ -287,7 +288,7 @@ impl IncompatibleProvider {
     async fn update_definition(
         nats_con: &AuthenticatedNatsConnection,
         provider_definition: ProviderDefinitionT,
-    ) -> anyhow::Result<()> {
+    ) -> Result<(), Box<dyn std::error::Error>> {
         let mut registry_provider_definition_updated_subscription = nats_con
             .get_client()
             .subscribe(nats_subjects::registry_provider_definition_changed_event(
@@ -311,7 +312,7 @@ impl IncompatibleProvider {
             registry_provider_definition_updated_subscription.next(),
         )
         .await?
-        .ok_or_else(|| anyhow!("Registry Provider definition changed event stream stopped."))?;
+        .ok_or("Registry Provider definition changed event stream stopped.")?;
 
         if let Ok(parsed_message) =
             flatbuffers::root::<ProviderDefinitionChangedEvent>(&msg.payload)
@@ -321,20 +322,18 @@ impl IncompatibleProvider {
                     return Ok(());
                 }
 
-                return Err(anyhow!("The registry marked the definition as invalid"));
+                return Err("The registry marked the definition as invalid".into());
             }
-            Err(anyhow!(
-                "Provider definition changed event did not contain provider definition"
-            ))
+            Err("Provider definition changed event did not contain provider definition".into())
         } else {
-            Err(anyhow!("Could not parse provider definition changed event"))
+            Err("Could not parse provider definition changed event".into())
         }
     }
 
     async fn publish_variable_values<'a>(
         nats_con: &AuthenticatedNatsConnection,
         var_list: (FlatBufferBuilder<'a>, WIPOffset<VariableList<'a>>),
-    ) -> anyhow::Result<()> {
+    ) -> Result<(), Box<dyn std::error::Error>> {
         let (mut builder, var_list_offset) = var_list;
         let final_offset = VariablesChangedEvent::create(
             &mut builder,
@@ -360,10 +359,10 @@ impl IncompatibleProvider {
         nats_con: &AuthenticatedNatsConnection,
         msg: async_nats::Message,
         var_list: (FlatBufferBuilder<'a>, WIPOffset<VariableList<'a>>),
-    ) -> anyhow::Result<()> {
-        let reply_subject = msg.reply.ok_or(anyhow!(
-            "Read variables query request did not contain a reply subject"
-        ))?;
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let reply_subject = msg
+            .reply
+            .ok_or("Read variables query request did not contain a reply subject")?;
 
         let (mut builder, var_list_offset) = var_list;
         let final_offset = ReadVariablesQueryResponse::create(

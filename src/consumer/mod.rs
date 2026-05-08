@@ -35,7 +35,7 @@
 //! };
 //!
 //! #[tokio::main(flavor = "current_thread")]
-//! async fn main() -> anyhow::Result<()> {
+//! async fn main() -> Result<(), Box<dyn std::error::Error>> {
 //!     //The provider id to connect to
 //!     let provider_id = "test-provider";
 //!

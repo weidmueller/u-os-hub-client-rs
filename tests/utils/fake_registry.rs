@@ -98,7 +98,7 @@ impl FakeRegistry {
         msg: async_nats::Message,
         client: &client::Client,
         state: &SharedFakeRegistryState,
-    ) -> anyhow::Result<()> {
+    ) -> Result<(), Box<dyn std::error::Error>> {
         let provider_id = nats_subjects::get_provider_id_from_subject(&msg.subject)?;
         let subject = nats_subjects::registry_provider_definition_changed_event(&provider_id);
 
@@ -166,7 +166,7 @@ impl FakeRegistry {
         msg: async_nats::Message,
         client: &client::Client,
         state: &SharedFakeRegistryState,
-    ) -> anyhow::Result<()> {
+    ) -> Result<(), Box<dyn std::error::Error>> {
         let resp = {
             let locked_state = state.lock().unwrap();
             let iter = locked_state.registered_providers.keys();
@@ -183,7 +183,7 @@ impl FakeRegistry {
         msg: async_nats::Message,
         client: &client::Client,
         state: &SharedFakeRegistryState,
-    ) -> anyhow::Result<()> {
+    ) -> Result<(), Box<dyn std::error::Error>> {
         let provider_id = nats_subjects::get_provider_id_from_subject(&msg.subject)?;
 
         let resp = {

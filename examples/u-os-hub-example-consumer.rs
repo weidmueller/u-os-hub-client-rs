@@ -5,7 +5,6 @@
 //! This example shows how to connect to a data hub provider and read/write/observe variables.
 //! using the high level data hub API.
 
-use anyhow::anyhow;
 use clap::Parser;
 use futures::StreamExt;
 use std::{sync::Arc, time::Duration};
@@ -19,7 +18,7 @@ mod utils;
 
 /// It is recommended to use the deploy examples script to copy this example to a device and register it as a systemd service.
 #[tokio::main(flavor = "current_thread")]
-async fn main() -> anyhow::Result<()> {
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing_subscriber::fmt()
         .with_max_level(tracing::Level::INFO)
         .init();
@@ -29,7 +28,7 @@ async fn main() -> anyhow::Result<()> {
     let provider_id = conf
         .provider_id
         .as_ref()
-        .ok_or_else(|| anyhow!("Provider ID is mandatory for consumers"))?;
+        .ok_or("Provider ID is mandatory for consumers")?;
 
     let auth_settings = utils::build_auth_settings_from_conf(&conf, false).await?;
 

@@ -3,8 +3,16 @@
 // SPDX-License-Identifier: MIT
 
 //! Contains constants and functions for dealing with the u-OS Data Hub subjects
-use anyhow::anyhow;
 use const_format::formatcp;
+use thiserror::Error;
+
+/// Error type for subject parsing operations
+#[derive(Error, Debug, PartialEq, Eq)]
+#[allow(missing_docs)]
+pub enum SubjectError {
+    #[error("No provider ID found in subject")]
+    NoProviderInSubject,
+}
 
 #[cfg(test)]
 mod subjects_test;
@@ -105,16 +113,16 @@ pub fn get_provider_name_from_subject(subject: &str) -> Option<String> {
 }
 
 /// Extract the provider id from the subject string.
-pub fn get_provider_id_from_subject(subject: &str) -> anyhow::Result<String> {
+pub fn get_provider_id_from_subject(subject: &str) -> Result<String, SubjectError> {
     let parts: Vec<&str> = subject.split('.').collect();
 
     let provider_id_index = get_index_of_provider_id(&parts);
 
     parts
         .get(provider_id_index)
-        .map_or(Err(anyhow!("NoProviderInSubject")), |id| {
+        .map_or(Err(SubjectError::NoProviderInSubject), |id| {
             if id.is_empty() {
-                Err(anyhow!("NoProviderInSubject"))
+                Err(SubjectError::NoProviderInSubject)
             } else {
                 Ok((*id).to_string())
             }

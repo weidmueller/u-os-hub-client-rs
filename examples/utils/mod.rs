@@ -39,7 +39,7 @@ pub struct Config {
 pub async fn build_auth_settings_from_conf(
     conf: &Config,
     is_provider: bool,
-) -> anyhow::Result<AuthenticationSettings> {
+) -> Result<AuthenticationSettings, Box<dyn std::error::Error>> {
     println!("{conf:#?}");
 
     let mut builder = AuthenticationSettingsBuilder::new(if is_provider {
