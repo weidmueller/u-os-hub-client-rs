@@ -19,7 +19,7 @@ mod utils;
 
 /// It is recommended to use the deploy examples script to copy this example to a device and register it as a systemd service.
 #[tokio::main(flavor = "current_thread")]
-async fn main() -> anyhow::Result<()> {
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing_subscriber::fmt()
         .with_max_level(tracing::Level::INFO)
         .init();
@@ -51,7 +51,7 @@ async fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-async fn example_service_1(hub_provider: Provider) -> anyhow::Result<()> {
+async fn example_service_1(hub_provider: Provider) -> Result<(), Box<dyn std::error::Error>> {
     let dat1_builder = VariableBuilder::new(0, "folder1.int_counter").initial_value(0);
 
     let mut data1 = dat1_builder.build()?;
@@ -78,7 +78,7 @@ async fn example_service_1(hub_provider: Provider) -> anyhow::Result<()> {
     }
 }
 
-async fn example_service_2(hub_provider: Provider) -> anyhow::Result<()> {
+async fn example_service_2(hub_provider: Provider) -> Result<(), Box<dyn std::error::Error>> {
     let dat1_builder = VariableBuilder::new(3, "folder2.float_counter").initial_value(0.0);
 
     //Make sure that there is one writable variable for each type so we can test read/write of all types

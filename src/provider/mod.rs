@@ -23,7 +23,7 @@
 //! };
 //!
 //! /// Demonstrates how to create a provider that serves variables to the Data Hub.
-//! async fn provider_init() -> anyhow::Result<()> {
+//! async fn provider_init() -> Result<(), Box<dyn std::error::Error>> {
 //!     //Configure your nats server authentication
 //!     let auth_settings = AuthenticationSettingsBuilder::new(NatsPermission::VariableHubProvide)
 //!         .with_credentials(OAuth2Credentials {
@@ -68,7 +68,7 @@
 //!     provider: Provider,
 //!     mut ro_int: Variable,
 //!     rw_string: Variable,
-//! ) -> anyhow::Result<()> {
+//! ) -> Result<(), Box<dyn std::error::Error>> {
 //!     // Subscribe to write requests of our RW variables
 //!     // We use a hashmap to quickly find the variable by its id later
 //!     let mut writable_vars = HashMap::from([(rw_string.get_definition().id, rw_string)]);

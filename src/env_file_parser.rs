@@ -3,12 +3,21 @@
 // SPDX-License-Identifier: MIT
 
 //! Parser for environment files.
-use anyhow::Result;
 use std::{collections::HashMap, path::Path};
 use tokio::fs;
 
+/// Error type for env file parsing
+#[derive(Debug, thiserror::Error)]
+#[allow(missing_docs)]
+pub enum Error {
+    #[error("Failed to read env file: {0}")]
+    Io(#[from] std::io::Error),
+}
+
 /// Read an env file and parse it into a `HashMap`
-pub async fn read_and_parse_env_file(path: impl AsRef<Path>) -> Result<HashMap<String, String>> {
+pub async fn read_and_parse_env_file(
+    path: impl AsRef<Path>,
+) -> Result<HashMap<String, String>, Error> {
     let file_content = fs::read_to_string(path).await?;
     Ok(parse_env_file(&file_content))
 }

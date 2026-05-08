@@ -8,7 +8,6 @@
 use clap::Parser;
 use std::{sync::Arc, time::Duration};
 
-use anyhow::anyhow;
 use futures::StreamExt;
 use tokio::task::JoinSet;
 
@@ -26,7 +25,7 @@ mod utils;
 /// It is recommended to use the deploy examples script to copy this example to a device and register it as a systemd service.
 #[tokio::main(flavor = "current_thread")]
 #[allow(clippy::too_many_lines)] //ok for example
-async fn main() -> anyhow::Result<()> {
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing_subscriber::fmt()
         .with_max_level(tracing::Level::INFO)
         .init();
@@ -36,7 +35,7 @@ async fn main() -> anyhow::Result<()> {
     let test_provider_id = conf
         .provider_id
         .as_ref()
-        .ok_or_else(|| anyhow!("Provider ID is mandatory for consumers"))?;
+        .ok_or("Provider ID is mandatory for consumers")?;
 
     let auth_settings = utils::build_auth_settings_from_conf(&conf, false).await?;
 
@@ -46,7 +45,7 @@ async fn main() -> anyhow::Result<()> {
             &auth_settings,
         )
         .await
-        .map_err(|e| anyhow!(format!("Failed to connect to NATS server: {e}")))?,
+        .map_err(|e| format!("Failed to connect to NATS server: {e}"))?,
     );
 
     let mut js = JoinSet::new();
@@ -161,7 +160,7 @@ async fn main() -> anyhow::Result<()> {
     let mut variables = VariableListT::default();
     variables.provider_definition_fingerprint = provider_con
         .get_fingerprint()
-        .ok_or_else(|| anyhow!("Provider went offline while we were working"))?;
+        .ok_or("Provider went offline while we were working")?;
     variables.items = Some(vec![new_var_value]);
 
     let mut write_vars_cmd = WriteVariablesCommandT::default();

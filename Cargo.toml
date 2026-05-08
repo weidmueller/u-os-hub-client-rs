@@ -19,7 +19,6 @@ rust-version = "1.75"
 #must force at least this ring version due to cross compile errors for older versions
 ring = { version = "0.17.8", default-features = false }
 
-anyhow = { version = "1.0", default-features = false, features = ["std"] }
 async-nats = { version = "0.45", default-features = false, features = ["ring"] }
 async-trait = { version = "0.1.80", default-features = false }
 base64 = { version = "0.22", default-features = false }

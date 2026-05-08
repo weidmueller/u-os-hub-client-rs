@@ -373,7 +373,7 @@ impl ProviderWorker {
     async fn run_state_running_handle_command(
         &mut self,
         command: ProviderCommand,
-    ) -> anyhow::Result<()> {
+    ) -> Result<(), UpdateProviderDefinitionError> {
         // React in the command
         match command {
             ProviderCommand::AddVariables(vars, result_tx) => {
