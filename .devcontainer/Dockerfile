@@ -76,6 +76,16 @@ RUN <<-EOT
     rm $DIR/archive.tar.gz
 EOT
 
+# Download and install cargo-machete to find unused deps
+RUN <<-EOT
+    VER="0.9.2"
+    DIR="/usr/local/cargo/bin"
+    mkdir -p $DIR
+    curl -L -o $DIR/archive.tar.gz https://github.com/bnjbvr/cargo-machete/releases/download/v${VER}/cargo-machete-v${VER}-x86_64-unknown-linux-musl.tar.gz
+    tar -xzvf $DIR/archive.tar.gz --strip-components=1 -C $DIR
+    rm $DIR/archive.tar.gz
+EOT
+
 # Install prek for pre commit hooks
 RUN curl --proto '=https' --tlsv1.2 -LsSf https://github.com/j178/prek/releases/download/v0.2.3/prek-installer.sh | sh
 
