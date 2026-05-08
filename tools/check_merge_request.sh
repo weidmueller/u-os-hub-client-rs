@@ -59,8 +59,11 @@ cargo clippy --profile ${profile} --all-features --all-targets -- -D warnings
 RUSTDOCFLAGS="-D warnings" cargo doc --no-deps --profile ${profile}
 cargo test --profile ${profile} --all-features --target x86_64-unknown-linux-gnu
 
-# Audit once, independently of the rust version
-cargo audit
+# Check for unused dependencies
+cargo machete
 
 # Check licenses of all transitive dependencies
 cargo-deny check licenses
+
+# Audit once, independently of the rust version
+cargo audit
