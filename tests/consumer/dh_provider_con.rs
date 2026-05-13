@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2025 Weidmueller Interface GmbH & Co. KG <oss@weidmueller.com>
 //
 // SPDX-License-Identifier: MIT
+#![allow(clippy::large_futures)]
 
 use std::{collections::HashMap, sync::Arc, time::Duration};
 
