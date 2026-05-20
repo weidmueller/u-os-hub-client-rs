@@ -1,0 +1,18 @@
+# SPDX-FileCopyrightText: 2026 Weidmueller Interface GmbH & Co. KG <oss@weidmueller.com>
+#
+# SPDX-License-Identifier: MIT
+
+[advisories]
+ignore = [
+    # The following CVEs can be ignored because the variable data hub does not currently use TLS
+    # (everything runs internally without TLS), and all of these advisories are TLS-related.
+    # Fixing these CVEs requires updating the minimum Rust version to 1.88 (currently 1.75), which is not yet
+    # available in Yocto Scarthgap (Current LTS).
+    # Therefore, we don't want to force our customers to use such a new version of Rust.
+    # A backport fix has been proposed in the NATS repository: https://github.com/nats-io/nats.rs/issues/1585
+    # TODO: Remove these exceptions once the minimum Rust version is >=1.88 or if a backport is available.
+    "RUSTSEC-2026-0098",
+    "RUSTSEC-2026-0104",
+    "RUSTSEC-2026-0049",
+    "RUSTSEC-2026-0099",
+]
