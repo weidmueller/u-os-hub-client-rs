@@ -6,6 +6,10 @@ SPDX-License-Identifier: MIT
 
 # Changelog
 
+### 0.3.0
+
+- refactor: replace `anyhow` with detailed error types
+
 ### 0.2.5
 
 - fix: keywords
