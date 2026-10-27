@@ -58,15 +58,14 @@ impl NatsConsumer {
     pub async fn new(nats_con: Arc<AuthenticatedNatsConnection>) -> Result<Self> {
         //Check if the user has the required permissions if the connection uses oauth2 authentication
         let perms = nats_con.get_permissions();
-        if let Some(perms) = perms {
-            if !perms.contains(NatsPermission::VariableHubRead.as_str())
-                && !perms.contains(NatsPermission::VariableHubReadWrite.as_str())
-            {
-                //It makes no sense to use a consumer without read or readwrite permissions
-                return Err(Error::InsufficientPermissions(
-                    "Consumers require read or readwrite permissions".to_string(),
-                ));
-            }
+        if let Some(perms) = perms
+            && !perms.contains(NatsPermission::VariableHubRead.as_str())
+            && !perms.contains(NatsPermission::VariableHubReadWrite.as_str())
+        {
+            //It makes no sense to use a consumer without read or readwrite permissions
+            return Err(Error::InsufficientPermissions(
+                "Consumers require read or readwrite permissions".to_string(),
+            ));
         }
 
         Ok(Self { nats_con })
@@ -87,7 +86,7 @@ impl NatsConsumer {
     /// If the flatbuffer deserialization fails, the stream will yield an error value but the subscription will not be cancelled.
     pub async fn subscribe_registry_state(
         &self,
-    ) -> Result<impl Stream<Item = Result<StateChangedEventT>>> {
+    ) -> Result<impl Stream<Item = Result<StateChangedEventT>> + use<>> {
         let subscription = self
             .nats_con
             .get_client()
@@ -140,7 +139,7 @@ impl NatsConsumer {
     /// If the flatbuffer deserialization fails, the stream will yield an error value but the subscription will not be cancelled.
     pub async fn subscribe_provider_ids(
         &self,
-    ) -> Result<impl Stream<Item = Result<ProvidersChangedEventT>>> {
+    ) -> Result<impl Stream<Item = Result<ProvidersChangedEventT>> + use<>> {
         let subscription = self
             .nats_con
             .get_client()
@@ -175,22 +174,20 @@ impl NatsConsumer {
                 .await;
 
         //Check if provider is already valid
-        if let Ok(provider_def_resp) = &provider_def_resp {
-            if let Some(provider_def) = &provider_def_resp.provider_definition {
-                if provider_def.state == ProviderDefinitionState::OK {
-                    return Ok(());
-                }
-            }
+        if let Ok(provider_def_resp) = &provider_def_resp
+            && let Some(provider_def) = &provider_def_resp.provider_definition
+            && provider_def.state == ProviderDefinitionState::OK
+        {
+            return Ok(());
         }
 
         //process provider def changed events until we find a valid one
         while let Some(provider_def_evt) = provider_def_evt_stream.next().await {
-            if let Ok(provider_def_evt) = &provider_def_evt {
-                if let Some(provider_def) = &provider_def_evt.provider_definition {
-                    if provider_def.state == ProviderDefinitionState::OK {
-                        return Ok(());
-                    }
-                }
+            if let Ok(provider_def_evt) = &provider_def_evt
+                && let Some(provider_def) = &provider_def_evt.provider_definition
+                && provider_def.state == ProviderDefinitionState::OK
+            {
+                return Ok(());
             }
         }
 

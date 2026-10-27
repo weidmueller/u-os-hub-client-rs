@@ -9,7 +9,7 @@ use serial_test::serial;
 use tokio::time::timeout;
 use u_os_hub_client::{
     generated::weidmueller::ucontrol::hub::{
-        root_as_read_provider_definition_query_response, State,
+        State, root_as_read_provider_definition_query_response,
     },
     nats_subjects,
     payload_builders::build_state_changed_event_payload,

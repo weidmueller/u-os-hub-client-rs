@@ -17,7 +17,7 @@ use u_os_hub_client::{
 
 use crate::{
     dummy_provider::{DummyProvider, PROVIDER_ID},
-    utils::{fake_registry::FakeRegistry, run_with_timeout, NATS_HOSTNAME},
+    utils::{NATS_HOSTNAME, fake_registry::FakeRegistry, run_with_timeout},
 };
 
 const CONSUMER_ID: &str = "test_consumer";
@@ -96,7 +96,7 @@ async fn registry_offline() {
 #[tokio::test]
 #[serial]
 async fn monitor_providers() {
-    run_with_timeout(async move {
+    run_with_timeout(Box::pin(async move {
         let _fake_reg = FakeRegistry::new().await;
 
         //create consumer
@@ -148,6 +148,6 @@ async fn monitor_providers() {
         //list should be empty now
         let provider_ids = consumer.read_provider_ids().await.unwrap();
         assert!(provider_ids.is_empty());
-    })
+    }))
     .await;
 }

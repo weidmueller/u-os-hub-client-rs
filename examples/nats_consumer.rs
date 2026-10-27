@@ -104,17 +104,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     if provider_con.get_all_variable_definitions().len() < 6 {
         println!("Waiting until provider has registered all its variables ...");
         while let Some(provider_def_evt) = provider_def_evt_stream.next().await {
-            if let Ok(provider_def_evt) = &provider_def_evt {
-                if let Some(provider_def) = &provider_def_evt.provider_definition {
-                    if provider_def.state == ProviderDefinitionState::OK {
-                        if let Some(var_defs) = &provider_def.variable_definitions {
-                            //Well.. thats quite some nesting >:D
-                            if var_defs.len() >= 6 {
-                                println!("Seems like its done!");
-                                break;
-                            }
-                        }
-                    }
+            if let Ok(provider_def_evt) = &provider_def_evt
+                && let Some(provider_def) = &provider_def_evt.provider_definition
+                && provider_def.state == ProviderDefinitionState::OK
+                && let Some(var_defs) = &provider_def.variable_definitions
+            {
+                //Well.. thats quite some nesting >:D
+                if var_defs.len() >= 6 {
+                    println!("Seems like its done!");
+                    break;
                 }
             }
         }

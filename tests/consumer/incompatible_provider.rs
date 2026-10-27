@@ -187,7 +187,7 @@ impl IncompatibleProvider {
         quality: VariableQuality,
         value: RawVariableValue,
     ) -> WIPOffset<Variable<'bldr>> {
-        let var_offset = match value {
+        match value {
             RawVariableValue::KnownValueType(value) => {
                 let value_data = value.pack(builder);
 
@@ -219,9 +219,7 @@ impl IncompatibleProvider {
                     },
                 )
             }
-        };
-
-        var_offset
+        }
     }
 
     /// We must init the variable values using the low level flatbuffer builder,

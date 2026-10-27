@@ -4,7 +4,7 @@
 
 //! Contains a variable with definition and value
 use std::{
-    collections::{hash_map::DefaultHasher, BTreeMap},
+    collections::{BTreeMap, hash_map::DefaultHasher},
     hash::{Hash, Hasher},
 };
 

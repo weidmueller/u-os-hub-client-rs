@@ -3,8 +3,8 @@
 // SPDX-License-Identifier: MIT
 
 use crate::provider::{
-    provider_builder::AddVariablesError,
-    provider_definition_validator::InvalidProviderDefinitionError, VariableBuilder,
+    VariableBuilder, provider_builder::AddVariablesError,
+    provider_definition_validator::InvalidProviderDefinitionError,
 };
 
 use super::ProviderBuilder;

@@ -6,6 +6,12 @@ SPDX-License-Identifier: MIT
 
 # Changelog
 
+### 0.4.0
+
+- fix: use global ca store (reqwest)
+- chore: update to rust 1.90 and 2024 edition
+- chore: update multiple dependencies
+
 ### 0.3.0
 
 - refactor: replace `anyhow` with detailed error types

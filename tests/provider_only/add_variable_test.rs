@@ -11,8 +11,8 @@ use u_os_hub_client::{
     generated::weidmueller::ucontrol::hub::root_as_read_provider_definition_query_response,
     nats_subjects::{self, get_provider_name_from_subject},
     provider::{
-        provider_definition_validator::InvalidProviderDefinitionError, AddVariablesError,
-        ProviderBuilder, VariableBuilder,
+        AddVariablesError, ProviderBuilder, VariableBuilder,
+        provider_definition_validator::InvalidProviderDefinitionError,
     },
 };
 
