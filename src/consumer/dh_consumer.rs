@@ -90,7 +90,7 @@ impl DataHubConsumer {
     /// Internally uses the low level api to receive the values.
     /// Each received value from the low level api will be converted to an easy to use rust type.
     /// If the low level api stream returned an error value, this value will be silenly ignored, but the subscription will not be cancelled.
-    pub async fn subscribe_provider_ids(&self) -> Result<impl Stream<Item = Vec<String>>> {
+    pub async fn subscribe_provider_ids(&self) -> Result<impl Stream<Item = Vec<String>> + use<>> {
         let low_level_data = self.nats_consumer.subscribe_provider_ids().await?;
 
         let mapped_result = low_level_data.filter_map(move |prov_changed_evt| async move {

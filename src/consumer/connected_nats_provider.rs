@@ -303,7 +303,7 @@ impl ConnectedNatsProvider {
     /// If the flatbuffer deserialization fails, the stream will yield an error value but the subscription will not be cancelled.
     pub async fn subscribe_provider_definition(
         &self,
-    ) -> Result<impl Stream<Item = Result<ProviderDefinitionChangedEventT>>> {
+    ) -> Result<impl Stream<Item = Result<ProviderDefinitionChangedEventT>> + use<>> {
         Self::subscribe_provider_definition_internal(self.get_nats_client(), &self.provider_id)
             .await
     }
@@ -376,7 +376,7 @@ impl ConnectedNatsProvider {
     /// If the flatbuffer deserialization fails, the stream will yield an error value but the subscription will not be cancelled.
     pub async fn subscribe_variables(
         &self,
-    ) -> Result<impl Stream<Item = Result<VariablesChangedEventT>>> {
+    ) -> Result<impl Stream<Item = Result<VariablesChangedEventT>> + use<>> {
         let subscription = self
             .get_nats_client()
             .subscribe(nats_subjects::vars_changed_event(&self.provider_id))
@@ -409,12 +409,12 @@ impl ConnectedNatsProvider {
         //Check nats permissions if the client knows them
         //Note that the server will always check permissions, so this is just an additional convenience check
         let nats_perms = self.get_consumer().get_nats_con().get_permissions();
-        if let Some(nats_perms) = nats_perms {
-            if !nats_perms.contains(NatsPermission::VariableHubReadWrite.as_str()) {
-                return Err(Error::InsufficientPermissions(
-                    "Needs ReadWrite permission.".to_string(),
-                ));
-            }
+        if let Some(nats_perms) = nats_perms
+            && !nats_perms.contains(NatsPermission::VariableHubReadWrite.as_str())
+        {
+            return Err(Error::InsufficientPermissions(
+                "Needs ReadWrite permission.".to_string(),
+            ));
         }
 
         let Some(cur_fingerprint) = self.get_fingerprint() else {
@@ -495,7 +495,7 @@ impl ConnectedNatsProvider {
     pub(super) async fn subscribe_provider_definition_internal(
         nats_client: &async_nats::Client,
         provider_id: &str,
-    ) -> Result<impl Stream<Item = Result<ProviderDefinitionChangedEventT>>> {
+    ) -> Result<impl Stream<Item = Result<ProviderDefinitionChangedEventT>> + use<>> {
         let subscription = nats_client
             .subscribe(nats_subjects::registry_provider_definition_changed_event(
                 provider_id,

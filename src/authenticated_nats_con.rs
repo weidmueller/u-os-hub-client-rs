@@ -320,7 +320,7 @@ impl AuthenticatedNatsConnection {
                         Err(e) => {
                             let error_text = format!("Error requesting token: {e}");
 
-                            error!(error_text);
+                            error!("{error_text}");
                             Err(async_nats::AuthError::new(error_text))
                         }
                     }

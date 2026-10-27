@@ -11,7 +11,7 @@ use u_os_hub_client::{
     dh_types::VariableAccessType,
     generated::weidmueller::ucontrol::hub::root_as_read_provider_definition_query_response,
     nats_subjects,
-    payload_builders::{build_write_variables_command, VariableUpdate},
+    payload_builders::{VariableUpdate, build_write_variables_command},
     provider::{ProviderBuilder, VariableBuilder},
 };
 

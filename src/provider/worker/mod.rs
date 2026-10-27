@@ -40,14 +40,14 @@ use crate::{
         build_provider_definition_changed_event, build_read_variables_query_response,
         build_variables_changed_event,
     },
-    variable::{calc_variables_hash, Variable},
+    variable::{Variable, calc_variables_hash},
 };
 
 use super::{
-    provider_builder::{validate_var_list, ConnectError, UpdateProviderDefinitionError},
-    provider_types::{VariableState, VariableWriteCommand},
     AddVariablesError, ProviderCommand, RemoveVariablesError, SubscribeToWriteCommandError,
     UpdateVariableValuesError,
+    provider_builder::{ConnectError, UpdateProviderDefinitionError, validate_var_list},
+    provider_types::{VariableState, VariableWriteCommand},
 };
 
 /// The state of the provider worker.
@@ -173,6 +173,13 @@ impl ProviderWorker {
                 nats_subjects::provider_changed_event(self.get_provider_id()),
                 provider_def_payload,
             )
+            .await
+            .map_err(|x| UpdateProviderDefinitionError::Nats(Box::new(x)))?;
+
+        // Explicitly flush the empty provider definition before dropping the connection,
+        // as async-nats no longer flushes automatically when the last client handle is dropped.
+        self.get_nats_client()
+            .flush()
             .await
             .map_err(|x| UpdateProviderDefinitionError::Nats(Box::new(x)))?;
 

@@ -3,8 +3,8 @@
 // SPDX-License-Identifier: MIT
 
 use serde::{
-    ser::{Error, SerializeStruct},
     Serialize, Serializer,
+    ser::{Error, SerializeStruct},
 };
 
 use crate::generated::weidmueller::ucontrol::hub::VariableValueT;

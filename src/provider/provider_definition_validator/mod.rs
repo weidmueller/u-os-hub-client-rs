@@ -116,7 +116,7 @@ impl ProviderDefinitionT {
     }
 
     /// Helper function which tries to construct a valid provider definition from the provider definition.
-    pub fn to_valid_provider_definition(
+    pub fn into_valid_provider_definition(
         self,
     ) -> Result<ValidProviderDefinition, InvalidProviderDefinitionError> {
         ValidProviderDefinition::new(self)

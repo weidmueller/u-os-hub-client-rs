@@ -20,7 +20,7 @@ use u_os_hub_client::{
     },
     oauth2::OAuth2Credentials,
 };
-use utils::{run_with_timeout, NATS_HOSTNAME};
+use utils::{NATS_HOSTNAME, run_with_timeout};
 
 #[path = "../utils/mod.rs"]
 mod utils;

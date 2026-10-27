@@ -16,7 +16,7 @@ use crate::{
     variable::Variable,
 };
 
-use super::{provider_definition_validator::InvalidProviderDefinitionError, Provider};
+use super::{Provider, provider_definition_validator::InvalidProviderDefinitionError};
 
 #[cfg(test)]
 mod provider_builder_test;
