@@ -27,8 +27,8 @@ use u_os_hub_client::{
 
 use crate::{
     dummy_provider::{self, DummyProvider, PROVIDER_ID},
-    incompatible_provider::{self, IncompatibleProvider, VariableIDs, INCOMPATIBLE_ENUM_VALUE},
-    utils::{fake_registry::FakeRegistry, run_with_timeout, NATS_HOSTNAME},
+    incompatible_provider::{self, INCOMPATIBLE_ENUM_VALUE, IncompatibleProvider, VariableIDs},
+    utils::{NATS_HOSTNAME, fake_registry::FakeRegistry, run_with_timeout},
 };
 
 /// Things that can go wrong while we are connected to a provider:
@@ -88,7 +88,7 @@ async fn registry_offline() {
 #[tokio::test]
 #[serial]
 async fn provider_offline() {
-    run_with_timeout(async move {
+    run_with_timeout(Box::pin(async move {
         let _fake_reg = FakeRegistry::new().await;
 
         let auth_settings = consumer_auth_settings(NatsPermission::VariableHubRead);
@@ -120,14 +120,14 @@ async fn provider_offline() {
             .await
             .unwrap();
         assert_eq!(var_states.len(), 4);
-    })
+    }))
     .await;
 }
 
 #[tokio::test]
 #[serial]
 async fn wait_for_variable_keys() {
-    run_with_timeout(async move {
+    run_with_timeout(Box::pin(async move {
         let _fake_reg = FakeRegistry::new().await;
 
         let auth_settings = consumer_auth_settings(NatsPermission::VariableHubRead);
@@ -143,27 +143,35 @@ async fn wait_for_variable_keys() {
             .unwrap();
 
         //empty list should return instantly
-        assert!(dh_provider_con
-            .wait_until_variable_keys_are_available(&[])
-            .await
-            .is_ok());
+        assert!(
+            dh_provider_con
+                .wait_until_variable_keys_are_available(&[])
+                .await
+                .is_ok()
+        );
 
         //full list should return instantly
-        assert!(dh_provider_con
-            .wait_until_variable_keys_are_available(&[
-                "my_folder.ro_float",
-                "my_folder.rw_string",
-                "my_folder.rw_int",
-                "my_folder.ro_int",
-            ])
-            .await
-            .is_ok());
+        assert!(
+            dh_provider_con
+                .wait_until_variable_keys_are_available(&[
+                    "my_folder.ro_float",
+                    "my_folder.rw_string",
+                    "my_folder.rw_int",
+                    "my_folder.ro_int",
+                ])
+                .await
+                .is_ok()
+        );
 
         //partial list should return instantly
-        assert!(dh_provider_con
-            .wait_until_variable_keys_are_available(&["my_folder.ro_float", "my_folder.ro_int",])
-            .await
-            .is_ok());
+        assert!(
+            dh_provider_con
+                .wait_until_variable_keys_are_available(
+                    &["my_folder.ro_float", "my_folder.ro_int",]
+                )
+                .await
+                .is_ok()
+        );
 
         //should run into timeout for invalid keys
         let timeout_res = timeout(
@@ -172,7 +180,7 @@ async fn wait_for_variable_keys() {
         )
         .await;
         assert!(timeout_res.is_err());
-    })
+    }))
     .await;
 }
 
@@ -196,13 +204,17 @@ async fn read_var_defs() {
 
         //invalid ids and keys should not work
         assert!(dh_provider_con.variable_key_from_id(999).is_err());
-        assert!(dh_provider_con
-            .get_variable_definition("unknown_key")
-            .is_err());
+        assert!(
+            dh_provider_con
+                .get_variable_definition("unknown_key")
+                .is_err()
+        );
         let invalid_key = VariableKey::from("unknown_key");
-        assert!(dh_provider_con
-            .get_variable_definition(invalid_key)
-            .is_err());
+        assert!(
+            dh_provider_con
+                .get_variable_definition(invalid_key)
+                .is_err()
+        );
 
         //read definitions one by one
         let ro_float = dh_provider_con.variable_key_from_id(100).unwrap();
@@ -293,7 +305,7 @@ async fn read_var_defs() {
 #[tokio::test]
 #[serial]
 async fn read_var_state() {
-    run_with_timeout(async move {
+    run_with_timeout(Box::pin(async move {
         let _fake_reg = FakeRegistry::new().await;
 
         let auth_settings = consumer_auth_settings(NatsPermission::VariableHubRead);
@@ -374,14 +386,14 @@ async fn read_var_state() {
                 _ => panic!("Unexpected variable key: {var_key}"),
             }
         }
-    })
+    }))
     .await;
 }
 
 #[tokio::test]
 #[serial]
 async fn subscribe_variables() {
-    run_with_timeout(async move {
+    run_with_timeout(Box::pin(async move {
         let _fake_reg = FakeRegistry::new().await;
 
         let auth_settings = consumer_auth_settings(NatsPermission::VariableHubRead);
@@ -422,7 +434,7 @@ async fn subscribe_variables() {
         //even though the id of the old variable has changed and the new variable didnt exist during the initial subscription call.
         let change_evt = change_stream.next().await.unwrap();
         assert_eq!(change_evt.len(), 2);
-    })
+    }))
     .await;
 }
 
@@ -451,22 +463,28 @@ async fn write_variables() {
             .unwrap();
 
         //Try to write invalid value type
-        assert!(dh_provider_con
-            .write_single_variable("my_folder.rw_string", 123)
-            .await
-            .is_err());
+        assert!(
+            dh_provider_con
+                .write_single_variable("my_folder.rw_string", 123)
+                .await
+                .is_err()
+        );
 
         //Try to write to RO variable
-        assert!(dh_provider_con
-            .write_single_variable("my_folder.ro_float", 999.9)
-            .await
-            .is_err());
+        assert!(
+            dh_provider_con
+                .write_single_variable("my_folder.ro_float", 999.9)
+                .await
+                .is_err()
+        );
 
         //Try to write non existant variable
-        assert!(dh_provider_con
-            .write_single_variable("doesntexist", VariableValue::String("wtf?".to_owned()))
-            .await
-            .is_err());
+        assert!(
+            dh_provider_con
+                .write_single_variable("doesntexist", VariableValue::String("wtf?".to_owned()))
+                .await
+                .is_err()
+        );
 
         //write single variable
         dh_provider_con
@@ -498,7 +516,7 @@ async fn write_variables() {
 #[tokio::test]
 #[serial]
 async fn write_with_insufficient_nats_permissions() {
-    run_with_timeout(async move {
+    run_with_timeout(Box::pin(async move {
         let _fake_reg = FakeRegistry::new().await;
 
         let auth_settings = consumer_auth_settings(NatsPermission::VariableHubRead);
@@ -514,11 +532,13 @@ async fn write_with_insufficient_nats_permissions() {
             .unwrap();
 
         //try to write variable with RO nats permissions
-        assert!(dh_provider_con
-            .write_single_variable("my_folder.rw_string", "Hello World!")
-            .await
-            .is_err());
-    })
+        assert!(
+            dh_provider_con
+                .write_single_variable("my_folder.rw_string", "Hello World!")
+                .await
+                .is_err()
+        );
+    }))
     .await;
 }
 
@@ -713,15 +733,19 @@ async fn provider_goes_offline() {
         assert_eq!(var_defs.len(), 4);
 
         //reading and writing vars should work again
-        assert!(dh_provider_con
-            .read_variables(Option::<&[VariableKey]>::None)
-            .await
-            .is_ok());
+        assert!(
+            dh_provider_con
+                .read_variables(Option::<&[VariableKey]>::None)
+                .await
+                .is_ok()
+        );
 
-        assert!(dh_provider_con
-            .write_single_variable("my_folder.rw_string", "Hello World!")
-            .await
-            .is_ok());
+        assert!(
+            dh_provider_con
+                .write_single_variable("my_folder.rw_string", "Hello World!")
+                .await
+                .is_ok()
+        );
 
         //the subscription should return values even though it was started while provider was offline
         vars_changed_sub.next().await.unwrap();
@@ -889,7 +913,7 @@ async fn read_incompatible_var_states() {
 #[tokio::test]
 #[serial]
 async fn write_incompatible_vars() {
-    run_with_timeout(async move {
+    run_with_timeout(Box::pin(async move {
         let _fake_reg = FakeRegistry::new().await;
 
         let auth_settings = consumer_auth_settings(NatsPermission::VariableHubReadWrite);
@@ -948,6 +972,6 @@ async fn write_incompatible_vars() {
                 connected_nats_provider::Error::InvalidValueType
             )
         ));
-    })
+    }))
     .await;
 }

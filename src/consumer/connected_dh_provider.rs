@@ -205,7 +205,9 @@ impl DataHubProviderConnection {
     /// Internally uses the low level api to receive the values.
     /// Each received value from the low level api will be converted to an easy to use rust type.
     /// If the low level api stream returned an error value, this value will be silenly ignored, but the subscription will not be cancelled.
-    pub async fn subscribe_provider_events(&self) -> Result<impl Stream<Item = ProviderEvent>> {
+    pub async fn subscribe_provider_events(
+        &self,
+    ) -> Result<impl Stream<Item = ProviderEvent> + use<>> {
         let provider_def_events = self
             .connected_provider
             .subscribe_provider_definition()
@@ -362,10 +364,10 @@ impl DataHubProviderConnection {
     }
 
     /// Same as [`Self::subscribe_variables_with_filter`], but only returns changes of a single variable.
-    pub async fn subscribe_single_variable<'a>(
+    pub async fn subscribe_single_variable<'a, K: VariableKeyLike<'a>>(
         &self,
-        var: impl VariableKeyLike<'a>,
-    ) -> Result<impl Stream<Item = VariableState>> {
+        var: K,
+    ) -> Result<impl Stream<Item = VariableState> + use<'a, K>> {
         let mapped_stream = self
             .subscribe_variables_with_filter(Some(vec![var]))
             .await?
@@ -393,10 +395,10 @@ impl DataHubProviderConnection {
     /// Each received value from the low level api will be converted to an easy to use rust type.
     /// If the low level api stream returned an error value, this value will be silenly ignored, but the subscription will not be cancelled.
     #[allow(clippy::missing_panics_doc)] // See comment below
-    pub async fn subscribe_variables_with_filter<'a>(
+    pub async fn subscribe_variables_with_filter<'a, K: VariableKeyLike<'a>>(
         &self,
-        filter_list: Option<Vec<impl VariableKeyLike<'a>>>,
-    ) -> Result<impl Stream<Item = Vec<(VariableID, VariableState)>>> {
+        filter_list: Option<Vec<K>>,
+    ) -> Result<impl Stream<Item = Vec<(VariableID, VariableState)>> + use<'a, K>> {
         let mut last_fp = self.connected_provider.get_fingerprint();
         let state_clone = self.connected_provider.get_state().clone();
 
@@ -551,10 +553,10 @@ impl DataHubProviderConnection {
             .unwrap_or_default()
             .into_iter()
             .filter_map(|ll_var| -> Option<(VariableID, VariableState)> {
-                if let Some(filter_set) = &filter_set {
-                    if !filter_set.contains(&ll_var.id) {
-                        return None;
-                    }
+                if let Some(filter_set) = &filter_set
+                    && !filter_set.contains(&ll_var.id)
+                {
+                    return None;
                 }
 
                 //Flatbuffer deserializes unknown union values to NONE

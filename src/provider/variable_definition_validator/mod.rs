@@ -3,9 +3,8 @@
 // SPDX-License-Identifier: MIT
 
 //! This module contains the validation logic for variable definitions.
-
-use once_cell::sync::Lazy;
 use regex::Regex;
+use std::sync::LazyLock;
 use thiserror::Error;
 
 use crate::generated::weidmueller::ucontrol::hub::{
@@ -39,7 +38,7 @@ pub enum InvalidVariableDefinitionError {
 /// All variable keys must match this pattern to be valid.
 ///
 /// The pattern will be checked by the variable builder as well as the provider and the uOS Data Hub registry.
-pub static VALID_VARIABLE_KEY_PATTERN: Lazy<Regex> = Lazy::new(|| {
+pub static VALID_VARIABLE_KEY_PATTERN: LazyLock<Regex> = LazyLock::new(|| {
     // Only a-z,A-Z,0-9,_,. are allowed
     // The original pattern checking the length
     // ^(?=.{1,1023}$)[a-z]([a-z0-9-]{0,61}[a-z0-9])?(\/[a-z]([a-z0-9-]{0,61}[a-z0-9])?)*$

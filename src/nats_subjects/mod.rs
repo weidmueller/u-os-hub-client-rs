@@ -102,11 +102,7 @@ pub fn get_provider_name_from_subject(subject: &str) -> Option<String> {
     let provider_name_index = if subject.contains("registry") { 4 } else { 2 };
     if parts.len() >= 3 {
         let name = (*parts.get(provider_name_index)?).to_string();
-        if name.is_empty() {
-            None
-        } else {
-            Some(name)
-        }
+        if name.is_empty() { None } else { Some(name) }
     } else {
         None
     }

@@ -8,7 +8,7 @@ FROM mcr.microsoft.com/vscode/devcontainers/rust:2.0.3-${VARIANT}
 # See here for the contents of the image: https://github.com/devcontainers/images/blob/main/src/rust/history
 
 # Rust Version that is used by u-OS
-ENV U_OS_RUST_VERSION="1.75.0"
+ENV U_OS_RUST_VERSION="1.90.0"
 
 # Adjust the following args to the username and groupname of the base image
 ARG BASE_IMAGE_USERNAME="vscode"
