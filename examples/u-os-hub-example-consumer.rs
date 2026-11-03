@@ -37,7 +37,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     //Create consumer
     let dh_consumer = Arc::new(
         DataHubConsumer::connect(
-            format!("nats://{}:{}", &conf.nats_ip, &conf.nats_port),
+            format!("nats://{}:{}", conf.nats_ip, conf.nats_port),
             &auth_settings,
         )
         .await?,

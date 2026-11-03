@@ -109,7 +109,7 @@ async fn monitor_providers() {
 
         //read ids before registering a provider
         let provider_ids = consumer.read_provider_ids().await.unwrap();
-        assert!(provider_ids.is_empty());
+        assert_eq!(provider_ids, Vec::<String>::new());
 
         //register a dummy provider after a slight delay
         let dummy_provider = DummyProvider::new_with_delay(Duration::from_millis(100))
@@ -124,13 +124,13 @@ async fn monitor_providers() {
 
         //read ids again
         let provider_ids = consumer.read_provider_ids().await.unwrap();
-        assert!(provider_ids.len() == 1);
-        assert!(provider_ids[0] == PROVIDER_ID);
+        assert_eq!(provider_ids.len(), 1);
+        assert_eq!(provider_ids[0], PROVIDER_ID);
 
         //Double check the last providers changed event and check if the provider id was in the list
         if let Some(providers_changed_evt) = providers_changed_sub.next().await {
-            assert!(providers_changed_evt.len() == 1);
-            assert!(providers_changed_evt[0] == PROVIDER_ID);
+            assert_eq!(providers_changed_evt.len(), 1);
+            assert_eq!(providers_changed_evt[0], PROVIDER_ID);
         } else {
             panic!("No providers changed event received after adding a provider");
         }
@@ -140,14 +140,14 @@ async fn monitor_providers() {
 
         //Wait for providers changed event and check if the provider id is no longer in the list
         if let Some(providers_changed_evt) = providers_changed_sub.next().await {
-            assert!(providers_changed_evt.is_empty());
+            assert_eq!(providers_changed_evt, Vec::<String>::new());
         } else {
             panic!("No providers changed event received after removal");
         }
 
         //list should be empty now
         let provider_ids = consumer.read_provider_ids().await.unwrap();
-        assert!(provider_ids.is_empty());
+        assert_eq!(provider_ids, Vec::<String>::new());
     }))
     .await;
 }

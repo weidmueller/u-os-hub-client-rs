@@ -10,7 +10,6 @@ use std::{collections::HashSet, sync::Arc};
 use futures::{Stream, StreamExt};
 use std::convert::Into;
 use thiserror::Error;
-use tracing::error;
 
 use crate::{
     dh_types::{VariableDefinition, VariableID, VariableValue},
