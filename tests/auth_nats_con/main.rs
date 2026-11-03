@@ -53,14 +53,14 @@ async fn test_default_name_and_single_perms() {
     .await
     .unwrap();
 
-    assert!(con.get_client_name() == "_UNAUTHENTICATED");
-    assert!(
-        con.get_permissions()
-            == &Some(
-                [NatsPermission::VariableHubProvide.as_str().to_owned()]
-                    .into_iter()
-                    .collect::<HashSet<_>>()
-            )
+    assert_eq!(con.get_client_name(), "_UNAUTHENTICATED");
+    assert_eq!(
+        con.get_permissions(),
+        &Some(
+            [NatsPermission::VariableHubProvide.as_str().to_owned()]
+                .into_iter()
+                .collect::<HashSet<_>>()
+        )
     );
 }
 
@@ -84,18 +84,18 @@ async fn test_custom_name_and_multi_perms() {
     .await
     .unwrap();
 
-    assert!(con.get_client_name() == "test_client");
-    assert!(
-        con.get_permissions()
-            == &Some(
-                [
-                    NatsPermission::VariableHubRead.as_str().to_owned(),
-                    NatsPermission::VariableHubReadWrite.as_str().to_owned(),
-                    NatsPermission::VariableHubProvide.as_str().to_owned()
-                ]
-                .into_iter()
-                .collect::<HashSet<_>>()
-            )
+    assert_eq!(con.get_client_name(), "test_client");
+    assert_eq!(
+        con.get_permissions(),
+        &Some(
+            [
+                NatsPermission::VariableHubRead.as_str().to_owned(),
+                NatsPermission::VariableHubReadWrite.as_str().to_owned(),
+                NatsPermission::VariableHubProvide.as_str().to_owned()
+            ]
+            .into_iter()
+            .collect::<HashSet<_>>()
+        )
     );
 }
 

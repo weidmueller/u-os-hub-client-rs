@@ -31,7 +31,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let builder = ProviderBuilder::new();
     let hub_provider = builder
         .register(
-            format!("nats://{}:{}", &conf.nats_ip, &conf.nats_port),
+            format!("nats://{}:{}", conf.nats_ip, conf.nats_port),
             &auth_settings,
         )
         .await?;

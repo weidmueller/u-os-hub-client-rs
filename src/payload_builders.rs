@@ -206,7 +206,7 @@ pub fn build_read_variables_query_response(
         base_timestamp: TimestampValue::now().into(),
     };
 
-    response.variables = Box::new(var_list_flat);
+    *response.variables = var_list_flat;
 
     let mut builder = FlatBufferBuilder::new();
     let packed_response = response.pack(&mut builder);
@@ -235,7 +235,7 @@ pub fn build_variables_changed_event(
         base_timestamp: TimestampValue::now().into(),
     };
 
-    response.changed_variables = Box::new(var_list_flat);
+    *response.changed_variables = var_list_flat;
 
     let mut builder = FlatBufferBuilder::new();
     let packed_response = response.pack(&mut builder);

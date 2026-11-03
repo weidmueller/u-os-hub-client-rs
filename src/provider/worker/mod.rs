@@ -430,7 +430,7 @@ impl ProviderWorker {
             // Check if all ids exists
             if !self.variables.contains_key(&variable.definition.id) {
                 return Err(super::SubscribeToWriteCommandError::VariableNotFound(
-                    variable.definition.key.to_string(),
+                    variable.definition.key.clone(),
                 ));
             }
 
@@ -439,7 +439,7 @@ impl ProviderWorker {
             for (ids, _) in &self.write_event_notiers {
                 if ids.contains(&variable.definition.id) {
                     return Err(super::SubscribeToWriteCommandError::AlreadySubscribed(
-                        variable.definition.key.to_string(),
+                        variable.definition.key.clone(),
                     ));
                 }
             }

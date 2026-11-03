@@ -601,7 +601,7 @@ async fn change_var_defs() {
         if let ProviderEvent::DefinitionChanged(event_var_defs) =
             provider_events_sub.next().await.unwrap()
         {
-            assert!(event_var_defs.is_empty());
+            assert_eq!(event_var_defs, Vec::<VariableDefinition>::new());
         } else {
             panic!("Expected ProviderEvent::DefinitionChanged");
         }
@@ -778,7 +778,7 @@ async fn read_incompatible_var_defs() {
 
         //read all at once
         let mut var_defs = dh_provider_con.get_all_variable_definitions().unwrap();
-        var_defs.sort_by(|a, b| a.id.cmp(&b.id));
+        var_defs.sort_by_key(|a| a.id);
 
         //All definitions should be present
         assert_eq!(var_defs.len(), 5);

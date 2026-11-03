@@ -4,11 +4,15 @@
 
 # For library crates, we always use the most recent stable version of rust
 ARG VARIANT="trixie"
-FROM mcr.microsoft.com/vscode/devcontainers/rust:2.0.3-${VARIANT}
+FROM mcr.microsoft.com/vscode/devcontainers/rust:2.1.5-${VARIANT}
 # See here for the contents of the image: https://github.com/devcontainers/images/blob/main/src/rust/history
 
-# Rust Version that is used by u-OS
-ENV U_OS_RUST_VERSION="1.90.0"
+# The minimum Rust version that we support for this crate
+#
+# The build pipeline will check that the crate builds with the
+# natively installed rust version from the container as well as
+# the minimum supported Rust version specified here
+ENV MIN_RUST_VERSION="1.90.0"
 
 # Adjust the following args to the username and groupname of the base image
 ARG BASE_IMAGE_USERNAME="vscode"
@@ -47,12 +51,12 @@ RUN rustup toolchain install nightly
 
 # Install rust version that u-OS uses
 # This is used during CI to ensure that the code also compiles with the same version as in production
-RUN rustup toolchain install ${U_OS_RUST_VERSION}
-RUN rustup component add --toolchain ${U_OS_RUST_VERSION} clippy
+RUN rustup toolchain install ${MIN_RUST_VERSION}
+RUN rustup component add --toolchain ${MIN_RUST_VERSION} clippy
 
 # Install targets for cross compiling
 RUN rustup target add armv7-unknown-linux-gnueabihf aarch64-unknown-linux-gnu x86_64-unknown-linux-gnu
-RUN rustup target add armv7-unknown-linux-gnueabihf aarch64-unknown-linux-gnu x86_64-unknown-linux-gnu --toolchain ${U_OS_RUST_VERSION}
+RUN rustup target add armv7-unknown-linux-gnueabihf aarch64-unknown-linux-gnu x86_64-unknown-linux-gnu --toolchain ${MIN_RUST_VERSION}
 
 # Download and install cargo-audit
 RUN <<-EOT

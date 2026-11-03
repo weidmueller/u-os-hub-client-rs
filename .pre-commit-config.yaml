@@ -11,8 +11,6 @@ repos:
         exclude: src/generated/.*
       - id: mixed-line-ending
         exclude: src/generated/.*
-      - id: trailing-whitespace
-        exclude: src/generated/.*
 
   - repo: https://github.com/jorisroovers/gitlint
     rev: v0.19.1

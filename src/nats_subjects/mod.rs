@@ -56,7 +56,7 @@ pub fn provider_changed_event(provider_id: &str) -> String {
 #[inline(always)]
 #[must_use]
 pub fn registry_provider_definition_read_query(provider_id: &str) -> String {
-    format!("{VERSION_PREFIX}.{LOCATION_PREFIX}.registry.providers.{provider_id}.def.qry.read",)
+    format!("{VERSION_PREFIX}.{LOCATION_PREFIX}.registry.providers.{provider_id}.def.qry.read")
 }
 
 /// The registry will use this subject to notify consumers about a changed definition of the given provider.

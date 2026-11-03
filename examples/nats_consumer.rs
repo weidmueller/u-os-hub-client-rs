@@ -41,7 +41,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let auth_nats_con = Arc::new(
         AuthenticatedNatsConnection::new(
-            format!("nats://{}:{}", &conf.nats_ip, &conf.nats_port),
+            format!("nats://{}:{}", conf.nats_ip, conf.nats_port),
             &auth_settings,
         )
         .await
@@ -162,7 +162,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     variables.items = Some(vec![new_var_value]);
 
     let mut write_vars_cmd = WriteVariablesCommandT::default();
-    write_vars_cmd.variables = Box::new(variables);
+    *write_vars_cmd.variables = variables;
 
     //This will send the write command to the provider after checking preconditions,
     //e.g. variable ids, write permissions, data types etc.

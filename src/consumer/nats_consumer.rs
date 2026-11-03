@@ -54,7 +54,7 @@ impl NatsConsumer {
     /// If the connection uses oauth2 authentication, the constructor will check if the user has the required permissions
     /// [`NatsPermission::VariableHubRead`](`crate::authenticated_nats_con::NatsPermission::VariableHubRead`)
     /// or [`NatsPermission::VariableHubReadWrite`](`crate::authenticated_nats_con::NatsPermission::VariableHubReadWrite`).
-    #[allow(clippy::unused_async)] // async for future use
+    #[allow(unknown_lints, clippy::unused_async, clippy::unused_async_trait_impl)] // async for future use
     pub async fn new(nats_con: Arc<AuthenticatedNatsConnection>) -> Result<Self> {
         //Check if the user has the required permissions if the connection uses oauth2 authentication
         let perms = nats_con.get_permissions();

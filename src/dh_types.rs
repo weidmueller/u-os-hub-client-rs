@@ -333,7 +333,7 @@ impl From<&VariableValue> for VariableValueT {
             }
             VariableValue::String(val) => {
                 let val_t = VariableValueStringT {
-                    value: Some(val.to_string()),
+                    value: Some(val.clone()),
                 };
                 VariableValueT::String(Box::new(val_t))
             }

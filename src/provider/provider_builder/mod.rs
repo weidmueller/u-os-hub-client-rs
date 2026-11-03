@@ -6,7 +6,7 @@
 use std::{collections::BTreeMap, sync::Arc};
 
 use thiserror::Error;
-use tracing::{debug, error};
+use tracing::debug;
 
 use crate::{
     authenticated_nats_con::{AuthenticatedNatsConnection, AuthenticationSettings},
