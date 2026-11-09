@@ -5,7 +5,7 @@
 [Unit]
 Description=Just a simple dummy provider
 Wants=nats-server.service uc-hub.service
-After=uc-hub.service uc-hub-auth.service hydra.service
+After=uc-hub.service uc-hub-auth.service u-os-iam.service
 
 [Service]
 LoadCredentialEncrypted=u_os_hub_example_provider:/etc/credstore.encrypted/u_os_hub_example_provider.creds
