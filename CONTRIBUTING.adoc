@@ -87,7 +87,7 @@ There are convenience scripts to deploy and remove the examples from a device:
 ./tools/remove_hub_examples.sh <user@IP>
 ```
 
-Note that the user must have sudo access on the target device.
+Note that the specified user must have sudo privileges on the target device, and u-OS version 2.12 or later is required to deploy the examples.
 
 
 === Publishing Your Changes

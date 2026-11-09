@@ -17,6 +17,7 @@ SERVICES="u-os-hub-example-provider u-os-hub-example-consumer"
 
 # Important paths
 CREDENTIAL_STORE="/etc/credstore.encrypted"
+WATCH_DIR="/var/lib/u-os-iam/oauth-clients"
 
 echo "--> Disable the $SERVICES"
 systemctl stop $SERVICES || true
@@ -30,6 +31,9 @@ done
 
 echo "--> Remove credentials"
 rm -f $CREDENTIAL_STORE/u_os_hub_example_*
+
+echo "--> Remove IAM clients"
+rm -f "$WATCH_DIR/u_os_hub_example_provider.json" "$WATCH_DIR/u_os_hub_example_consumer.json"
 
 echo "--> Reload systemd"
 systemctl daemon-reload
