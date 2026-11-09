@@ -5,9 +5,16 @@
 //! Provides utilities for `OAuth2` handling
 use base64::{Engine, prelude::BASE64_STANDARD};
 use hyper::header::AUTHORIZATION;
+use rustls::{
+    ClientConfig, DigitallySignedStruct, Error as RustlsError, SignatureScheme,
+    client::danger::{HandshakeSignatureValid, ServerCertVerified, ServerCertVerifier},
+    crypto::{CryptoProvider, WebPkiSupportedAlgorithms},
+    pki_types::{CertificateDer, ServerName, UnixTime},
+};
 use serde::Deserialize;
-use std::{collections::BTreeMap, path::Path};
+use std::{collections::BTreeMap, path::Path, sync::Arc};
 use thiserror::Error;
+use tracing::debug;
 
 use crate::env_file_parser;
 
@@ -27,6 +34,8 @@ pub enum OAuth2CredentialsFromEnvFileError {
 pub enum OAuth2RequestTokenError {
     #[error("HTTP request failed: {0}")]
     Request(#[from] reqwest::Error),
+    #[error("Failed to configure TLS: {0}")]
+    Tls(#[from] RustlsError),
     #[error("Failed to obtain token: {error_response:?}, status code: {http_status_code}")]
     ErrorResponse {
         error_response: Oauth2ErrorResponse,
@@ -74,14 +83,14 @@ impl OAuth2Credentials {
     }
 
     /// Executes the `OAuth2` client credentials flow to request an access token
+    ///
+    /// Uses the configured TLS crypto provider or a request-local `ring` fallback.
     pub async fn request_token<T: AsRef<str>, T2: AsRef<str>>(
         &self,
         token_endpoint: T,
         scope: T2,
     ) -> Result<TokenResponse, OAuth2RequestTokenError> {
-        let reqwest_client = reqwest::ClientBuilder::new()
-            .danger_accept_invalid_certs(true)
-            .build()?;
+        let reqwest_client = request_client()?;
 
         let mut params = BTreeMap::new();
         params.insert("grant_type", "client_credentials");
@@ -122,6 +131,85 @@ impl OAuth2Credentials {
                 http_status_code: status.as_u16(),
             })
         }
+    }
+}
+
+/// Creates and returns a configured `reqwest::Client` for `OAuth2` client credentials requests.
+///
+/// If a global `CryptoProvider` is available, the client will bypass certificate validation.
+/// Otherwise, it will use a request-local `ring` provider with a custom certificate verifier.
+///
+/// Certificate validation is bypassed because u-OS apps currently have no way to access
+/// the web server's certificate for proper validation.
+/// Certificate validation will be enabled once a suitable mechanism is available.
+/// This is currently not critical because the endpoint is local to the device.
+///
+/// # Errors
+/// Returns an `OAuth2RequestTokenError` if the client cannot be built or if TLS configuration fails.
+fn request_client() -> Result<reqwest::Client, OAuth2RequestTokenError> {
+    let builder = reqwest::ClientBuilder::new();
+
+    // The target endpoint is local to the device.
+    // TODO: Enable certificate validation once u-OS apps can obtain the web server certificate.
+    if CryptoProvider::get_default().is_some() {
+        return Ok(builder.tls_danger_accept_invalid_certs(true).build()?);
+    }
+
+    debug!(
+        "No global CryptoProvider found, using ring default provider for the Client Credentials request"
+    );
+    let provider = Arc::new(rustls::crypto::ring::default_provider());
+    let verifier = AcceptInvalidCertificates {
+        signature_algorithms: provider.signature_verification_algorithms,
+    };
+
+    // Preconfigured TLS bypasses reqwest's tls_danger_accept_invalid_certs setting.
+    let tls_config = ClientConfig::builder_with_provider(provider)
+        .with_safe_default_protocol_versions()?
+        .dangerous()
+        .with_custom_certificate_verifier(Arc::new(verifier))
+        .with_no_client_auth();
+
+    Ok(builder.tls_backend_preconfigured(tls_config).build()?)
+}
+
+#[derive(Debug)]
+struct AcceptInvalidCertificates {
+    signature_algorithms: WebPkiSupportedAlgorithms,
+}
+
+impl ServerCertVerifier for AcceptInvalidCertificates {
+    fn verify_server_cert(
+        &self,
+        _end_entity: &CertificateDer<'_>,
+        _intermediates: &[CertificateDer<'_>],
+        _server_name: &ServerName<'_>,
+        _ocsp_response: &[u8],
+        _now: UnixTime,
+    ) -> Result<ServerCertVerified, RustlsError> {
+        Ok(ServerCertVerified::assertion())
+    }
+
+    fn verify_tls12_signature(
+        &self,
+        message: &[u8],
+        cert: &CertificateDer<'_>,
+        dss: &DigitallySignedStruct,
+    ) -> Result<HandshakeSignatureValid, RustlsError> {
+        rustls::crypto::verify_tls12_signature(message, cert, dss, &self.signature_algorithms)
+    }
+
+    fn verify_tls13_signature(
+        &self,
+        message: &[u8],
+        cert: &CertificateDer<'_>,
+        dss: &DigitallySignedStruct,
+    ) -> Result<HandshakeSignatureValid, RustlsError> {
+        rustls::crypto::verify_tls13_signature(message, cert, dss, &self.signature_algorithms)
+    }
+
+    fn supported_verify_schemes(&self) -> Vec<SignatureScheme> {
+        self.signature_algorithms.supported_schemes()
     }
 }
 

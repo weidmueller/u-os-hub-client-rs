@@ -6,6 +6,12 @@ SPDX-License-Identifier: MIT
 
 # Changelog
 
+### 0.4.1
+
+- fix: no default provider
+    - Starting with version 0.4.0, a CryptoProvider must be set globally for the binary due to the reqwest update. 
+      If this was not the case, a panic occurred at runtime. Now, a `ring` CryptoProvider is set for the request if there is no globally defined provider.
+
 ### 0.4.0
 
 - fix: use global ca store (reqwest)

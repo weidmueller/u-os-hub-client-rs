@@ -53,6 +53,8 @@ pub struct AuthenticationSettings {
     /// A list of oauth2 scopes that are used to authenticate the client.
     pub permissions: NatsPermissionList,
     /// Address of the oauth2 endpoint.
+    /// WARNING: Only use an endpoint accessible via the device's loopback interface.
+    /// Certificate validation is currently bypassed.
     pub oauth2_endpoint: String,
     /// `OAuth2` credentials used to authenticate the client.
     pub creds: Option<OAuth2Credentials>,
